@@ -1,0 +1,130 @@
+## SPT-AKI Lutris installer v2024.4.4-experimental ##
+
+## This Lutris installer is using the -OFFICIAL- SPT-AKI installer
+
+## ※\(^o^)/※ ##
+description: 'Installs the BSG Launcher & SPT-AKI for you, the game has to be installed manually'
+notes: "Please read before installing:\n
+        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer.md"
+game_slug: escape-from-tarkov
+gogslug: ''
+humblestoreid: ''
+installer_slug: spt-installer-official
+name: SPTarkov - Launcher
+runner: wine
+script:
+    files:
+    - eft:
+        url: https://prod.escapefromtarkov.com/launcher/download
+        filename: BsgLauncher.exe
+    - spt-installer:
+        url: https://dev.sp-tarkov.com/CWX/SPT-AKI-Installer/releases/download/latest/SPTInstaller.exe
+        filename: SPTInstaller.exe
+    game:
+        arch: win64
+        exe: drive_c/SPTarkov/Aki.Launcher.exe
+        prefix: $GAMEDIR
+        launch_configs:
+        - exe: Aki.Server.exe
+          name: SPTarkov - Server
+        - exe: BsgLauncher.exe
+          name: BSG Launcher
+          args: --disable-gpu --disable-remote-fonts
+          working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
+    installer:
+    - task:
+        name: create_prefix
+        overrides:
+            mscoree: d
+        arch: win64
+    - merge:
+        src: spt-installer
+        dst: $GAMEDIR/drive_c/SPTarkov/
+    - extract:
+        description: Installing BSG Launcher ...
+        dst: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/
+        file: eft
+        format: gog
+    - task:
+        app: --self-update
+        arch: win64
+        description: Updating winetricks ...
+        name: winetricks
+        prefix: $GAMEDIR
+    - task:
+        app: win10 arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
+        arch: win64
+        description: Installing game dependencies ...
+        name: winetricks
+        prefix: $GAMEDIR
+    - task:
+        app: dotnet48
+        arch: win64
+        description: Installing .NET 4.8 (This can take a while ...)
+        name: winetricks
+        prefix: $GAMEDIR
+    - task:
+        description: Adding mouse focus workaround registry key ...
+        name: set_regedit
+        path: HKEY_CURRENT_USER\Software\Wine\X11 Driver
+        key: UseTakeFocus
+        value: N
+    # Workaround for SPT-AKI
+    - task:
+        description: Adding dll override for 'winhttp' ...
+        name: set_regedit
+        path: HKEY_CURRENT_USER\Software\Wine\DllOverrides
+        key: winhttp
+        value: native,builtin
+    - task:
+        arch: win64
+        description: Launching BSG Launcher (Login sometimes takes a bit ...)
+        executable: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/BsgLauncher.exe
+        name: wineexec
+        working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
+    - task:
+        name: winekill
+    - task:
+        app: win81
+        arch: win64
+        description: Setting windows version to Windows 8.1 ...
+        name: winetricks
+        prefix: $GAMEDIR
+    - task:
+        arch: win64
+        description: Launching SPTInstaller ...
+        executable: $GAMEDIR/drive_c/SPTarkov/SPTInstaller.exe
+        name: wineexec
+    - task:
+        name: winekill
+    # Installation complete
+    install_complete_text: "All done! ※\\(^o^)/※\n
+                     \n
+                     Quick start:\n
+                     1. Launch 'SPTarkov - Server'\n
+                     2. Launch 'SPTarkov - Launcher'\n
+                     3. Create a new profile & play\n
+                     \n
+                     For the latest updates & mods, visit:\n
+                     https://hub.sp-tarkov.com/\n
+                     \n
+                     Have fun! ('-')7"
+    system:
+        env:
+            DXVK_CONFIG_FILE: ''
+            # make sure to save shader cache data inside the prefix (easier to remove later)
+            DXVK_STATE_CACHE_PATH: $GAMEDIR
+            __GL_SHADER_DISK_CACHE: 1
+            __GL_SHADER_DISK_CACHE_PATH: $GAMEDIR
+            # Workarounds for dotnet package issues with SPTInstaller and AKIPatcher
+            DOTNET_BUNDLE_EXTRACT_BASE_DIR:
+            DOTNET_ROOT: 
+        # Reduce sound issues
+        pulse_latency: true
+        # Without terminal mode the server won't run!
+        # Small issue - another terminal opens for the launcher as well ¯\_( ͡° ͜ʖ ͡°)_/¯
+        terminal: true
+slug: sptarkov
+steamid: null
+version: sptinstaller-latest
+year: 2017

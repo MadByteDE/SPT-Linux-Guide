@@ -1,0 +1,1242 @@
+#!/bin/bash
+
+# MIT License
+# Copyright (c) 2024 MadByte
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to
+# do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+################################################################################
+# ERROR CODES:
+# 0 = normal exit (Success)
+# 1 / 256 = General error
+# 2 / 512 = Subshell error
+# 3 / 768 = User aborted manually
+################################################################################
+
+################################################################################
+# TODO LIST: 
+# TODO: Enable verbose output for more commands
+# TODO: Hash check the script itself to let ppl know when it's been tempered with
+# TODO: Add options for creating or restoring user file backups
+# TODO: Add ability to clean up backups
+################################################################################
+
+################################################################################
+TITLE="spt-linux-additions"
+VERSION="2024.4-10"
+################################################################################
+
+# Common directories
+readonly XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
+readonly SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+readonly LOG_PATH="${SCRIPT_DIR}/spt-linux-additions.log"
+# Remove old log file, otherwise we just append more lines to it
+[ -f "${LOG_PATH}" ] && rm -f "${LOG_PATH}" 2>/dev/null
+
+# ANSI codes
+readonly BOLD="\e[1m"
+readonly UNDERLINE="\e[2m"
+readonly RED="\e[31m"
+readonly GREEN="\e[32m"
+readonly BLUE="\e[36m"
+readonly YELLOW="\e[33m"
+readonly GRAY="\e[90m"
+readonly RESET="\e[0m"
+
+# Detect if run in Lutris environment
+[[ $PATH == *"lutris"* ]] \
+&& readonly LUTRIS_ENV=1 
+
+
+################################################################################
+# PRE-INIT HELPER FUNCTIONS #
+################################################################################
+
+function m_echo() {
+    # Echo to console
+    # Check if we are running inside a Lutris context
+    if [[ "$LUTRIS_ENV" -eq 1 ]]; then
+        # Remove ANSI codes
+        echo -e "${@}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g'
+    else
+        # Use ANSI codes
+        echo -e "${@}"
+    fi
+    # Echo to log file
+    echo -e "${@}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' >> ${LOG_PATH}
+}
+
+function m_sleep() {
+    [[ ${NO_WAIT} -eq 0 ]] \
+    && sleep $1
+    return 0
+}
+
+function m_exit() {
+    status=${1:-0}
+    if [ -d "${TEMP_DIR}" ]; then
+        rm -r "${TEMP_DIR}" || warn "Failed to remove temp directory"
+    fi
+    exit ${status}
+}
+
+
+function msg() {
+    m_echo "[${TITLE}] $@"
+}
+
+
+function warn() {
+    msg "${BOLD}WARN: $@${RESET}"
+    m_sleep 1
+}
+
+
+function dbg() {
+    if [[ ${DEBUG_OUTPUT} -ge 1 ]]; then
+        msg "${GRAY}dbg: $@${RESET}"
+    fi
+}
+
+
+function err() {
+    status=${2:-1}
+    msg "${BOLD}${RED}ERROR: $1 (⊙＿⊙')${RESET}"
+    # This is a workaround for Lutris closing the cli immediately after
+    # encountering an error & just showing the -not so useful- error code
+    if [[ ${LUTRIS_ENV} -eq 1 ]]; then m_sleep 5;
+    else m_sleep 2; fi
+    m_exit ${status}
+}
+
+
+function subshell_err() {
+    status=${2:-2}
+    printf "${BOLD}${RED}$1${RESET}\n"
+    m_exit ${status}
+}
+
+
+function yes_or_no {
+    while true; do
+        msg "$* [y/n]"
+        read -p "   > " yn
+        case $yn in
+            [Yy]*) return 0 ;;  
+            [Nn]*) msg "Aborted"; return 1 ;;
+        esac
+    done
+}
+
+
+################################################################################
+# INITIALIZE #
+################################################################################
+
+# Create temp directory
+readonly TEMP_DIR="$(mktemp -d -t "${TITLE}.XXXXXXXXX")"
+[ ! "${TEMP_DIR}" ] && err "Couldn't create temp directory"
+
+# Create cache directory
+readonly CACHE_DIR="${XDG_CACHE_HOME}/${TITLE}"
+if ! [ "${CACHE_DIR}" ]; then
+    mkdir -r "${CACHE_DIR}" \
+    || err "Couldn't create cache directory"
+fi
+
+# Mod variables
+readonly MOD_JSON_URL="https://dev.sp-tarkov.com/api/v1/repos/SPT-AKI/Stable-Releases/releases/"
+readonly MOD_JSON_PATH="${TEMP_DIR}/json/mod.json"
+readonly MOD_FILE_PATH="${CACHE_DIR}/SPT-AKI.7z"
+MOD_VERSION=''
+MOD_RELEASE_URL=''
+MOD_EXPECTED_HASH=''
+
+# Patcher variables
+readonly PATCHER_JSON_URL="https://dev.sp-tarkov.com/api/v1/repos/SPT-AKI/Downgrade-Patches/releases/"
+readonly PATCHER_MIRRORS_JSON_PATH="${TEMP_DIR}/json/mirrors.json"
+readonly PATCHER_JSON_PATH="${TEMP_DIR}/json/patcher.json"
+readonly PATCHER_FILE_PATH="${CACHE_DIR}/Patcher.7z"
+PATCHER_TARGET_EFT_VERSION=''
+PATCHER_URLS=''
+PATCHER_EXPECTED_HASH=''
+
+# EFT variables
+EFT_INSTALL_PATH=''
+INSTALLED_EFT_VERSION=''
+REQUIRED_EFT_VERSION=''
+
+# SPT variables
+SPT_RELATIVE_INSTALL_PATH='drive_c/SPTarkov'
+SPT_RELATIVE_ROOT_BACKUP_PATH='drive_c/spt-backups'
+SPT_INSTALL_PATH=''
+INSTALLED_SPT_VERSION=''
+SPT_ROOT_BACKUP_PATH=''
+SPT_BACKUP_PATH=''
+SPT_CACHED_LATEST_BACKUP_FILE="${CACHE_DIR%/}/latest_backup"
+REMOVE_PATCHES=''
+REINSTALL_SPT=''
+
+
+################################################################################
+# POST-INIT HELPER FUNCTIONS #
+################################################################################
+
+function curl_download() {
+    url="${1}"
+    output_path="${2}"
+    filename="${url##*/}"
+    [ "${filename}" == "" ] \
+    && filename="${output_path##*/}"
+    dbg "Download url: ${url}"
+    dbg "Download output path: ${output_path}"
+    msg "Downloading '${filename}'"
+    curl -f -L --max-redirs 0 --create-dirs $url -o "${output_path}"; status=$?
+    if [ $status != 0 ]; then
+        warn "Failed to download file from '${url}'"
+        dbg "curl: Error code $status"
+        return 1
+    fi
+    [ ! -f "${output_path}" ] && err "curl_download: Download failed"
+    msg "'${filename}' downloaded successfully"
+}
+
+
+function check_hash() {
+    file_path="${1}"
+    expected_hash="${2}"
+
+    # Check arguments
+    [ ! -f "${file_path}" ] \
+    && err "check_hash: File '${file_path}' does not exist"
+    [ ! "${expected_hash}" ] \
+    && err "check_hash: Missing 'expected_hash' argument"
+
+    # use file to calculate MD5 hash and ENCODE in base64
+    msg "Verifying checksum of file '${file_path##*/}'"
+    file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | xxd -r -p | base64)
+    status=$?; [ $status != 0 ] && subshell_err "${file_hash}"
+    dbg "File hash: ${file_hash} Expected hash: ${expected_hash}"
+
+    # Check if a hash is returned
+    [ ! "${file_hash}" ] \
+    && err "Failed to calculate hash"
+
+    # Check if they match
+    [ "${file_hash}" != "${expected_hash}" ] \
+    && warn "Checksum mismatch" && return 1
+
+    # Success
+    msg "Check successful"
+}
+
+
+################################################################################
+# RELEASE HELPER FUNCTIONS #
+################################################################################
+
+function get_release_url() {
+    json_file_path="${1}"
+
+    # Check if json file exists
+    [ ! -f "${json_file_path}" ] \
+    && err "get_release_url: File '${json_file_path}' does not exist"
+
+    # Get all download URLs
+    all_urls=$(cat "${json_file_path}" 2>/dev/null \
+    | grep -o "\"browser_download_url\":[^}]*" | cut -d "\"" -f4)
+
+    # Get the latest version
+    url=$(echo "${all_urls}" | head -1)
+
+    # Check if the URL is not empty
+    if ! [ "${url}" ] || [ "${url}" == '' ]; then
+        err "get_release_url: Failed to fetch release URL"
+    fi
+
+    echo "${url}"
+}
+
+
+function get_release_version() {
+    json_file_path="${1}"
+
+    url=$(get_release_url "${json_file_path}")
+    status=$?; [ $status != 0 ] && subshell_err "${url}"
+
+    # Cut release version from url and echo
+    version=$(echo "${url}" | cut -d "/" -f8)
+
+    echo "${version}"
+}
+
+
+################################################################################
+# MOD HELPER FUNCTIONS #
+################################################################################
+
+function get_required_eft_version() {
+    url="${1:-"${MOD_RELEASE_URL}"}"
+
+    # Check if the URL exists
+    [ ! "${url}" ] \
+    && err "get_required_eft_version: Missing URL"
+
+    # Cut required EFT version from the mod archive filename
+    eft_version=$(echo "${url##*/}" | cut -d "-" -f4)
+
+    echo "${eft_version}"
+}
+
+
+function get_expected_mod_hash() {
+    json_file_path="${MOD_JSON_PATH:-${1}}"
+
+    # Check exists
+    [ ! -f "${json_file_path}" ] \
+    && err "get_expected_mod_hash: File '${json_file_path}' does not exist"
+
+    # Get hash
+    hash=$(cat "${json_file_path}" 2>/dev/null \
+        | grep -o "Release Hash:[^\]*" \
+        | head -1 | cut -d " " -f3)
+
+    # Check result
+    if ! [ "${hash}" ] || [ "${hash}" == '' ]; then
+        err "get_expected_mod_hash: Failed to fetch HASH"
+    fi
+    
+    echo "${hash}"
+}
+
+
+function download_mod() {
+    url="${1:-"${MOD_RELEASE_URL}"}"
+    [ ! "${url}" ] \
+    && err "download_mod: Missing URL"
+    curl_download "${url}" "${MOD_FILE_PATH}"
+}
+
+
+function get_installed_spt_version() {
+    # Check exists
+    [ ! -d "${SPT_INSTALL_PATH}" ] \
+    && err "get_installed_spt_version: Directory '${SPT_INSTALL_PATH}' does not exist"
+
+    # Check if our dll file exists
+    core_json_file="${SPT_INSTALL_PATH}/Aki_Data/Server/configs/core.json"
+    [ ! -f "${core_json_file}" ] \
+    && err "get_installed_spt_version: File '${core_json_file}' does not exist"
+
+    # Get version
+    version=$(cat "${core_json_file}" 2>/dev/null \
+        | grep -o "\"akiVersion\":[^}]*" \
+        | cut -d "\"" -f4)
+    [ "${version}" == "" ] \
+    && err "Failed to fetch SPT version string"
+    echo "${version}"
+}
+
+
+################################################################################
+# PATCHER HELPER FUNCTIONS #
+################################################################################
+
+function get_patcher_urls() {
+    mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
+    mirror_index="${2}"
+    urls=$(cat "${mirrors_json_path}" \
+        | grep -o "\"Link\":[^}]*" \
+        | cut -d "\"" -f4)
+    if [ "${mirror_index}" ]; then
+        echo "${urls}" | sed "${mirror_index}q;d" 2>/dev/null
+        return 0
+    fi
+    if ! [ "${urls}" ] || [ "${urls}" == '' ]; then
+        err "get_patcher_urls: Failed to fetch URLs"
+    fi
+    echo "${urls}"
+}
+
+
+function get_patcher_target_eft_version() {
+    mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
+
+    url=$(get_patcher_urls "${mirrors_json_path}" 1)
+    status=$?; [ $status != 0 ] && subshell_err "${url}"
+
+    # Split filename to get version infos from it
+    formatted_filename=$(echo "${url##*/}" | tr "_." " ")
+
+    # get target EFT version
+    target_eft_version=$(echo "${formatted_filename}" | cut -d " " -f5)
+
+    echo "${target_eft_version}"
+}
+
+
+function get_expected_patcher_hash() {
+    mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
+    expected_hash=$(  cat "${mirrors_json_path}" \
+                    | grep -o "\"Hash\":[^}]*" \
+                    | head -1 \
+                    | cut -d "\"" -f4)
+    if ! [ "${expected_hash}" ] || [ "${expected_hash}" == '' ]; then
+        err "get_expected_patcher_hash: Failed to fetch HASH using '$*'"
+    fi
+    echo "${expected_hash}"
+}
+
+
+function download_patcher() {
+    # Get all mirror urls
+    urls="${1:-${PATCHER_MIRROR_URLS}}"; [ "${urls}" == '' ] \
+    && err "download_patcher: Missing mirror urls"
+    dbg "download_patcher: Got mirrors: '"${urls}"'"
+    
+    # Try to download from first to last
+    echo "${urls}" | while read url; do
+        msg "Using mirror: '${url}'"
+        curl_download "${url}" "${PATCHER_FILE_PATH}"; status=$?
+        # Success
+        [ $status == 0 ] \
+        && msg "Downloaded file successfully" \
+        && break
+    done
+}
+
+
+################################################################################
+# EFT HELPER FUNCTIONS #
+################################################################################
+
+function get_eft_install_path() {
+    prefix_path="${1:-"${PREFIX_PATH}"}"
+    prefix_path="${prefix_path%/}"
+
+    # Check exists
+    [ ! -d "${prefix_path}" ] \
+    && err "get_eft_install_path: Directory '${prefix_path}' does not exist"
+
+    # get windows formatted path
+    registry="${prefix_path}/system.reg"
+    path=$(cat "${registry}" | grep "Tarkov\"" | \
+    grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4)
+
+    # If there is no registry entry for Tarkov, the game is probably not installed
+    if ! [ "${path}" ] || [ "${path}" == '' ]; then
+        err "get_eft_install_path: Looks like EFT is not installed"
+    fi
+
+    # Replace backslashes with slashes
+    path="${path//\\\\/\/}"
+
+    # Finally assamble the full path
+    path=$(echo "${prefix_path}/${path//C:/drive_c}")
+
+    echo "${path}"
+}
+
+
+function get_installed_eft_version() {
+    eft_install_path="${1:-"${EFT_INSTALL_PATH}"}"
+
+    # Check exists
+    [ ! -d "${eft_install_path}" ] \
+    && err "get_installed_eft_version: Directory '${eft_install_path}' does not exist"
+
+    # Check if main exe exists
+    exe_file="${eft_install_path}/EscapeFromTarkov.exe"
+    [ ! -f "${exe_file}" ] \
+    && err "get_installed_eft_version: File '${exe_file}' does not exist"
+
+    # Extract metadata
+    tmp_dir="${TEMP_DIR}/exe"
+    7z x "${exe_file}" -o"${tmp_dir}" 1>/dev/null \
+    || err "get_installed_eft_version: Failed to extract '${exe_file}' to '${tmp_dir}'"
+
+    # Finally get the EFT version from the version.txt file
+    # make sure to remove null byte and -stupid- windows \r -_-* (learned it the hard way!)
+    version_file="${tmp_dir}/.rsrc/0/version.txt"
+    version=$(cat "${version_file}" | head -1 | tr -d '\0\r' | cut -d "," -f4)
+
+    echo "${version}"
+}
+
+
+################################################################################
+# INSTALLER HELPER FUNCTIONS #
+################################################################################
+
+function check_eft_running() {
+    if [ $(pidof "BsgLauncher.exe") ]; then
+        err "check_eft_running: Please close the BsgLauncher before installing (and running) SPT"
+    fi
+}
+
+
+function check_dependencies() {
+    warn "check_dependencies: Not fully implemented yet"
+    cmds=("7z" "xdelta3" "xxd")
+    missing_pkgs=()
+
+    # Check each cmd and error out if something is missing
+    # We need to handle packages as well - different ones for Fedora (who would have guessed :/)
+    for cmd in "${cmds[@]}"; do
+        pkgs=()
+        if ! [ -x "$(command -v $cmd)" ]; then
+            # Fedora appearently likes to change their package names >.<'
+            case ${cmd} in
+                "7z")
+                    if [ -f "/etc/fedora-release" ]; then pkgs+=("p7zip-plugins")
+                    else pkgs+=("p7zip"); fi
+                ;;
+                "xdelta3")
+                    if [ -f "/etc/fedora-release" ]; then pkgs+=("xdelta")
+                    else pkgs+=("xdelta3"); fi
+                ;;
+                "xxd")
+                    if [ -f "/etc/fedora-release" ]; then pkgs+=("vim-common")
+                    else pkgs+=("xxd"); fi
+                ;;
+            esac
+            dbg "Found missing package(s): '${pkgs[@]}'"
+            missing_pkgs+=(${pkgs[@]})
+        fi
+    done
+
+    # Show all missing pkgs and raise an error
+    if [ "${#missing_pkgs[@]}" != 0 ]; then
+        warn "You are missing the following packages:"
+        msg "${missing_pkgs[@]}"
+        msg "Please install all missing packages and try again (e.g. using 'sudo apt install ${missing_pkgs[@]}' or 'sudo yum install ${missing_pkgs[@]}')"
+        err "check_dependencies: Missing dependencies"
+    fi
+    # TODO: Check for game dependencies: dotnetdesktop8 dotnet48, etc
+    # TODO: Check if workarounds are set: winhttp=n,b
+}
+
+
+function check_disk_space() {
+    path=${1:-${PREFIX_PATH}}; [ ! "${path}" ] \
+    && err "check_disk_space: Missing path argument"
+
+    # Get required values
+    free_size=$(df -Pk "${path}" | sed 1d | awk '{ print $4 }')
+    eft_install_size=$(du -cs "${EFT_INSTALL_PATH}" | head -1 | cut -d$'\t' -f1)
+    overhead_size=$((1024*1024*10))
+    total_install_size=$(($eft_install_size + $overhead_size))
+    dbg "Free disk space: ${free_size} kb (checked in ${path})"
+    dbg "EFT install size: ${eft_install_size} kb"
+    dbg "Total required free space: ${total_install_size} kb"
+
+    # Check if there's enough space
+    [ $free_size -le $total_install_size ] \
+    && err "check_disk_space: Not enough free disk space available"
+}
+
+
+function check_mod_install_path() {
+    spt_install_path="${1:-${SPT_INSTALL_PATH}}"
+
+    # Reinstall mode - use some common files to validate that this is a game directory
+    if [[ ${REINSTALL_SPT} -eq 1 ]]; then
+        [ ! -d "${spt_install_path}" ] \
+        && err "check_mod_install_path: SPT install directory at '${spt_install_path}' does not exist"
+        # FIXME: Not the best way to verify the game directory.. hmmm...
+        try_paths=( "Aki_Data" "BepInEx" "EscapeFromTarkov.exe" )
+        for path in "${try_paths[@]}"; do
+            full_path="${spt_install_path}/${path}"
+            [ ! -e "${full_path}" ] \
+            && err "check_mod_install_path: Directory is not a valid SPT install directory"
+        done
+
+    # Check if install dir is empty
+    elif [[ ${REINSTALL_SPT} -eq 0 ]] && [ ! -z "$(ls -A "${spt_install_path}" 2>/dev/null)" ]; then
+        warn "SPT install directory not empty!"
+        m_echo
+        m_echo "    > Please make sure the path is correct and there are no files inside the directory!"
+        m_echo
+        err "check_mod_install_path: SPT install directory not empty"
+    fi
+    # TODO: Check for weird paths passed to the installer
+}
+
+
+function download_metadata() {
+    msg "Downloading metadata"
+    # Get mod json
+    curl_download "${MOD_JSON_URL}" "${MOD_JSON_PATH}"
+
+    # Get patcher json
+    curl_download "${PATCHER_JSON_URL}" "${PATCHER_JSON_PATH}"
+
+    # Get release url from mirrors json
+    patcher_release_url=$(get_release_url "${PATCHER_JSON_PATH}")
+    status=$?; [ $status != 0 ] && subshell_err "${patcher_release_url}"
+    dbg "Patcher release url: Got '${patcher_release_url}'"
+
+    # Get patcher mirrors json
+    curl_download "${patcher_release_url}" "${PATCHER_MIRRORS_JSON_PATH}"
+}
+
+
+function verify_cached() {
+    cached_path="${1}"; [ ! "${cached_path}" ] \
+    && err "verify_cached: Missing cached path argument"
+    expected_hash="${2}"; [ ! "${expected_hash}" ] \
+    && err "verify_cached: Missing expected hash argument"
+
+    # Make sure the path actually is in CACHE_DIR
+    [ $cached_path == *"${CACHE_DIR}"* ] \
+    && err "verify_cached: Given file isn't inside the scripts cache directory"
+
+    # Verify the file is there and valid
+    filename=${cached_path##*/}
+    msg "Checking for cached file '${filename}'"
+    if [ -f "${cached_path}" ]; then
+        msg "Found cached file"
+
+        # Check hash
+        check_hash "${cached_path}" "${expected_hash}"; status=$?
+
+        # Hash mismatch? Get rid of that sh*t
+        if [ $status != 0 ]; then
+            warn "Removing cached file '${filename}'"
+            rm -f "${cached_path}" \
+            || err "verify_cached: Failed to remove cached file '${filename}'"
+            return 1
+        else
+            return 0
+        fi
+    else
+        msg "File '${filename}' is not cached"
+        return 1
+    fi
+}
+
+
+function create_spt_install() {
+    if [[ ${REINSTALL_SPT} -eq 1 ]]; then
+        # Remove old spt installation
+        msg "Removing previous SPT install directory"
+        rm -r "${SPT_INSTALL_PATH}" \
+        || err "Failed to remove SPT install directory"
+    fi
+    # Copy EFT files to new spt install
+    msg "Copying EFT game files to SPT install directory"
+    mkdir "${SPT_INSTALL_PATH}" &>/dev/null
+    cp --reflink=auto -r "${EFT_INSTALL_PATH%/}/"* "${SPT_INSTALL_PATH}" \
+    || err "create_spt_install: Failed to copy EFT game files to SPT install directory"
+}
+
+
+function backup_user_files() {
+    spt_install_path="${1:-${SPT_INSTALL_PATH}}"
+    spt_relative_backup_path="${2:-"${SPT_RELATIVE_ROOT_BACKUP_PATH}"}"
+    spt_backup_path="${PREFIX_PATH%/}/${spt_relative_backup_path}"
+    installed_spt_version="${INSTALLED_SPT_VERSION:-"unknown"}"
+    # FIXME: Maybe move these to global environment?
+    required_dirs=("user" "BepInEx/config" "BepInEx/plugins")
+
+    # Make sure the root backup directory exists
+    [ ! -d "${spt_backup_path}" ] \
+    && mkdir "${spt_backup_path}"
+
+    # Prepare new root backup directory path
+    printf -v timestamp '%(%Y%m%d-%H%M)T' -1
+    dir_name="spt-${installed_spt_version}-${timestamp}"
+    dir_path="${spt_backup_path}/${dir_name}"
+
+    # Copy required directories from the SPT install path to the backup path
+    for dir in "${required_dirs[@]}"; do
+        source_path="${spt_install_path%/}/${dir}"
+        target_path="${dir_path}/${dir}"
+        if [ -d "${source_path}" ]; then
+            mkdir -p "${target_path}" \
+            || err "backup_user_files: Failed to create directory at '${target_path}'"
+            cp --reflink=auto -r "${source_path%/}/"* "${target_path%/}/" \
+            || err "backup_user_files: Failed to copy files from '${source_path}' to '${target_path}'"
+        fi
+    done
+
+    # Final check if exists
+    [ ! -d "${dir_path}" ] \
+    && err "backup_user_files: User backup directory at '${dir_path}' does not exist"
+
+    # Cache path to the latest backup
+    echo "${SPT_BACKUP_PATH}" > "${SPT_CACHED_LATEST_BACKUP_FILE}" \
+    || warn "Failed to create cache file '${SPT_CACHED_LATEST_BACKUP_FILE}'"
+
+    # Return the path of the new backup
+    echo "${dir_path}"
+}
+
+
+function restore_user_settings() {
+    # Check for backup directory
+    [ ! -d "${SPT_BACKUP_PATH}" ] \
+    && err "restore_user_settings: Backup directory at '${SPT_BACKUP_PATH}' does not exist"
+
+    # Check for spt install directory
+    [ ! -d "${SPT_INSTALL_PATH}" ] \
+    && err "restore_user_settings: SPT directory at '${SPT_INSTALL_PATH}' does not exist"
+
+    # Array of directories and files to restore
+    # FIXME: Maybe move these to global environment?
+    required_dirs=( "user/sptSettings" "user/launcher" "BepInEx/config" )
+    for dir in "${required_dirs[@]}"; do
+        source_path="${SPT_BACKUP_PATH}/${dir}"
+        target_path="${SPT_INSTALL_PATH%/}/${dir}"
+        if [ -d "${source_path}" ]; then
+            mkdir -p "${target_path}"
+            cp --reflink=auto -r "${source_path%/}/"* "${target_path%/}/" \
+            || err "restore_user_settings: Failed to copy files from '${source_path}' to '${target_path}'"
+        else
+            warn "Failed to restore directory '${source_path}'"
+        fi
+    done
+}
+
+
+################################################################################
+# CORE FUNCTIONS used via cli options #
+################################################################################
+
+function patcher() {
+    msg "Launching patcher..."
+    target_path="${1:-"${SPT_INSTALL_PATH}"}" 
+    target_path="${target_path%/}"
+    source_path="${2:-"${SPT_INSTALL_PATH}"}" 
+    source_path="${source_path%/}"
+
+    if [[ ${DEBUG_OUTPUT} -eq 2 ]]; then xd_args="-v -d -f -s";
+    else xd_args="-d -f -s"; fi
+
+    [ ! -d "${target_path}" ] \
+    && err "patcher: Target directory '${target_path}' does not exist"
+
+    # Search in optional SOURCE directory
+    if [ $(find "$source_path" -maxdepth 1 -type d -name "Aki_Patches" 2>/dev/null) ]; then
+        source_path="${source_path}"
+        msg "Using 'Aki_Patches' from SOURCE directory"
+    # Search in TARGET directory
+    elif [ $(find "$target_path" -maxdepth 1 -type d -name "Aki_Patches" 2>/dev/null) ]; then
+        msg "Using 'Aki_Patches' from TARGET directory"
+        source_path="${target_path}"
+    # No 'Aki_Patches' directory found
+    else
+        err "patcher: Unable to locate 'Aki_Patches' directory in '${source_path}'"
+    fi
+
+    msg "Source directory: ${source_path}"
+    msg "Target directory: ${target_path}"
+
+    progress_start=1
+    progress_total=$(find "$source_path/Aki_Patches" \( -type f -printf x \) | wc -c)
+    # Process each file in source directory
+    find "$source_path/Aki_Patches" \( -type f -print0 \) \
+    | while read -d $'\0' source; do
+        # progress_current
+        progress_current="[${progress_start}/${progress_total}]"
+        # Isolate the operation extension
+        extension="${source##*.}"
+        # Isolate sub-directories of Aki_Patches/xd
+        formatted="${source#*Aki_Patches/}"
+        # Remove operation extension to get actual file name
+        formatted="${formatted%.*}"
+
+        output="${target_path}/${formatted}"
+        target="${output}.decoded"
+
+        case "$extension" in
+            "delta")
+                # Start patching
+                msg "${progress_current} (*) Patching: ${formatted}"
+                xdelta3 $xd_args "$output" "$source" "$target"\
+                || err "patcher: A patch failed to apply"
+                # Success - remove old file and replace with .decoded file
+                if ! [ -f "${target}" ]; then err "patcher: Decoded file not found!"; fi
+                rm "${output}" || err "patcher: Unable to remove file"
+                mv "${target}" "${output}"
+            ;;
+            "del")
+                msg "${progress_current} (-) Deleting: ${formatted}"
+                rm "$output" || err "patcher: Failed to delete file"
+            ;;
+            "new")
+                msg "${progress_current} (+) Adding: ${formatted}"
+                cp "${source}" "${output}" || err "patcher: Failed to add file"
+            ;;
+            *)
+                err "patcher: File '${source}': Invalid or missing operation extension"
+            ;;
+        esac
+        progress_start=$((${progress_start}+1))
+    done \
+    || err "patcher: Failed to patch game files"
+
+    # SUCCESS! ※\(^o^)/※
+    if [[ ${REMOVE_PATCHES} -eq 1 ]]; then
+        # Clean up
+        msg "Cleaning up ..."
+        rm -rf "$source_path/Aki_Patches" 2>/dev/null \
+        || warn "Failed to remove directory 'Aki_Patches'"
+        rm -rf "$source_path/patcher.exe" 2>/dev/null \
+        || warn "Failed to remove file 'patcher.exe'"
+    fi
+    
+    # Done
+    msg "${BLUE}Finished patching game files! ※\(^o^)/※${RESET}"
+    m_sleep 2
+}
+
+
+function installer() {
+    msg "${BLUE}Launching installer...${RESET}"
+    msg "A log file will be generated at '${LOG_PATH}'"; m_sleep 2
+    
+    # Define SPT install path
+    # TODO: Add ability to have the script somewhere in the prefix, not just the root directory
+    PREFIX_PATH="${1:-"${PREFIX_PATH}"}"
+    SPT_RELATIVE_INSTALL_PATH="${2:-"${SPT_RELATIVE_INSTALL_PATH}"}"
+    SPT_INSTALL_PATH="${PREFIX_PATH%/}/${SPT_RELATIVE_INSTALL_PATH%/}"
+    
+    # Check EFT installation
+    # FIXME: Maybe move out of installer function to use elsewhere?
+    msg "Checking for EFT inside the prefix"
+    EFT_INSTALL_PATH=$(get_eft_install_path)
+    status=$?; [ $status != 0 ] && subshell_err "${EFT_INSTALL_PATH}"
+    msg "Found vanilla game directory at '${EFT_INSTALL_PATH}'"
+
+    # Pre-Checks
+    check_eft_running
+    msg "Checking dependencies"
+    check_dependencies
+    msg "Checking available disk space"
+    check_disk_space
+    msg "Checking SPT-AKI install path"
+    check_mod_install_path
+
+    # Check & get installed EFT version
+    msg "Checking installed EFT version"
+    INSTALLED_EFT_VERSION=$(get_installed_eft_version)
+    status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_EFT_VERSION}"
+    dbg "Installed EFT version: Got '${INSTALLED_EFT_VERSION}'"
+
+    if [[ ${REINSTALL_SPT} -eq 1 ]]; then
+        # Get installed SPT version
+        INSTALLED_SPT_VERSION=$(get_installed_spt_version)
+        status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_SPT_VERSION}"
+        dbg "Installed SPT version: Got '${INSTALLED_SPT_VERSION}'"
+        # Backup user files
+        msg "Creating backup of user files"
+        SPT_BACKUP_PATH=$(backup_user_files); status=$?
+        [ $status != 0 ] && subshell_err "${SPT_BACKUP_PATH}" 
+        dbg "Backup path: Got '${SPT_BACKUP_PATH}'"
+    fi
+
+    # Download required metadata
+    msg "Fetching required metadata"
+    download_metadata
+
+    # Set global variable for patcher mirror urls
+    PATCHER_MIRROR_URLS=$(get_patcher_urls)
+    status=$?; [ $status != 0 ] && subshell_err "${PATCHER_MIRROR_URLS}"
+    dbg "Patcher mirror urls: Got '${PATCHER_MIRROR_URLS}'"
+
+    # Fetch latest mod release URL
+    MOD_RELEASE_URL=$(get_release_url "${MOD_JSON_PATH}")
+    status=$?; [ $status != 0 ] && subshell_err "${MOD_RELEASE_URL}"
+    dbg "Mod release url: Got '${MOD_RELEASE_URL}'"
+
+    # Check & get latest SPT-AKI version
+    MOD_VERSION=$(get_release_version "${MOD_JSON_PATH}")
+    status=$?; [ $status != 0 ] && subshell_err "${MOD_VERSION}"
+    dbg "Mod version: Got '"${MOD_VERSION}"'"
+
+    # Check & get required EFT version
+    REQUIRED_EFT_VERSION=$(get_required_eft_version)
+    status=$?; [ $status != 0 ] && subshell_err "${REQUIRED_EFT_VERSION}"
+    dbg "Required EFT version: Got '${REQUIRED_EFT_VERSION}'"
+
+    # Get expected hashes
+    # Mod hash
+    MOD_EXPECTED_HASH=$(get_expected_mod_hash)
+    status=$?; [ $status != 0 ] && subshell_err "${MOD_EXPECTED_HASH}"
+    dbg "Expected mod hash: '${MOD_EXPECTED_HASH}'"
+
+    # Patcher hash
+    PATCHER_EXPECTED_HASH=$(get_expected_patcher_hash)
+    status=$?; [ $status != 0 ] && subshell_err "${PATCHER_EXPECTED_HASH}"
+    dbg "Expected patcher hash: '${PATCHER_EXPECTED_HASH}'"
+    
+    # Check if we need to patch the game files
+    msg "Checking compatibility for the latest SPT-AKI release"
+    if [[ "${INSTALLED_EFT_VERSION}" != "${REQUIRED_EFT_VERSION}" ]]; then
+        dbg "Installed: ${INSTALLED_EFT_VERSION} != Required: ${REQUIRED_EFT_VERSION}"
+        msg "Installed EFT version '${INSTALLED_EFT_VERSION}' is NOT compatible"
+        msg "Checking for available downpatcher"
+
+        # Check for a downpatcher and use the patcher function
+        # Check & get patcher TARGET EFT version
+        PATCHER_TARGET_EFT_VERSION=$(get_patcher_target_eft_version)
+        status=$?; [ $status != 0 ] && subshell_err "${PATCHER_TARGET_EFT_VERSION}"
+        dbg "Target EFT version: Got '${PATCHER_TARGET_EFT_VERSION}'"
+
+        # Check if target EFT version is lower, greater or equal to required EFT version
+        if [[ "${PATCHER_TARGET_EFT_VERSION}" -lt "${INSTALLED_EFT_VERSION}" ]]; then
+            # No patcher available yet!
+            warn "Looks like there's no patcher available for your EFT version"
+            m_echo
+            m_echo "    > This usually happens when BSG recently updated EFT."
+            m_echo "    > Please wait for the SPT-AKI team to generate a new patcher."
+            m_echo "    > Usually, this will take less then 24 hours."
+            m_echo
+            err "installer: No patcher available"
+            
+        elif [[ "${PATCHER_TARGET_EFT_VERSION}" -gt "${INSTALLED_EFT_VERSION}" ]]; then
+            # EFT is outdated!
+            warn "Looks like EFT is out-of-date"
+            m_echo
+            m_echo "    > Please make sure to update EFT using the 'BsgLauncher'"
+            m_echo "    > before installing SPT-AKI & try again."
+            m_echo
+            err "installer: EFT out-of-date"
+
+        elif [[ "${PATCHER_TARGET_EFT_VERSION}" -eq "${INSTALLED_EFT_VERSION}" ]]; then
+            # Compatible downpatcher found!
+            msg "Found compatible downpatcher"
+
+            # Check for cached patcher archive
+            verify_cached "${PATCHER_FILE_PATH}" "${PATCHER_EXPECTED_HASH}"; status=$?
+            # Download patcher archive if needed
+            if [ "${status}" -eq 1 ]; then
+                download_patcher
+                check_hash "${PATCHER_FILE_PATH}" "${PATCHER_EXPECTED_HASH}"
+                status=$?; [ "${status}" != 0 ] \
+                && err "installer: Downloaded patcher archive is corrupted"
+            fi
+
+            # Extract downpatcher to temp directory
+            # We already fail if 7z is missing. No check needed
+            msg "Extracting patcher archive to temp directory"
+            temp_patcher_dir="${TEMP_DIR}/patcher"
+            7z x "${PATCHER_FILE_PATH}" -o"${temp_patcher_dir}" 1>/dev/null \
+            || err "installer: Failed to extract patcher files to SPT temp directory"
+
+            # Remove old SPT install if needed & copy EFT files to new SPT install
+            create_spt_install
+
+            # Move patcher files to install directory
+            msg "Moving patcher files to install directory"
+            find "$temp_patcher_dir" -type d -name '*Aki_Patches*' \
+            | xargs mv -t "${SPT_INSTALL_PATH}" \
+            || err "installer: Failed to move patcher files to SPT install directory" 
+
+            # Patch game using downloaded patcher files
+            patcher "${SPT_INSTALL_PATH}" \
+            || err "installer: Something went wrong while patching game files"
+        fi
+    else
+        msg "Installed EFT version '${INSTALLED_EFT_VERSION}' is compatible"
+        # Remove old SPT install if needed & copy EFT files to new SPT install
+        create_spt_install
+    fi
+
+    # Check for cached mod archive
+    verify_cached "${MOD_FILE_PATH}" "${MOD_EXPECTED_HASH}"; status=$?
+
+    # Download mod archive if needed
+    if [ "$status" -eq 1 ]; then
+        download_mod
+        check_hash "${MOD_FILE_PATH}" "${MOD_EXPECTED_HASH}"
+        status=$?; [ $status != 0 ] \
+        && err "installer: Downloaded mod archive is corrupted"
+    fi
+
+    # Extract mod archive to install directory
+    msg "Extracting mod archive to SPT install directory"
+    7z x "${MOD_FILE_PATH}" -o"${SPT_INSTALL_PATH}" 1>/dev/null \
+    || err "installer: Failed to extract mod files to SPT install directory"
+
+    if [[ ${REINSTALL_SPT} -eq 1 ]]; then
+        msg "Restoring settings from '${SPT_BACKUP_PATH}'"
+        restore_user_settings
+    fi
+
+    # DONE! (⌐■_■)
+    msg "${GREEN}All done! ※\(^o^)/※${RESET}"
+    m_sleep 2
+}
+
+
+################################################################################
+# OPTION FUNCTIONS defining what happens when a command/option is executed #
+################################################################################
+
+function opt_version() {
+    m_echo "${BOLD}~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~${RESET}"
+    m_echo "${BOLD}| SPT-LINUX-ADDITIONS |${RESET}"
+    m_echo "${BOLD}~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~${RESET}"
+    m_echo "AiO setup tool for SPT-AKI"
+    m_echo "${BOLD}Version: ${VERSION}${RESET}"
+    m_echo
+    m_echo "${RED}[!] This script is made by the SPT-AKI community & is NOT offically supported by the mod developers!${RESET}"
+    m_echo
+    m_echo "Report bugs over at:"
+    m_echo "${BOLD}  -> https://dev.sp-tarkov.com/MadByte/Linux-Guide${RESET}"
+    m_echo
+}
+
+
+function opt_help() {
+    m_echo "${BOLD}Syntax:${RESET} spt-linux-additions [OPTION][ARGS]"
+    m_echo "${BOLD}Example usage:${RESET} spt-linux-additions install --debug ~/Games/sptarkov drive_c/spt380"
+    m_echo
+    m_echo "${BOLD}OPTIONS:${RESET}"
+    m_echo "  help | --help                                       Print this help message"
+    m_echo
+    m_echo "  version | --version                                 Print the version info message"
+    m_echo
+    m_echo "  install|-I [ARGS][PREFIX_PATH][INSTALL_PATH]        Automated installation of SPT-AKI into a given prefix"
+    m_echo "      PREFIX_PATH                                     Full path to the root directory of a given prefix"
+    m_echo "            Example: '~/Games/tarkov'                 Defaults to '~/Games/escape-from-tarkov'"
+    m_echo "      INSTALL_PATH (optional)                         Path to install SPT to, relative to the prefix root directory"
+    m_echo "            Example: 'drive_c/SPTarkov'               Defaults to 'drive_c/SPTarkov'"
+    m_echo
+    m_echo "  patch|-p [ARGS][INSTALL_PATH][SOURCE_PATH]          Patch game files in INSTALL_PATH"
+    m_echo "      INSTALL_PATH                                    Full path to game files to patch"
+    m_echo "            Example: '~/Games/tarkov/drive_c/SPTarkov'"
+    m_echo "      SOURCE_PATH (optional)                          Path to directory containing 'Aki_Patches'"
+    m_echo "            Example: '~/Downloads/patcher'            If not set, the patcher looks for the files inside the INSTALL_PATH"
+    m_echo
+    m_echo "  reinstall|-rI [ARGS][PREFIX_PATH][INSTALL_PATH]     Backup user files and re-install game files using the latest SPT-AKI available"
+    m_echo "      PREFIX_PATH                                     Full path to the root directory of a given prefix"
+    m_echo "            Example: '~/Games/tarkov'                 Defaults to '~/Games/escape-from-tarkov'"
+    m_echo "      INSTALL_PATH (optional)                         Path to install SPT to, relative to the prefix root directory"
+    m_echo "            Example: 'drive_c/SPTarkov'               Defaults to 'drive_c/SPTarkov'"
+    m_echo
+    m_echo "  self-update|--self-update                           Fetch the latest installer script version from the repo"
+    m_echo
+    m_echo "${BOLD}ARGUMENTS:${RESET}"
+    m_echo "      --debug                                         Enable debug output"
+    m_echo "      --verbose                                       Enable verbose output"
+    m_echo "      --remove                                        Remove patches source directory after patching game files"
+    m_echo "      --no-wait                                       Disable all wait times in the script"
+    m_echo
+    m_echo "For more details and help, visit the 'Linux-Guide' repository or join the SPT-AKI Discord server:"
+    m_echo "${BOLD}  -> https://discord.com/invite/Xn9msqQZan${RESET}"
+    m_echo
+}
+
+
+function set_reinstall() {
+    warn "${YELLOW}Re-install mode for SPT enabled${RESET}"
+    m_echo
+    m_echo "    > This mode will backup all content in 'user', 'BepInEx/config' and 'BepInEx/plugins'"
+    m_echo "    > to a new directory in '$SPT_RELATIVE_ROOT_BACKUP_PATH' and attempt a re-install of the EFT and"
+    m_echo "    > SPT-AKI game files using the ${BOLD}LATEST${RESET} SPT version available."
+    m_echo
+    m_echo "    > ${BOLD}ALL OTHER FILES IN THE SPT INSTALL DIRECTORY WILL BE LOST!${RESET}"
+    m_echo
+    m_echo "    > After a successful re-install only game, mod and launcher ${BOLD}settings${RESET} will be restored!"
+    m_echo "    > Mods and other files need to be installed manually!"
+    m_echo
+    yes_or_no "Do you want to continue?" \
+    && REINSTALL_SPT=1
+}
+
+
+function set_debug() {
+    value=${1:-1}
+    dbg "Debug logging enabled"
+    case $1 in
+        '0') return 0;;
+        '1') DEBUG_OUTPUT=$value;;
+        '2') DEBUG_OUTPUT=$value;;
+        *)
+            warn "Invalid setting used for 'set_debug' - defaulting to 1"
+            DEBUG_OUTPUT=1
+        ;;
+    esac
+}
+
+
+function set_remove_patches() {
+    msg "Patch file clean up enabled"
+    REMOVE_PATCHES=1
+}
+
+
+function set_no_wait() {
+    msg "Sleep times disabled"
+    NO_WAIT=1
+}
+
+
+function opt_self_update() {
+    script_path="${SCRIPT_DIR}/${TITLE}"
+    script_update_url="https://dev.sp-tarkov.com/MadByte/Linux-Guide/raw/branch/main/installers/spt-linux-additions"
+    # Display warning for not fully implemented feature
+    warn "${YELLOW}opt_self_update: Not fully implemented yet${RESET}"
+    m_echo
+    m_echo "    > The script will attempt to download the latest version available from here:"
+    m_echo "    > ${UNDERLINE}${script_update_url}${RESET}"
+    m_echo
+    m_echo "    > ${BOLD}This feature is NOT fully implemented yet & won't validate the new script file!${RESET}"
+    m_echo
+    m_echo "    > If you have issues running the script after doing 'self-update', please"
+    m_echo "    > download & reinstall the script manually to the root prefix directory!"
+    m_echo
+    yes_or_no "Do you want to continue?" \
+    || m_exit 3
+    # Download and replace the script file
+    curl_download "${script_update_url}" "${script_path}"
+    msg "Script has been updated! Run './spt-linux-additions version' to see the updated version info!"
+    # Exit success
+    m_exit 0
+}
+
+function opt_restore() {
+    [ ! -d "${SPT_INSTALL_PATH}" ] \
+    && err "SPT install directory at '${SPT_INSTALL_PATH}' does not exist"
+    latest_backup_path=$(cat "${SPT_CACHED_LATEST_BACKUP_FILE}" 2>/dev/null); status=$?
+
+    # Skip if no cached backup path exists
+    if [ "${status}" != 0 ]; then
+        warn "No cached backup info found at '${SPT_CACHED_LATEST_BACKUP_FILE}' - Skipping!"
+        m_exit 1
+    fi
+
+    # TODO: Implement arguments: INSTALL_PATH BACKUP_PATH
+    warn "${YELLOW}Restore mode enabled${RESET}"
+    m_echo
+    m_echo "    > This option will attempt to restore your ${BOLD}latest${RESET} user file backup,"
+    m_echo "    > regardless of the mod version it has been created with. The following backup directory will be used:"
+    m_echo "    > ${UNDERLINE}${latest_backup_path}${RESET}"
+    m_echo
+    yes_or_no "Do you want to continue?" \
+    || m_exit 3
+    restore_user_settings $@
+}
+
+function opt_backup() {
+    [ ! -d "${SPT_INSTALL_PATH}" ] \
+    && err "SPT install directory at '${SPT_INSTALL_PATH}' does not exist"
+
+    # TODO: Implement arguments: INSTALL_PATH BACKUP_PATH
+    warn "${YELLOW}Backup mode enabled${RESET}"
+    m_echo
+    m_echo "    > This mode will backup all content in 'user', 'BepInEx/config' and 'BepInEx/plugins'"
+    m_echo "    > to a new directory in '$SPT_RELATIVE_ROOT_BACKUP_PATH'."
+    m_echo
+    yes_or_no "Do you want to continue?" \
+    || m_exit 3
+    backup_user_files $@
+}
+
+################################################################################
+# SCRIPT MAIN ENTRY #
+################################################################################
+
+# Reserve first argument which always has to be the option command
+OPTION="${1}"
+shift 1
+
+# Prepare global prefix and SPT install/backup variables
+PREFIX_PATH="${SCRIPT_DIR}"
+if [ ! -d "${PREFIX_PATH}" ] || [ ! -f "${PREFIX_PATH}/system.reg" ]; then
+    err "'${PREFIX_PATH}' is not a valid prefix directory"
+fi
+SPT_INSTALL_PATH="${PREFIX_PATH%/}/${SPT_RELATIVE_INSTALL_PATH%/}"
+SPT_ROOT_BACKUP_PATH="${PREFIX_PATH%/}/${SPT_RELATIVE_ROOT_BACKUP_PATH}"
+
+# Process arguments added by the user
+for arg in "$@"; do
+    case "${arg}" in
+        "--debug")
+            # Use debug output
+            set_debug 1
+            shift 1
+        ;;
+        "--verbose")
+            # Use verbose output for commands
+            set_debug 2
+            shift 1
+        ;;
+        "--remove" | "-R")
+            # Remove source files after completion
+            set_remove_patches
+            shift 1
+        ;;
+        "--no-wait")
+            # Remove source files after completion
+            set_no_wait
+            shift 1
+        ;;
+        --* | -*)
+            warn "Invalid argument '$arg'"
+            shift 1
+        ;;
+    esac
+done
+
+# Handle execution of options
+case $OPTION in
+    "patch" | "-p")
+        msg "A log file will be generated at '${LOG_PATH}'"; m_sleep 2
+        opt_version && patcher $@
+    ;;
+    "install" | "-I")
+        set_remove_patches
+        opt_version && installer $@
+    ;;
+    "reinstall" | "-rI")
+        set_remove_patches
+        set_reinstall || m_exit 3
+        opt_version && installer $@
+    ;;
+    "backup")
+        opt_backup $@
+    ;;
+    "restore")
+        opt_restore $@
+    ;;
+    "self-update" | "--self-update")
+        opt_self_update
+    ;;
+    "version" | "--version")
+        opt_version
+    ;;
+    "help" | "--help")
+        opt_help # | less -R
+    ;;
+    "")
+        opt_version
+        opt_help
+    ;;
+    *)
+        warn "Invalid option '${OPTION}'"
+    ;;
+esac
+# Exit properly to clean up temp files etc
+m_exit
+
+
