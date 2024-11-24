@@ -1,13 +1,13 @@
-## SPT-AKI Lutris installer v2024.4.1 ##
+## SPT Lutris installer v2024.10-1 ##
 
-## This Lutris installer is using an -UNOFFICIAL- SPT-AKI installer script.
+## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
 ## If you want to view the source before running the lutris installer - go here:
 ## https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/installers/spt-linux-additions
 
 ## ※\(^o^)/※ ##
-description: 'Installs the BSG Launcher & SPT-AKI for you, the game has to be installed manually'
+description: 'Installs the BSG Launcher & SPT for you, the game has to be installed manually'
 notes: "Please read before installing:\n
-        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer.md"
+        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer_additions.md"
 game_slug: escape-from-tarkov
 gogslug: ''
 humblestoreid: ''
@@ -24,14 +24,14 @@ script:
         filename: spt-linux-additions
     game:
         arch: win64
-        exe: drive_c/SPTarkov/Aki.Launcher.exe
+        exe: drive_c/SPTarkov/SPT.Launcher.exe
         prefix: $GAMEDIR
         launch_configs:
-        - exe: Aki.Server.exe
+        - exe: SPT.Server.exe
           name: SPTarkov - Server
         - exe: BsgLauncher.exe
           name: BSG Launcher
-          args: --disable-gpu --disable-remote-fonts
+          args: --disable-gpu --disable-software-rasterizer
           working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     installer:
     - task:
@@ -63,12 +63,6 @@ script:
         name: winetricks
         prefix: $GAMEDIR
     - task:
-        app: win81
-        arch: win64
-        description: Setting windows version to Windows 8.1 ...
-        name: winetricks
-        prefix: $GAMEDIR
-    - task:
         name: winekill
     - task:
         description: Adding mouse focus workaround registry key ...
@@ -76,39 +70,36 @@ script:
         path: HKEY_CURRENT_USER\Software\Wine\X11 Driver
         key: UseTakeFocus
         value: N
-    # Workaround for SPT-AKI
     - task:
         description: Adding dll override for 'winhttp' ...
         name: set_regedit
         path: HKEY_CURRENT_USER\Software\Wine\DllOverrides
         key: winhttp
         value: native,builtin
-    ## Workaround for rendering issue with BSG Launcher
     - task:
-        description: Adding dll override for 'libglesv2' ...
-        name: set_regedit
-        path: HKEY_CURRENT_USER\Software\Wine\DllOverrides
-        key: libglesv2
-        value: disabled
+        app: win81
+        arch: win64
+        description: Setting windows version to Windows 8.1...
+        name: winetricks
+        prefix: $GAMEDIR
     - task:
         arch: win64
         description: Launching BSG Launcher ...
         executable: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/BsgLauncher.exe
-        args: --disable-gpu --disable-remote-fonts
         name: wineexec
+        args: --disable-gpu --disable-software-rasterizer
         working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     - task:
         name: winekill
-
-    # Use 'spt-linux-additions' script to install SPT-AKI
-    # There will be a log generated in the root prefix directory alongside the script ($GAMEDIR)
+    # Use 'spt-linux-additions' script to install SPT
+    # There will be a log generated in '~/.cache/spt-linux-additions'
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR
-    - chmodx: $GAMEDIR/spt-linux-additions
+    - chmodx: ./spt-linux-additions
     - execute:
-        command: $GAMEDIR/spt-linux-additions install --debug $GAMEDIR
-        description: Installing SPT-AKI ...
+        command: NO_ANSI=1 ./spt-linux-additions install "$GAMEDIR"
+        description: Installing SPT ...
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
@@ -123,19 +114,19 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            DXVK_CONFIG_FILE: ''
             # make sure to save shader cache data inside the prefix (easier to remove later)
             DXVK_STATE_CACHE_PATH: $GAMEDIR
             __GL_SHADER_DISK_CACHE: 1
             __GL_SHADER_DISK_CACHE_PATH: $GAMEDIR
-            # Workarounds for dotnet package issues with SPTInstaller and AKIPatcher
-            DOTNET_BUNDLE_EXTRACT_BASE_DIR:
-            DOTNET_ROOT: 
-        # Reduce sound issues
-        pulse_latency: true
+            # Needed to launch multiple application instances with GE-Proton
+            PROTON_VERB: runinprefix
         # Without terminal mode the server won't run!
         # Small issue - another terminal opens for the launcher as well ¯\_( ͡° ͜ʖ ͡°)_/¯
         terminal: true
+        wine:
+            overrides:
+            # Workaround for SPT to be able to load
+                winhttp: n,b
 slug: sptarkov
 steamid: null
 version: spt-linux-additions-latest

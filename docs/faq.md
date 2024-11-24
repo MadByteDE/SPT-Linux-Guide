@@ -1,17 +1,25 @@
 # FAQ
 
+You can find the official SPT FAQ [here](https://hub.sp-tarkov.com/faq/).
+
+## Table of content
+
+1. [Can I play vanilla EFT on Linux?](#1-can-i-play-vanilla-eft-on-linux)
+2. [Can I play SPT on Linux?](#2-can-i-play-spt-on-linux)
+3. [What about the Steam Deck?](#3-what-about-the-steam-deck)
+4. [My performance is bad, help!](#4-my-performance-is-bad-help)
+5. [What Wine version is recommended for playing SPT?](#5-what-wine-version-is-recommended-for-playing-spt)
 
 ## 1. Can I play vanilla EFT on Linux?
 
 The short answer is no.
 
+You can play Offline-Raids without progression but that's about it.
 EFT utilizes BattleEye Anti-cheat software, which works great on Linux. However, game developers have to opt into it manually, and BattleState Games hasn't done so thus far. Since gaming on Linux is still considered niche, it's unlikely that the developers will enable it anytime soon.
 
-Please note that some developers actively prevent users from playing their online games through Proton/Wine by banning accounts if they detect it (e.g [Destiny 2](https://help.bungie.net/hc/en-us/articles/360049517431-Destiny-Account-Restrictions-and-Banning-Policies) → under `Vital information`). It's not known if Battlestate Games is doing this, though.
+## 2. Can I play SPT on Linux?
 
-## 2. Can I play SPT-AKI on Linux?
-
-If your PC meets the minimum [system requirements](https://www.escapefromtarkov.com/support/knowledge/68) for EFT then SPT-AKI should run just fine.
+If your PC meets the minimum [system requirements](https://www.escapefromtarkov.com/support/knowledge/68) for EFT then SPT should run just fine.
 
 Based on your distribution of choice, you might need to use the terminal to set up the correct packages and drivers used by Wine, Lutris and/or Bottles. Most common steps like installing missing packages should be outlined in your distribution's documentation - just Google it.
 
@@ -30,6 +38,45 @@ EFT is quite hardware demending and the Steam Deck is limited in it's capabiliti
 
 It's important to note that the installation process on SteamOS differs slightly from our guide due to its immutable file system and apps usually being installed in [containers](https://www.redhat.com/en/topics/containers) using Flatpak.
 
-***
 
+## 4. My performance is bad, help!
+
+Before lowering graphics settings in the game, here are some tips on how to improve performance on Linux:
+
+#### 1. Update Kernel
+- It's recommended to use the latest available Kernel from your distro's repos.
+- If your distro only provides older kernels, consider checking out a rolling-release distro like Manjaro or Garuda instead - effectively trading overall stability for the latest software and best performance.
+
+#### 2. Update GPU drivers
+- For best performance, use the latest GPU drivers available
+- **For NVIDIA**: Use the latest proprietary driver
+- **For AMD**: Make sure Mesa packages are up-to-date
+
+#### 3. Update Wine
+- For best performance, search for updated wine builds including `fsync` / `ntsync` and other optimization patchsets, e.g. `GE-Proton`. Easiest way to get new Wine builds is installing them using `protonup-qt`. Check it out!
+
+#### 4. Use rolling-release distros
+- Rolling-release distributions receive the latest packages much faster then fixed or semi-rolling release distros.
+- **Be warned**: Having the latest and greatest packages can also come with extra hurdles and instability!
+
+#### 5. Mods: Install De-Clutterer, limit AI
+- **[De-Clutterer](https://hub.sp-tarkov.com/files/file/1546-de-clutterer/)**: Removes smaller clutter game objects like trash and bullet shells
+- **[AI-Limit](https://hub.sp-tarkov.com/files/file/793-ai-limit/)**: Limits the amount of active bots dynamically. Similar functionality can also be included in other mods like Questing Bots.
+
+#### 6. GPU bottleneck: Enable DLSS/FSR2.2
+- Turning on DLSS/FSR2.2 can give you significant performance benefits if you're GPU limited.
+
+#### 7. Tweak mod settings
+- Having mods like SAIN, That's Lit, Questing Bots or Looting Bots installed can take a lot of breath out of your system. You can tweak mod settings e.g. reduce total amount of bots spawned or set slower intervals for checks (like bots looking for loot/looking for cover) to get improved performance.
+
+    Check out the mod pages on the [SPT Hub](https://hub.sp-tarkov.com/files/) to get more details!
+
+## 5. What Wine version is recommended for playing SPT?
+
+The best Wine version for playing SPT should be a recent build of `GE-Proton`. It includes a bunch of performance and gaming related improvements.
+
+We found that using the `GE-Proton (Latest)` option in Lutris actually installs a version of `UMU-Proton` instead of `GE-Proton`, resulting in minor issues with video playback (e.g. the Unheard menu background) because some required libraries are not bundled in that version of Proton. To fix those issues, make sure to get the latest `GE-Proton` e.g. using `protonup-qt` and select it in Lutris.
+
+
+***
 [Back to landing page](../README.md)

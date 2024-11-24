@@ -1,23 +1,25 @@
-# SPT-AKI installation using Bottles
+# SPT installation using Bottles
 
-> **_NOTE:_** <span style="color:orange"> Never install SPT-AKI into your live EFT's game directory!</span>
+> [!IMPORTANT]
+> <span style="color:mediumslateblue">The .NET 4.8 dependency installation is broken at the moment, resulting in the BSG Launcher to not launch. [Here](https://github.com/bottlesdevs/Bottles/issues/2887#issuecomment-2451060916) you can find a workaround!</span>
+
+> [!WARNING]
+> <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
+
 
 ## What you need
 
-- ~90GB free disk space
-- [Bottles](https://usebottles.com/)
-    -
+- **~100GB free disk space**
+
+- **[Bottles](https://usebottles.com/)**
     - Make sure you have all your [wine dependencies](https://github.com/lutris/docs/blob/master/WineDependencies.md) installed.
     - Make sure GPU and vulkan drivers are installed and working.
-- [SPT-AKI mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)
-    -
-    - Make sure to get the correct `SPT-AKI` mod archive for your EFT version! If there's no supported version, follow the [downpatching guide](./downpatching.md).
 
-- [BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)
-    -
-- [.NET Desktop Runtime 8.x](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-8.0.3-windows-x64-installer?cid=getdotnetcore) (*.exe installer)
-    -
-    -**Workaround**: Bottles does not yet provide `dotnetdesktopcore8`
+- **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
+    - Make sure to update to the latest EFT version and follow the [downpatching guide](./downpatching.md) if needed.
+
+- **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
+
 
 ## Installation
 
@@ -27,19 +29,18 @@
 
 1. Install new runner `wine-ge-proton`
 2. Create new bottle using the `Gaming` preset
-3. Install `dotnet48` and `vcredist2019` from the `Dependencies` section
-4. Download and install `.Net Desktop Runtime 8.x` manually
-5. In `Settings`, select `wine-ge-proton` as runner for the bottle
-6. In `Settings` → `DLL Overrides`, add `winhttp` as `Native, then Builtin`
-7. In `Settings`, set `Windows Version` to `Windows 8.1`
-8. `Run Executable` and install the launcher
-9. Install the game
-10. Click on the three dots at the top right, then `Browse files`
-11. Copy `EFT game files` somewhere else inside the bottle and `downpatch` if needed
-12. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
-13. In bottles click `Add Shortcuts` for `Aki.Server` and `Aki.Launcher`
-14. Run `SPT Server` in terminal mode, then the `SPT Launcher`
-15. Set correct path in `Aki.Launcher` settings (e.g `C:/SPTarkov`)
+3. Install `dotnet48`, `dotnetcoredesktop6`, `dotnetcoredesktop8` and `vcredist2019` from the `Dependencies` section
+4. In `Settings`, select `wine-ge-proton` as runner for the bottle
+5. In `Settings` → `DLL Overrides`, add `winhttp` as `Native, then Builtin`
+6. In `Settings`, set `Windows Version` to `Windows 8.1`
+7. `Run Executable` and install the launcher
+8. Install the game
+9. Click on the three dots at the top right, then `Browse files`
+10. Copy `EFT game files` somewhere else inside the bottle and `downpatch` if needed
+11. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
+12. In bottles click `Add Shortcuts` for `SPT.Server` and `SPT.Launcher`
+13. Run `SPT Server` in terminal mode, then the `SPT Launcher`
+14. Set correct path in `SPT.Launcher` settings (e.g `C:/SPTarkov`)
 
 </details>
 
@@ -59,11 +60,11 @@
 
 - Once your bottle is done, we have to configure it. Navigate to the `Settings` tab and select `wine-ge-proton` as `Runner` for the bottle.
 
--  Then go to `Dependencies` and install `dotnet48` and `vcredist2019` (they might take a bit).
+-  Then go to the `Dependencies` tab and install the following dependencies:
+
+       dotnet48 dotnetcoredesktop6 dotnetcoredesktop8 vcredist2019
 
     <img src="../media/bottles_install_deps.gif" class="fit-picture">
-    
-- Click `Run Executable` and install `.Net Desktop Runtime 8.x` manually
 
 - look for the `DLL Overrides` section and add `winhttp` - make sure it's as `Native, then Builtin`.
 - And to finish up, select `Windows 8.1` as `Windows Version` to use for the bottle.
@@ -80,7 +81,7 @@
 
 - Make a copy of your live EFT game files. You need to place it inside the same prefix, e.g at `~/.var/app/com.usebottles.bottles/data/bottles/bottles/SPTarkov/drive_c/SPTarkov`.
 
-- If needed, downpatch EFT to the correct version by running the `AKIPatcher` inside the game directory. Check out our [downpatching guide](./downpatching.md).
+- If needed, downpatch EFT to the correct version e.g. by running the downgrade patcher inside the game directory. Check out our [downpatching guide](./downpatching.md).
 
 - When it's done, extract the contents of the `RELEASE-SPT-x.x.x.zip` into your copied SPT game directory.
 
@@ -88,13 +89,13 @@
 
 - Once you installed SPT, go to your bottle main menu and click `Add Shortcuts`.
 
-- Look for the directory you installed SPT in (Reminder that you can click on the three dots at the top right and then `Browse files` to find the location of your bottle's C: directory) and add `Aki.Launcher.exe` and `Aki.Server.exe`.
+- Look for the directory you installed SPT in (Reminder that you can click on the three dots at the top right and then `Browse files` to find the location of your bottle's C: directory) and add `SPT.Launcher.exe` and `SPT.Server.exe`.
 
 **7. Running SPT**
 
-- Everything now is pretty much done, so now to run the game we need to run the server and the launcher, HOWEVER to run the server we need to run it in a terminal, we do so by clicking the three dots at the right of the `Aki.Server` shortcut and then on the icon that looks like a terminal (If you hover over it, it should display `Launch with Terminal`).
+- Everything now is pretty much done, so now to run the game we need to run the server and the launcher, HOWEVER to run the server we need to run it in a terminal, we do so by clicking the three dots at the right of the `SPT.Server` shortcut and then on the icon that looks like a terminal (If you hover over it, it should display `Launch with Terminal`).
 
-- To run the launcher you just have to click on the play icon at the right side of the `Aki.Launcher` shortcut.
+- To run the launcher you just have to click on the play icon at the right side of the `SPT.Launcher` shortcut.
 
     <img src="../media/bottles_launch_game.gif" class="fit-picture">
 

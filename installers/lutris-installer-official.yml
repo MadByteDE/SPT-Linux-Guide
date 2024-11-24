@@ -1,11 +1,11 @@
-## SPT-AKI Lutris installer v2024.4.4-experimental ##
+## SPT Lutris installer v2024.8-1 ##
 
-## This Lutris installer is using the -OFFICIAL- SPT-AKI installer
+## This Lutris installer is using the -OFFICIAL- SPT installer
 
 ## ※\(^o^)/※ ##
-description: 'Installs the BSG Launcher & SPT-AKI for you, the game has to be installed manually'
+description: 'Installs the BSG Launcher & SPT for you, the game has to be installed manually'
 notes: "Please read before installing:\n
-        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer.md"
+        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer_official.md"
 game_slug: escape-from-tarkov
 gogslug: ''
 humblestoreid: ''
@@ -18,18 +18,18 @@ script:
         url: https://prod.escapefromtarkov.com/launcher/download
         filename: BsgLauncher.exe
     - spt-installer:
-        url: https://dev.sp-tarkov.com/CWX/SPT-AKI-Installer/releases/download/latest/SPTInstaller.exe
+        url: https://ligma.waffle-lord.net/SPTInstaller.exe
         filename: SPTInstaller.exe
     game:
         arch: win64
-        exe: drive_c/SPTarkov/Aki.Launcher.exe
+        exe: drive_c/SPTarkov/SPT.Launcher.exe
         prefix: $GAMEDIR
         launch_configs:
-        - exe: Aki.Server.exe
+        - exe: SPT.Server.exe
           name: SPTarkov - Server
         - exe: BsgLauncher.exe
           name: BSG Launcher
-          args: --disable-gpu --disable-remote-fonts
+          args: --disable-gpu --disable-software-rasterizer
           working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     installer:
     - task:
@@ -52,7 +52,7 @@ script:
         name: winetricks
         prefix: $GAMEDIR
     - task:
-        app: win10 arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
+        app: arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
@@ -69,7 +69,6 @@ script:
         path: HKEY_CURRENT_USER\Software\Wine\X11 Driver
         key: UseTakeFocus
         value: N
-    # Workaround for SPT-AKI
     - task:
         description: Adding dll override for 'winhttp' ...
         name: set_regedit
@@ -77,23 +76,25 @@ script:
         key: winhttp
         value: native,builtin
     - task:
+        app: win81
+        arch: win64
+        description: Setting windows version to Windows 8.1...
+        name: winetricks
+        prefix: $GAMEDIR
+    - task:
         arch: win64
         description: Launching BSG Launcher (Login sometimes takes a bit ...)
         executable: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/BsgLauncher.exe
+        args: --disable-gpu --disable-software-rasterizer
         name: wineexec
         working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     - task:
         name: winekill
     - task:
-        app: win81
-        arch: win64
-        description: Setting windows version to Windows 8.1 ...
-        name: winetricks
-        prefix: $GAMEDIR
-    - task:
         arch: win64
         description: Launching SPTInstaller ...
         executable: $GAMEDIR/drive_c/SPTarkov/SPTInstaller.exe
+        args: installpath="C:\SPTarkov"
         name: wineexec
     - task:
         name: winekill
@@ -116,14 +117,18 @@ script:
             DXVK_STATE_CACHE_PATH: $GAMEDIR
             __GL_SHADER_DISK_CACHE: 1
             __GL_SHADER_DISK_CACHE_PATH: $GAMEDIR
-            # Workarounds for dotnet package issues with SPTInstaller and AKIPatcher
+            # Needed to launch multiple application instances with GE-Proton
+            PROTON_VERB: runinprefix
+            # Workarounds for dotnet package issues with SPTInstaller and the downpatcher
             DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             DOTNET_ROOT: 
-        # Reduce sound issues
-        pulse_latency: true
         # Without terminal mode the server won't run!
         # Small issue - another terminal opens for the launcher as well ¯\_( ͡° ͜ʖ ͡°)_/¯
         terminal: true
+        wine:
+            overrides:
+            # Workaround for SPT to be able to load
+                winhttp: n,b
 slug: sptarkov
 steamid: null
 version: sptinstaller-latest
