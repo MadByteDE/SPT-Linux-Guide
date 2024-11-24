@@ -37,8 +37,8 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ## Contributions
 If you want to contribute to the guide, feel free to:
-- Send us a [pull request](https://dev.sp-tarkov.com/MadByte/Linux-Guide/pulls)
-- Open a [new issue](https://dev.sp-tarkov.com/MadByte/Linux-Guide/issues/new)
+- Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare)
+- Open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose)
 - Contact us on [Discord](https://discord.com/invite/Xn9msqQZan)
 
 If you want to send us a PR, please make sure the formatting of your addition matches the existing content in our guide.
