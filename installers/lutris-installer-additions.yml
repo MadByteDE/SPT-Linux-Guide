@@ -1,4 +1,4 @@
-## SPT Lutris installer v2024.10-1 ##
+## SPT Lutris installer v2024.11-1 ##
 
 ## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
 ## If you want to view the source before running the lutris installer - go here:
@@ -7,7 +7,7 @@
 ## ※\(^o^)/※ ##
 description: 'Installs the BSG Launcher & SPT for you, the game has to be installed manually'
 notes: "Please read before installing:\n
-        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer_additions.md"
+        https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/docs/lutris_installer_additions.md"
 game_slug: escape-from-tarkov
 gogslug: ''
 humblestoreid: ''
@@ -20,7 +20,7 @@ script:
         url: https://prod.escapefromtarkov.com/launcher/download
         filename: BsgLauncher.exe
     - spt-linux-additions:
-        url: https://dev.sp-tarkov.com/MadByte/Linux-Guide/raw/branch/main/installers/spt-linux-additions
+        url: https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/installers/spt-linux-additions
         filename: spt-linux-additions
     game:
         arch: win64
