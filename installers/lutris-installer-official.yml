@@ -1,11 +1,11 @@
-## SPT Lutris installer v2024.8-1 ##
+## SPT Lutris installer v2024.11-1 ##
 
 ## This Lutris installer is using the -OFFICIAL- SPT installer
 
 ## ※\(^o^)/※ ##
 description: 'Installs the BSG Launcher & SPT for you, the game has to be installed manually'
 notes: "Please read before installing:\n
-        https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/docs/lutris_installer_official.md"
+        https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/docs/lutris_installer_official.md"
 game_slug: escape-from-tarkov
 gogslug: ''
 humblestoreid: ''
