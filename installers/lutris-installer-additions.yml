@@ -1,4 +1,4 @@
-## SPT Lutris installer v2024.11-1 ##
+## SPT Lutris installer v2024.11-2 ##
 
 ## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
 ## If you want to view the source before running the lutris installer - go here:
@@ -20,7 +20,7 @@ script:
         url: https://prod.escapefromtarkov.com/launcher/download
         filename: BsgLauncher.exe
     - spt-linux-additions:
-        url: https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/installers/spt-linux-additions
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/spt-linux-additions
         filename: spt-linux-additions
     game:
         arch: win64
