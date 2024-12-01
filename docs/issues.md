@@ -169,7 +169,7 @@ If the error persists after multiple attempts, please [open up a bug report](htt
 - If possible, try to take a screenshot or a short video of the issue
 - If the Lutris installer fails while showing "`Installing SPT ...`", please attach the `spt-linux-additions.log` log file (usually found inside `~/.cache/spt-linux-additions`) to the bug report
 
-#### Debugging
+#### Debugging installers
 
 To get more details if something breaks, you can launch Lutris in debug mode using the following command in a terminal:
 
@@ -179,6 +179,15 @@ To get more details if something breaks, you can launch Lutris in debug mode usi
     flatpak run net.lutris.Lutris -d &> lutris.log
 
 This will generate a `lutris.log` file in your current or home directory.
+
+#### Wine debugging
+
+To debug issues that might be caused by Wine, you also need to enable debug logging for Wine:
+
+- `Configure` → `Runner options` → `Output debugging info` → `Enabled`
+
+That should enabled wine logs in the console / output added to the `lutris.log` file.
+
 
 [Back](#table-of-content)
 
