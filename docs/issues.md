@@ -4,7 +4,7 @@ Since there are many different Linux distributions out there, you might encounte
 
 ## Table of content
 
-1. Launcher
+1. Launcher (BSG/SPT)
     - [1.1 BSG Launcher not rendered correctly (Black window)](#11-bsg-launcher-not-rendered-correctly-black-window)
     - [1.2 Game crashing within seconds after launching](#12-game-crashing-within-seconds-after-launching)
     - [1.3 Missing fonts / icons](#13-missing-fonts--icons)
@@ -14,12 +14,12 @@ Since there are many different Linux distributions out there, you might encounte
     - [2.2 Audio crackling/distortion issues](#22-audio-cracklingdistortion-issues)
     - [2.3 NVIDIA / Wayland: Frozen screen / Black screen](#23-nvidia--wayland-frozen-screen--black-screen)
 
-3. Lutris /  Installer scripts
+3. Lutris / Installer scripts
     - [3.1 Error code 256/512/1280/...](#31-error-code-2565121280)
     - [3.2 Issues on hardware with multiple GPUs (e.g. iGPU / dGPU)](#32-issues-on-hardware-with-multiple-gpus-eg-igpu--dgpu)
     - [3.3 SPT.Server keeps running in the background after closing it](#33-sptserver-keeps-running-in-the-background-after-closing-it)
 
-4. Manual installation
+4. Manual installation / Others
     - [4.1 SPT.Launcher not launching / .NET Desktop Runtime not found](#41-sptlauncher-not-launching--net-desktop-runtime-not-found)
     - [4.2 Error: Failed to create D3D shaders](#42-error-failed-to-create-d3d-shaders)
     - [4.3 SPT.Launcher & SPT.Server won't run at the same time](#43-sptlauncher--sptserver-wont-run-at-the-same-time)
@@ -227,21 +227,16 @@ When using Lutris 0.5.17 & running the `SPT.Server` via **Proton** (Proton ≠ W
 
 **Solution**
 
-It's a known bug in Lutris 0.5.17 that has been fixed for the next Lutris update.
+*(Updated 2024/12/23)*
 
-In the meantime - as a workaround - you can disable CLI-mode in Lutris **while using Proton**:
-
-- Lutris: `Configure` → `System options` → `cli mode`
-
-This will launch the server in a custom CMD window (without ANSI / colored text support).
-
-Make sure to re-enable this option if you switch back to any Wine runner e.g. `wine-ge`.
+It's a missing ""feature"" in Lutris.
+It's possible to work around the issue by enabling `CLI mode` in the `system options` tab & changing/setting the value of the environment variable `PROTON_VERB` to `run`. This will launch the server window in a custom windows-like CMD window (without ANSI/color support).
 
 [Back](#table-of-content)
 
 
 
-## 4. Manual installation
+## 4. Manual installation / Others
 
 ### 4.1 SPT.Launcher not launching / .NET Desktop Runtime not found
 
@@ -256,10 +251,16 @@ When launching SPT.Launcher, either one of two issues can occur:
 
 1. Make sure .NET Desktop Runtime 8.0 is installed inside the wine prefix. You should find a `dotnet` folder at `WINEPREFIX/drive_c/Program Files/dotnet/` containing the `dotnet.exe` executable.
 2. The system package `dotnet-host` can interfere with the installed dotnet in your prefix. If you don't need this system package for development, remove it and try again.
-3. Lastly, you can try to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
+3. You can try to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
 
    - Bottles: `Settings` → `Environment variables`
    - Lutris: `Configure` → `System options` → `Environment variables`
+
+4. **Proton only**: When using a Proton runner, sometimes it can help to get rid of the `vrclient` directory in `drive_c`. It's not needed for running the Launcher & for whatever reason it seems to cause issues sometimes.
+5. There's a rare issue sometimes with the `icu.dll` used by the prefix. Usually it will show a log entry mentioning `icu.dll` in the wine/proton log. You can try to disable the `icu.dll` in the `DLL overrides`:
+
+    - Bottles: `Settings` → `DLL overrides`: Add key `icu`, select `disabled` as value & save the changes.
+    - Lutris: `Configure` → `Runner options` → `DLL overrides`: Add key `icu`, value `d` & save the changes.
 
 [Back](#table-of-content)
 
