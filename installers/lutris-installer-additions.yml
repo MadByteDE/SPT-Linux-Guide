@@ -1,4 +1,4 @@
-## SPT Lutris installer v2024.11-2 ##
+## SPT Lutris installer v2024.12-1 ##
 
 ## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
 ## If you want to view the source before running the lutris installer - go here:
@@ -114,12 +114,13 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            # make sure to save shader cache data inside the prefix (easier to remove later)
-            DXVK_STATE_CACHE_PATH: $GAMEDIR
-            __GL_SHADER_DISK_CACHE: 1
-            __GL_SHADER_DISK_CACHE_PATH: $GAMEDIR
             # Needed to launch multiple application instances with GE-Proton
-            PROTON_VERB: runinprefix
+            # 2024-12-23: Switching to `run` instead of `runinprefix` since it seems to fix
+            # issues with running the server (without cli mode) and the launcher at the same time
+            PROTON_VERB: run
+            # Workarounds for dotnet package issues with SPTInstaller, the downpatcher and the Launcher on some distros
+            # DOTNET_BUNDLE_EXTRACT_BASE_DIR:
+            # DOTNET_ROOT: 
         # Without terminal mode the server won't run!
         # Small issue - another terminal opens for the launcher as well ¯\_( ͡° ͜ʖ ͡°)_/¯
         terminal: true
