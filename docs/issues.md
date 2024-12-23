@@ -230,7 +230,7 @@ When using Lutris 0.5.17 & running the `SPT.Server` via **Proton** (Proton ≠ W
 *(Updated 2024/12/23)*
 
 It's a missing ""feature"" in Lutris.
-It's possible to work around the issue by enabling `CLI mode` in the `system options` tab & changing/setting the value of the environment variable `PROTON_VERB` to `run`. This will launch the server window in a custom windows-like CMD window (without ANSI/color support).
+It's possible to work around the issue by disabling `CLI mode` in the `system options` tab & changing/setting the value of the environment variable `PROTON_VERB` to `run`. This will launch the server window in a custom windows-like CMD window (without ANSI/color support).
 
 [Back](#table-of-content)
 
