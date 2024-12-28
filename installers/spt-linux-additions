@@ -37,7 +37,7 @@
 
 ################################################################################
 TITLE="spt-linux-additions"
-VERSION="2024.12-1"
+VERSION="2024.12-1.1"
 ################################################################################
 
 ################################################################################
@@ -76,7 +76,7 @@ function m_exit() {
             [[ "$PATH" == *"lutris"* ]] && m_sleep 10
 
             # open the error log using the default text editor 
-            m_run xdg-open "${LOG_PATH}"
+            [[ "$status" -ne 3 ]] && m_run xdg-open "${LOG_PATH}"
         fi
         # Remove temp files before exiting
         if [ -d "${TEMP_PATH}" ]; then
@@ -159,8 +159,10 @@ function m_run() {
 
 function yes_or_no {
     # Skip check if user prompts are disabled
-    [[ $NO_PROMPT -eq 1 ]] \
-    && return 0
+    if [[ $NO_PROMPT -eq 1 ]]; then
+        msg "'NO_PROMPT' environment variable set! returning 'y'."
+        return 0
+    fi
 
     while true; do
         msg "$* [y/n]"
@@ -416,7 +418,8 @@ function check_eft_running() {
 
 
 function check_dependencies() {
-    local cmds=("7z" "xxd" "hpatchz")
+    local cmds=("7z" "xxd")
+    local downloadable=("hpatchz")
     local missing_pkgs=()
 
     # Check each cmd and error out if something is missing
@@ -426,25 +429,29 @@ function check_dependencies() {
         if ! m_run command -v $cmd &>/dev/null; then
             case ${cmd} in
                 "7z")
-                    # FIXME: Fedora release file cannot be found from inside a Flatpak container
                     if [ -f "/etc/fedora-release" ]; then pkgs+=("p7zip-plugins")
                     else pkgs+=("p7zip"); fi
                 ;;
                 "xxd")
-                    # FIXME: Fedora release file cannot be found from inside a Flatpak container
                     if [ -f "/etc/fedora-release" ]; then pkgs+=("vim-common")
                     else pkgs+=("xxd"); fi
-                ;;
-                "hpatchz")
-                    if [ ! -f "${BINARIES_PATH}/hpatchz" ]; then
-                        local url="https://github.com/sisong/HDiffPatch/releases/download/v4.8.0/hdiffpatch_v4.8.0_bin_linux64.zip"
-                        local bin_path="linux64/$dep"
-                        fetch_dep_binary "${url}" "${bin_path}"
-                    fi
                 ;;
             esac
             dbg "Found missing package(s): '${pkgs[*]}'"
             missing_pkgs+=("${pkgs[@]}")
+        fi
+    done
+
+    # Fetch downloadable dependencies if needed
+    for dep in "${downloadable[@]}"; do
+        if [ ! -f "${BINARIES_PATH}/$dep" ]; then
+            case ${dep} in
+                "hpatchz")
+                    local url="https://github.com/sisong/HDiffPatch/releases/download/v4.8.0/hdiffpatch_v4.8.0_bin_linux64.zip"
+                    local bin_path="linux64/$dep"
+                    fetch_dependency "${url}" "${bin_path}"
+                ;;
+            esac
         fi
     done
 
@@ -461,20 +468,21 @@ function check_dependencies() {
 }
 
 
-function fetch_dep_binary() {
+function fetch_dependency() {
     local url="${1}"
     local bin_path="${2}"
 
+    # Ask for permission to install dependency
+    msg "Dependency '$dep' will be downloaded from:"
+    m_echo "    ${url}"
+    yes_or_no "Continue?" || m_exit 3
+
     # TODO: Check if the URLs target file is an archive or an executable!
 
-    # Download
     local temp_path="${TEMP_PATH}/$dep"
     local archive_path="${temp_path}/build.zip"
 
-    # Check binaries directory for existing binaries
-    [ -f "${BINARIES_PATH}/$dep" ]
-
-    dbg "Fetching '$dep'..."
+    # Download
     curl_download "${url}" "${archive_path}" 1; status=$?
     [ $status != 0 ] && err "fetch_dep_binary: Failed to download '$dep' - Error code ${status}"
 
@@ -487,7 +495,7 @@ function fetch_dep_binary() {
     msg "Installing '$dep'..."
     mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || err "Failed to move '$dep' to '${BINARIES_PATH}'"
     chmod +x "${BINARIES_PATH}/$dep" || err "fetch_dep_binary: Failed to make dependency executable: '$dep'"
-    msg "Installed '$dep' successfully"
+    msg "'${dep}' has been installed successfully!"
 }
 
 
@@ -650,7 +658,7 @@ function fetch_metadata() {
     && err "fetch_metadata: Missing expected path argument"
     local name="${path##*/}"
 
-    msg "fetch_metadata: Fetching '${name}'"
+    msg "fetch_metadata: Downloading '${name}'"
     dbg "Metadata URL: '${url}'"
     dbg "Metadata PATH: '${path}'"
 
@@ -802,7 +810,7 @@ function opt_installer() {
     check_mod_install_path
 
     # Check & get installed EFT version
-    msg "installer: Fetching installed EFT version"
+    msg "installer: Getting installed EFT version"
     INSTALLED_EFT_VERSION=$(get_installed_eft_version)
     local status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_EFT_VERSION}"
     msg "installer: ${BLUE}Found EFT version: '${INSTALLED_EFT_VERSION}'${RESET}"
