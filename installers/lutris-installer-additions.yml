@@ -1,4 +1,4 @@
-## SPT Lutris installer v2024.12-1 ##
+## SPT Lutris installer v2024.12-1.1 ##
 
 ## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
 ## If you want to view the source before running the lutris installer - go here:
@@ -98,7 +98,7 @@ script:
         dst: $GAMEDIR
     - chmodx: ./spt-linux-additions
     - execute:
-        command: NO_ANSI=1 ./spt-linux-additions install "$GAMEDIR"
+        command: NO_ANSI=1 ./spt-linux-additions install -np "$GAMEDIR"
         description: Installing SPT ...
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
