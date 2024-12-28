@@ -37,7 +37,7 @@
 
 ################################################################################
 TITLE="spt-linux-additions"
-VERSION="2024.11-1"
+VERSION="2024.12-1"
 ################################################################################
 
 ################################################################################
@@ -46,7 +46,7 @@ VERSION="2024.11-1"
 
 function m_echo() {
     # Echo to console
-    filtered_str=$(echo -e "${@}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
+    local filtered_str=$(echo -e "${@}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
     if [[ ${NO_ANSI} -eq 1 ]]; then
         # Remove ANSI codes
         echo "${filtered_str}"
@@ -60,14 +60,14 @@ function m_echo() {
 
 
 function m_sleep() {
-    sleep_time=${1:-3}
+    local sleep_time=${1:-3}
     [[ ${NO_WAIT} -eq 0 ]] && sleep "${sleep_time}"
     return 0
 }
 
 
 function m_exit() {
-    status=${1:-0}
+    local status=${1:-0}
     # Make sure some stuff is only run when we're not in a subshell env
     if [[ ! -v ${BASH_SUBSHELL} || ${BASH_SUBSHELL} -eq 0 ]]; then
         if [[ "$status" -ne 0 ]]; then
@@ -85,7 +85,6 @@ function m_exit() {
         fi
     fi
     # Exit the shell / subshell
-    printf "Exit code: ${status}\n"
     exit "${status}"
 }
 
@@ -107,22 +106,22 @@ function dbg() {
 
 
 function err() {
-    status=${2:-1}
+    local status=${2:-1}
     msg "${BOLD}${RED}ERROR: $1 (⊙＿⊙')${RESET}"
     m_exit "${status}"
 }
 
 
 function subshell_err() {
-    status=${2:-2}
+    local status=${2:-2}
     printf "${BOLD}${RED}$1${RESET}\n"
     m_exit ${status}
 }
 
 
 function m_cp() {
-    source_path="${1}"
-    target_path="${2}"
+    local source_path="${1}"
+    local target_path="${2}"
 
     # Check exists
     [ ! "${source_path}" ] && err "m_cp: Source '${source_path}' does not exist"
@@ -145,7 +144,7 @@ function m_run() {
     if [[ "${FLATPAK_ENV}" ]]; then flatpak-spawn --host "$@"
     else "$@"; fi
     # Raise warning & echo error code
-    err_code=$?
+    local err_code=$?
     if [ $err_code != 0 ]; then
         # Prevent messages when in a subshell to not break return values
         if [[ ${BASH_SUBSHELL} -eq 0 ]]; then
@@ -175,9 +174,10 @@ function yes_or_no {
 
 
 function curl_download() {
-    url="${1}"
-    output_path="${2}"
-    filename="${url##*/}"
+    local url="${1}"
+    local output_path="${2}"
+    local max_redirs="${3:-0}"
+    local filename="${url##*/}"
     [ "${filename}" == "" ] \
     && filename="${output_path##*/}"
 
@@ -185,7 +185,7 @@ function curl_download() {
     dbg "Download url: ${url}"
     dbg "Download output path: ${output_path}"
     msg "curl_download: Downloading '${filename}'"
-    m_run curl -f -L --connect-timeout 60 --max-redirs 0 --create-dirs $url -o "${output_path}" \
+    m_run curl -f -L --connect-timeout 60 --max-redirs $max_redirs --create-dirs $url -o "${output_path}" \
     || warn "Failed to download file from '${url}'"
 
     # Check if downloaded file exists
@@ -195,8 +195,8 @@ function curl_download() {
 
 
 function check_hash() {
-    file_path="${1}"
-    expected_hash="${2}"
+    local file_path="${1}"
+    local expected_hash="${2}"
 
     # Check arguments
     [ ! -f "${file_path}" ] \
@@ -207,7 +207,7 @@ function check_hash() {
     # use file to calculate MD5 hash and ENCODE in base64
     msg "check_hash: Calculating checksum of file '${file_path##*/}'"
     file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | m_run xxd -r -p | base64)
-    status=$?; [ $status != 0 ] && subshell_err "${file_hash}"
+    local status=$?; [ $status != 0 ] && subshell_err "${file_hash}"
     dbg "File hash: ${file_hash} Expected hash: ${expected_hash}"
 
     # Check if a hash is returned
@@ -225,18 +225,18 @@ function check_hash() {
 
 
 function get_json_value() {
-    json_file_path="${1}"
+    local json_file_path="${1}"
     # Check if json file exists
     [ ! -f "${json_file_path}" ] \
     && err "get_json_value: File '${json_file_path}' does not exist"
 
-    value_name="${2}"
+    local value_name="${2}"
     # Check if the value name is provided
     [ ! "${value_name}" ] \
     && err "get_json_value: Missing argument 'value_name'"
 
     # Fetch the value
-    value=$(cat "${json_file_path}" \
+    local value=$(cat "${json_file_path}" \
         | grep -o "\"${value_name}\":[^}]*" \
         | cut -d "\"" -f4)
 
@@ -254,7 +254,7 @@ function get_json_value() {
 ################################################################################
 
 function get_eft_install_path() {
-    prefix_path="${1:-"${PREFIX_PATH}"}"
+    local prefix_path="${1:-"${PREFIX_PATH}"}"
     prefix_path="${prefix_path%/}"
 
     # Check exists
@@ -262,9 +262,9 @@ function get_eft_install_path() {
     && err "get_eft_install_path: Directory '${prefix_path}' does not exist"
 
     # get windows formatted path
-    registry="${prefix_path}/system.reg"
-    reg_entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${registry}")
-    path=$(echo "${reg_entry}" | \
+    local registry="${prefix_path}/system.reg"
+    local reg_entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${registry}")
+    local path=$(echo "${reg_entry}" | \
     grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4)
 
     # If there is no registry entry for Tarkov, the game is probably not installed
@@ -273,36 +273,36 @@ function get_eft_install_path() {
     fi
 
     # Replace backslashes with slashes
-    path="${path//\\\\/\/}"
+    local path="${path//\\\\/\/}"
 
     # Finally assemble the full path
-    path=$(echo "${prefix_path}/${path//C:/drive_c}")
+    local path=$(echo "${prefix_path}/${path//C:/drive_c}")
 
     printf "${path}\n"
 }
 
 
 function get_installed_eft_version() {
-    eft_install_path="${1:-"${EFT_INSTALL_PATH}"}"
+    local eft_install_path="${1:-"${EFT_INSTALL_PATH}"}"
 
     # Check exists
     [ ! -d "${eft_install_path}" ] \
     && err "get_installed_eft_version: Directory '${eft_install_path}' does not exist"
 
     # Check if main exe exists
-    exe_file="${eft_install_path}/EscapeFromTarkov.exe"
+    local exe_file="${eft_install_path}/EscapeFromTarkov.exe"
     [ ! -f "${exe_file}" ] \
     && err "get_installed_eft_version: File '${exe_file}' does not exist"
 
     # Extract metadata
-    tmp_dir="${TEMP_PATH}/exe"
+    local tmp_dir="${TEMP_PATH}/exe"
     m_run 7z x "${exe_file}" -o"${tmp_dir}" 1>/dev/null \
     || err "get_installed_eft_version: Failed to extract '${exe_file}' to '${tmp_dir}'"
 
     # Finally get the EFT version from the version.txt file
     # make sure to remove null byte and -stupid- windows \r -_-* (learned it the hard way!)
-    version_file="${tmp_dir}/.rsrc/0/version.txt"
-    version=$(m_run cat "${version_file}" | head -1 | tr -d '\0\r' | cut -d "," -f4)
+    local version_file="${tmp_dir}/.rsrc/0/version.txt"
+    local version=$(m_run cat "${version_file}" | head -1 | tr -d '\0\r' | cut -d "," -f4)
 
     # Check returned value
     if ! [ "${version}" ] || [ "${version}" == '' ]; then
@@ -319,7 +319,7 @@ function get_installed_eft_version() {
 ################################################################################
 
 function download_mod() {
-    url="${1:-"${MOD_RELEASE_URL}"}"
+    local url="${1:-"${MOD_RELEASE_URL}"}"
     [ ! "${url}" ] \
     && err "download_mod: Missing URL"
     curl_download "${url}" "${MOD_FILE_PATH}"
@@ -331,9 +331,9 @@ function download_mod() {
 ################################################################################
 
 function get_patcher_urls() {
-    mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
-    mirror_index="${2}"
-    urls=$(cat "${mirrors_json_path}" \
+    local mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
+    local mirror_index="${2}"
+    local urls=$(cat "${mirrors_json_path}" \
         | grep -o "\"Link\":[^}]*" \
         | cut -d "\"" -f4)
 
@@ -352,16 +352,16 @@ function get_patcher_urls() {
 
 
 function get_patcher_target_eft_version() {
-    mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
+    local mirrors_json_path="${1:-"${PATCHER_MIRRORS_JSON_PATH}"}"
 
-    url=$(get_patcher_urls "${mirrors_json_path}" 1)
-    status=$?; [ $status != 0 ] && subshell_err "${url}"
+    local url=$(get_patcher_urls "${mirrors_json_path}" 1)
+    local status=$?; [ $status != 0 ] && subshell_err "${url}"
 
     # Split filename to get version infos from it
-    formatted_filename=$(echo "${url##*/}" | tr "_." " ")
+    local formatted_filename=$(echo "${url##*/}" | tr "_." " ")
 
     # get target EFT version
-    version=$(echo "${formatted_filename}" | cut -d " " -f5)
+    local version=$(echo "${formatted_filename}" | cut -d " " -f5)
 
     # Check returned value
     if ! [ "${version}" ] || [ "${version}" == '' ]; then
@@ -374,7 +374,7 @@ function get_patcher_target_eft_version() {
 
 function download_patcher() {
     # Get all mirror urls
-    urls="${1:-${PATCHER_MIRROR_URLS}}"; [ "${urls}" == '' ] \
+    local urls="${1:-${PATCHER_MIRROR_URLS}}"; [ "${urls}" == '' ] \
     && err "download_patcher: Missing mirror urls"
     dbg "download_patcher: Got mirrors: '"${urls}"'"
     
@@ -416,13 +416,13 @@ function check_eft_running() {
 
 
 function check_dependencies() {
-    cmds=("7z" "xdelta3" "xxd")
-    missing_pkgs=()
+    local cmds=("7z" "xxd" "hpatchz")
+    local missing_pkgs=()
 
     # Check each cmd and error out if something is missing
     # We need to handle packages as well - different ones for Fedora (who would have guessed :/)
     for cmd in "${cmds[@]}"; do
-        pkgs=()
+        local pkgs=()
         if ! m_run command -v $cmd &>/dev/null; then
             case ${cmd} in
                 "7z")
@@ -430,15 +430,17 @@ function check_dependencies() {
                     if [ -f "/etc/fedora-release" ]; then pkgs+=("p7zip-plugins")
                     else pkgs+=("p7zip"); fi
                 ;;
-                "xdelta3")
-                    # FIXME: Fedora release file cannot be found from inside a Flatpak container
-                    if [ -f "/etc/fedora-release" ]; then pkgs+=("xdelta")
-                    else pkgs+=("xdelta3"); fi
-                ;;
                 "xxd")
                     # FIXME: Fedora release file cannot be found from inside a Flatpak container
                     if [ -f "/etc/fedora-release" ]; then pkgs+=("vim-common")
                     else pkgs+=("xxd"); fi
+                ;;
+                "hpatchz")
+                    if [ ! -f "${BINARIES_PATH}/hpatchz" ]; then
+                        local url="https://github.com/sisong/HDiffPatch/releases/download/v4.8.0/hdiffpatch_v4.8.0_bin_linux64.zip"
+                        local bin_path="linux64/$dep"
+                        fetch_dep_binary "${url}" "${bin_path}"
+                    fi
                 ;;
             esac
             dbg "Found missing package(s): '${pkgs[*]}'"
@@ -459,17 +461,47 @@ function check_dependencies() {
 }
 
 
+function fetch_dep_binary() {
+    local url="${1}"
+    local bin_path="${2}"
+
+    # TODO: Check if the URLs target file is an archive or an executable!
+
+    # Download
+    local temp_path="${TEMP_PATH}/$dep"
+    local archive_path="${temp_path}/build.zip"
+
+    # Check binaries directory for existing binaries
+    [ -f "${BINARIES_PATH}/$dep" ]
+
+    dbg "Fetching '$dep'..."
+    curl_download "${url}" "${archive_path}" 1; status=$?
+    [ $status != 0 ] && err "fetch_dep_binary: Failed to download '$dep' - Error code ${status}"
+
+    # Extract
+    msg "Extracting '$dep'..."
+    m_run 7z x "${archive_path}" -o"${temp_path}" 1>/dev/null; status=$?
+    [ $status != 0 ] && err "fetch_dep_binary: Failed to extract '$dep' - Error code ${status}"
+
+    # Install
+    msg "Installing '$dep'..."
+    mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || err "Failed to move '$dep' to '${BINARIES_PATH}'"
+    chmod +x "${BINARIES_PATH}/$dep" || err "fetch_dep_binary: Failed to make dependency executable: '$dep'"
+    msg "Installed '$dep' successfully"
+}
+
+
 function check_disk_space() {
-    path=${1:-${PREFIX_PATH}}; [ ! "${path}" ] \
+    local path=${1:-${PREFIX_PATH}}; [ ! "${path}" ] \
     && err "check_disk_space: Missing path argument"
 
     # Get required values
-    free_kb=$(df -k "${path}" | tail -1 | awk '{print $4}')
-    free_gb=$(echo $free_kb | awk '{ free = $1 / 1024/1024 ; printf("%.2fGiB\n", free) }')
-    eft_kb=$(du -cs "${EFT_INSTALL_PATH}" | head -1 | cut -d$'\t' -f1)
-    overhead_kb=$((1024*1024*10))
-    total_kb=$(($eft_kb + $overhead_kb))
-    total_gb=$(echo $total_kb | awk '{ total = $1 / 1024/1024 ; printf("%.2fGiB\n", total) }')
+    local free_kb=$(df -k "${path}" | tail -1 | awk '{print $4}')
+    local free_gb=$(echo $free_kb | awk '{ free = $1 / 1024/1024 ; printf("%.2fGiB\n", free) }')
+    local eft_kb=$(du -cs "${EFT_INSTALL_PATH}" | head -1 | cut -d$'\t' -f1)
+    local overhead_kb=$((1024*1024*10))
+    local total_kb=$(($eft_kb + $overhead_kb))
+    local total_gb=$(echo $total_kb | awk '{ total = $1 / 1024/1024 ; printf("%.2fGiB\n", total) }')
     dbg "Free disk space: ${free_kb} kb (checked in ${path})"
     dbg "EFT install size: ${eft_kb} kb"
     dbg "Total required free space: ${total_kb} kb"
@@ -489,9 +521,9 @@ function check_mod_install_path() {
         [ ! -d "${SPT_INSTALL_PATH}" ] \
         && err "check_mod_install_path: SPT install directory at '${SPT_INSTALL_PATH}' does not exist"
         # FIXME: Not the best way to verify the game directory.. hmmm...
-        try_paths=( "SPT_Data" "BepInEx" "EscapeFromTarkov.exe" )
+        local try_paths=( "SPT_Data" "BepInEx" "EscapeFromTarkov.exe" )
         for path in "${try_paths[@]}"; do
-            full_path="${SPT_INSTALL_PATH}/${path}"
+            local full_path="${SPT_INSTALL_PATH}/${path}"
             [ ! -e "${full_path}" ] \
             && err "check_mod_install_path: Directory is not a valid SPT install directory"
         done
@@ -511,9 +543,9 @@ function check_mod_install_path() {
 
 
 function verify_cached() {
-    cached_path="${1}"; [ ! "${cached_path}" ] \
+    local cached_path="${1}"; [ ! "${cached_path}" ] \
     && err "verify_cached: Missing cached path argument"
-    expected_hash="${2}"; [ ! "${expected_hash}" ] \
+    local expected_hash="${2}"; [ ! "${expected_hash}" ] \
     && err "verify_cached: Missing expected hash argument"
 
     # Make sure the path actually is in CACHE_PATH
@@ -521,7 +553,7 @@ function verify_cached() {
     || err "verify_cached: Given file isn't inside the scripts cache directory"
 
     # Verify the file is there and valid
-    filename=${cached_path##*/}
+    local filename=${cached_path##*/}
     msg "verify_cached: Checking for cached file '${filename}'"
     if [ -f "${cached_path}" ]; then
         msg "verify_cached: ${BLUE}Found '${filename}' in cache directory${RESET}"
@@ -556,8 +588,8 @@ function remove_spt_install() {
 
 
 function cp_eft_files() {
-    source_dir="${1:-${EFT_INSTALL_PATH}}"
-    target_dir="${2:-${SPT_INSTALL_PATH}}"
+    local source_dir="${1:-${EFT_INSTALL_PATH}}"
+    local target_dir="${2:-${SPT_INSTALL_PATH}}"
     msg "cp_eft_files: Copying EFT game files to '${target_dir}'"
     # In case of failure, remove the created SPT directory to prevent the next install
     # attempt to fail because of existing files
@@ -586,7 +618,7 @@ function set_spt_path() {
 
 
 function validate_metadata() {
-    file_path="${1}"
+    local file_path="${1}"
     # Check if file exists, if not - fail the check
     [ ! -f "${file_path}" ] \
     && msg "validate_metadata: ${YELLOW}File does not exist${RESET}" \
@@ -594,9 +626,9 @@ function validate_metadata() {
 
     # Calculate time elapsed since last modified
     # default is 1 hour
-    ttl="${2:-"3600"}" 
-    current=$(date +%s)
-    modified=$(date -r "${file_path}" +%s)
+    local ttl="${2:-"3600"}" 
+    local current=$(date +%s)
+    local modified=$(date -r "${file_path}" +%s)
     ((elapsed = current - modified))
     dbg "Elapsed since modified: $elapsed seconds. File: '${file_path}'"
 
@@ -612,11 +644,11 @@ function validate_metadata() {
 
 
 function fetch_metadata() {
-    url="${1}"; [ ! "${url}" ] \
+    local url="${1}"; [ ! "${url}" ] \
     && err "fetch_metadata: Missing expected url argument"
-    path="${2}"; [ ! "${path}" ] \
+    local path="${2}"; [ ! "${path}" ] \
     && err "fetch_metadata: Missing expected path argument"
-    name="${path##*/}"
+    local name="${path##*/}"
 
     msg "fetch_metadata: Fetching '${name}'"
     dbg "Metadata URL: '${url}'"
@@ -647,17 +679,17 @@ function get_cached_backup_path() {
 
 function opt_patcher() {
     msg "${BLUE}Launching patcher...${RESET}"
-    target_path="${1:-"${PATCHER_TARGET_PATH}"}" 
+    local target_path="${1:-"${PATCHER_TARGET_PATH}"}" 
     target_path="${target_path%/}"
-    source_path="${2:-"${PATCHER_SOURCE_PATH}"}" 
+    local source_path="${2:-"${PATCHER_SOURCE_PATH}"}" 
     source_path="${source_path%/}"
 
-    # Check for xdelta3 in case the patcher is used seperately
-    m_run command -v xdelta3 &>/dev/null \
-    || err "patcher: Missing dependency 'xdelta3'. Please install it & try again"
+    local patcher_cmd="${BINARIES_PATH}/hpatchz"
+    local patcher_args="";
 
-    if [[ ${DEBUG_OUTPUT} -eq 2 ]]; then xd_args="-v -d -f -s";
-    else xd_args="-d -f -s"; fi
+    # Check for the patcher binary
+    m_run command -v ${patcher_cmd} &>/dev/null \
+    || err "patcher: Missing dependency 'hpatchz'. Please install it & try again"
 
     [ ! -d "${target_path}" ] \
     && err "patcher: Target directory '${target_path}' does not exist"
@@ -675,28 +707,28 @@ function opt_patcher() {
         err "patcher: Unable to locate 'SPT_Patches' directory in '${source_path}'"
     fi
 
-    progress_start=1
-    progress_total=$(find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c)
+    local progress_start=1
+    local progress_total=$(find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c)
     # Process each file in source directory
     find "$source_path/SPT_Patches" \( -type f -print0 \) \
     | while read -d $'\0' source; do
         # progress_current
-        progress_current="[${progress_start}/${progress_total}]"
+        local progress_current="[${progress_start}/${progress_total}]"
         # Isolate the operation extension
-        extension="${source##*.}"
+        local extension="${source##*.}"
         # Isolate sub-directories of SPT_Patches
-        formatted="${source#*SPT_Patches/}"
+        local formatted="${source#*SPT_Patches/}"
         # Remove operation extension to get actual file name
         formatted="${formatted%.*}"
 
-        output="${target_path}/${formatted}"
-        target="${output}.decoded"
+        local output="${target_path}/${formatted}"
+        local target="${output}.decoded"
 
         case "$extension" in
             "delta")
                 # Start patching
                 msg "${progress_current} (*) Patching: ${formatted}"
-                m_run xdelta3 $xd_args "$output" "$source" "$target"\
+                m_run "${patcher_cmd}" $patcher_args "$output" "$source" "$target" &>/dev/null \
                 || err "patcher: A patch failed to apply"
                 # Success - remove old file and replace with .decoded file
                 if ! [ -f "${target}" ]; then err "patcher: Decoded file not found!"; fi
@@ -706,14 +738,14 @@ function opt_patcher() {
             "del")
                 msg "${progress_current} (-) Deleting: ${formatted}"
                 rm "${output}" || err "patcher: Failed to delete file"
-                dir_path="${output%/*}"
+                local dir_path="${output%/*}"
                 if [[ -z "$(ls -A "${dir_path}")" ]]; then
                     rmdir "${dir_path}" || err "patcher: Failed to remove empty directory: ${dir_path}"
                 fi
             ;;
             "new")
                 msg "${progress_current} (+) Adding: ${formatted}"
-                dir_path="${output%/*}"
+                local dir_path="${output%/*}"
                 if [[ ! -d "${dir_path}" ]]; then
                     mkdir -p "${dir_path}" || err "patcher: Failed to create new directory: ${dir_path}"
                 fi
@@ -754,7 +786,7 @@ function opt_installer() {
     # Check EFT installation
     msg "installer: Checking for EFT inside the prefix..."
     EFT_INSTALL_PATH=$(get_eft_install_path)
-    status=$?; [ $status != 0 ] && subshell_err "${EFT_INSTALL_PATH}"
+    local status=$?; [ $status != 0 ] && subshell_err "${EFT_INSTALL_PATH}"
 
     # Check if the game directory from the install path actually exists
     [ ! -d "${EFT_INSTALL_PATH}" ] \
@@ -772,7 +804,7 @@ function opt_installer() {
     # Check & get installed EFT version
     msg "installer: Fetching installed EFT version"
     INSTALLED_EFT_VERSION=$(get_installed_eft_version)
-    status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_EFT_VERSION}"
+    local status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_EFT_VERSION}"
     msg "installer: ${BLUE}Found EFT version: '${INSTALLED_EFT_VERSION}'${RESET}"
 
     if [[ ${REINSTALL_SPT} -eq 1 ]]; then
@@ -787,37 +819,37 @@ function opt_installer() {
 
     # Set global variable for patcher mirror urls
     PATCHER_MIRROR_URLS=$(get_patcher_urls)
-    status=$?; [ $status != 0 ] && subshell_err "${PATCHER_MIRROR_URLS}"
+    local status=$?; [ $status != 0 ] && subshell_err "${PATCHER_MIRROR_URLS}"
     dbg "Patcher mirror urls: Got '${PATCHER_MIRROR_URLS}'"
 
     # Fetch latest mod release URL
     MOD_RELEASE_URL=$(get_json_value "${MOD_RELEASE_JSON_PATH}" "DownloadUrl")
-    status=$?; [ $status != 0 ] && subshell_err "${MOD_RELEASE_URL}"
+    local status=$?; [ $status != 0 ] && subshell_err "${MOD_RELEASE_URL}"
     dbg "Mod release url: Got '${MOD_RELEASE_URL}'"
 
     # Check & get latest SPT version
     MOD_VERSION=$(get_json_value "${MOD_RELEASE_JSON_PATH}" "AkiVersion")
-    status=$?; [ $status != 0 ] && subshell_err "${MOD_VERSION}"
+    local status=$?; [ $status != 0 ] && subshell_err "${MOD_VERSION}"
     dbg "Mod version: Got '${MOD_VERSION}'"
 
     # Check & get required EFT version
     REQUIRED_EFT_VERSION=$(get_json_value "${MOD_RELEASE_JSON_PATH}" "ClientVersion")
-    status=$?; [ $status != 0 ] && subshell_err "${REQUIRED_EFT_VERSION}"
+    local status=$?; [ $status != 0 ] && subshell_err "${REQUIRED_EFT_VERSION}"
     dbg "Required EFT version: Got '${REQUIRED_EFT_VERSION}'"
 
     # Mod hash
     MOD_EXPECTED_HASH=$(get_json_value "${MOD_RELEASE_JSON_PATH}" "Hash")
-    status=$?; [ $status != 0 ] && subshell_err "${MOD_EXPECTED_HASH}"
+    local status=$?; [ $status != 0 ] && subshell_err "${MOD_EXPECTED_HASH}"
     dbg "Expected mod hash: Got '${MOD_EXPECTED_HASH}'"
 
     # Patcher hash
     PATCHER_EXPECTED_HASH=$(get_json_value "${PATCHER_MIRRORS_JSON_PATH}" "Hash" | head -1)
-    status=$?; [ $status != 0 ] && subshell_err "${PATCHER_EXPECTED_HASH}"
+    local status=$?; [ $status != 0 ] && subshell_err "${PATCHER_EXPECTED_HASH}"
     dbg "Expected patcher hash: Got '${PATCHER_EXPECTED_HASH}'"
 
     # Patcher required EFT version
     PATCHER_TARGET_EFT_VERSION=$(get_patcher_target_eft_version)
-    status=$?; [ $status != 0 ] && subshell_err "${PATCHER_TARGET_EFT_VERSION}"
+    local status=$?; [ $status != 0 ] && subshell_err "${PATCHER_TARGET_EFT_VERSION}"
     dbg "Patcher targeted EFT version: Got '${PATCHER_TARGET_EFT_VERSION}'"
 
     # Check for cached mod archive
@@ -827,7 +859,7 @@ function opt_installer() {
     if [ "$status" -eq 1 ]; then
         download_mod
         check_hash "${MOD_FILE_PATH}" "${MOD_EXPECTED_HASH}"
-        status=$?; [ $status != 0 ] \
+        local status=$?; [ $status != 0 ] \
         && err "installer: Downloaded mod archive is corrupted"
     fi
 
@@ -873,7 +905,7 @@ function opt_installer() {
 
             # Extract downpatcher to temp directory
             msg "installer: Extracting patcher files to temp directory"
-            patcher_temp_path="${TEMP_PATH}/patcher"
+            local patcher_temp_path="${TEMP_PATH}/patcher"
             # HACK: Running native 7z while using Flatpak Lutris is a workaround for the bundled lib
             # throwing an E_FAIL error on large archives.
             m_run 7z x "${PATCHER_FILE_PATH}" -o"${patcher_temp_path}" 1>/dev/null \
@@ -903,7 +935,7 @@ function opt_installer() {
     # Extract mod archive to install directory
     msg "installer: Extracting mod archive to SPT install directory"
     # Using native 7z - the one provided by the Flatpak runtime throws an E_FAIL on large archives
-    m_run 7z x "${MOD_FILE_PATH}" -o"${SPT_INSTALL_PATH}" 1>/dev/null; status=$?;
+    m_run 7z x "${MOD_FILE_PATH}" -o"${SPT_INSTALL_PATH}" 1>/dev/null; local status=$?;
     if [ $status != 0 ]; then
         remove_spt_install
         err "installer: Failed to extract mod files to '${SPT_INSTALL_PATH}'"
@@ -987,34 +1019,34 @@ function opt_help() {
 
 function opt_backup() {
     # TODO: Add feature to exclude unwanted sub-directories (e.g. ! prefixed)
-    dirs=("$*")
+    local dirs=("$*")
 
     # if no args given, restore all defined user data directories
     if [ "$#" -eq 0 ]; then
         dirs=("${SPT_USER_DATA_DIRS[@]}")
     fi
 
-    absolute_root_path="${PREFIX_PATH%/}/${SPT_RELATIVE_ROOT_BACKUP_PATH%/}"
+    local absolute_root_path="${PREFIX_PATH%/}/${SPT_RELATIVE_ROOT_BACKUP_PATH%/}"
 
     # Get installed SPT version (if any)
     # TODO: Move to be able to use it somewhere else
-    core_json_file="${SPT_INSTALL_PATH}/SPT_Data/Server/configs/core.json"
+    local core_json_file="${SPT_INSTALL_PATH}/SPT_Data/Server/configs/core.json"
     INSTALLED_SPT_VERSION=$(get_json_value "${core_json_file}" "sptVersion")
-    status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_SPT_VERSION}"
+    local status=$?; [ $status != 0 ] && subshell_err "${INSTALLED_SPT_VERSION}"
     dbg "Installed SPT version: Got '${INSTALLED_SPT_VERSION}'"
 
     # Prepare backup directory
     printf -v timestamp '%(%Y%m%d-%H%M)T' -1
-    backup_name="spt-${INSTALLED_SPT_VERSION}-${timestamp}"
-    absolute_backup_path="${absolute_root_path%/}/${backup_name%/}"
+    local backup_name="spt-${INSTALLED_SPT_VERSION}-${timestamp}"
+    local absolute_backup_path="${absolute_root_path%/}/${backup_name%/}"
 
     msg "Creating backup in '${absolute_backup_path}'"
 
     # Copy required directories from the SPT install path to the backup path
     for dir in "${dirs[@]}"; do
-        source_path="${SPT_INSTALL_PATH%/}/${dir}"
-        target_path="${absolute_backup_path}/${dir}"
-        formatted="${source_path#*"${absolute_root_path}"/}"
+        local source_path="${SPT_INSTALL_PATH%/}/${dir}"
+        local target_path="${absolute_backup_path}/${dir}"
+        local formatted="${source_path#*"${absolute_root_path}"/}"
         dbg "Backing up: ${formatted}"
             if [[ -d "${source_path}" ]]; then
                 m_cp "${source_path%/}/" "${target_path%/}/" \
@@ -1040,7 +1072,7 @@ function opt_backup() {
 
 function opt_restore() {
     # TODO: Add feature to exclude unwanted sub-directories (e.g. ! prefixed)
-    dirs=("$*")
+    local dirs=("$*")
 
     # if no args given, restore all defined user config directories
     if [ "$#" -eq 0 ]; then
@@ -1078,9 +1110,9 @@ function opt_restore() {
 
     # Array of directories and files to restore
     for dir in "${dirs[@]}"; do
-        source_path="${CACHED_BACKUP_PATH%/}/${dir}"
-        target_path="${SPT_INSTALL_PATH%/}/${dir}"
-        formatted="${source_path#*"${CACHED_BACKUP_PATH}"/}"
+        local source_path="${CACHED_BACKUP_PATH%/}/${dir}"
+        local target_path="${SPT_INSTALL_PATH%/}/${dir}"
+        local formatted="${source_path#*"${CACHED_BACKUP_PATH}"/}"
         dbg "Restoring: ${formatted}"
         if [[ -d "${source_path}" ]]; then
             m_cp "${source_path%/}/" "${target_path%/}/" \
@@ -1092,8 +1124,8 @@ function opt_restore() {
 
  
 function opt_self_update() {
-    script_path="${SCRIPT_ROOT_PATH}/${TITLE}"
-    script_update_url="https://dev.sp-tarkov.com/MadByte/Linux-Guide/raw/branch/main/installers/spt-linux-additions"
+    local script_path="${SCRIPT_ROOT_PATH}/${TITLE}"
+    local script_update_url="https://dev.sp-tarkov.com/MadByte/Linux-Guide/raw/branch/main/installers/spt-linux-additions"
     # Display warning for not fully implemented feature
     warn "opt_self_update: Not fully implemented yet"
     m_echo
@@ -1158,7 +1190,7 @@ function set_reinstall() {
 
 
 function set_debug() {
-    value=${1:-1}
+    local value=${1:-1}
     case $1 in
         '0') return 0;;
         '1') DEBUG_OUTPUT=$value;;
@@ -1204,7 +1236,13 @@ readonly TEMP_PATH="$(mktemp -d -t "${TITLE}.XXXXXXXXX")"
 # Create cache directory
 readonly CACHE_PATH="${XDG_CACHE_HOME}/${TITLE}"
 if [ ! -d "${CACHE_PATH}" ]; then
-    mkdir -p "${CACHE_PATH}" || err "Couldn't create cache directory"
+    mkdir -p "${CACHE_PATH}" || err "Couldn't create directory at '${CACHE_PATH}'"
+fi
+
+# Create binaries directory
+BINARIES_PATH="${CACHE_PATH}/binaries"
+if [ ! -d "${BINARIES_PATH}" ]; then
+    mkdir "${BINARIES_PATH}" || err "Couldn't create directory at '${BINARIES_PATH}'"
 fi
 
 readonly LOG_PATH="${CACHE_PATH}/spt-linux-additions.log"
