@@ -37,7 +37,7 @@
 
 ################################################################################
 TITLE="spt-linux-additions"
-VERSION="2024.12-1.1"
+VERSION="2024.12-1.2"
 ################################################################################
 
 ################################################################################
@@ -73,10 +73,11 @@ function m_exit() {
         if [[ "$status" -ne 0 ]]; then
             # This is a workaround for Lutris closing the installer cli immediately after
             # encountering an error & just showing the -not so useful- error code
-            [[ "$PATH" == *"lutris"* ]] && m_sleep 10
-
-            # open the error log using the default text editor 
-            [[ "$status" -ne 3 ]] && m_run xdg-open "${LOG_PATH}"
+            if [[ "$status" -ne 3 ]]; then
+                [[ "$PATH" == *"lutris"* ]] && m_sleep 10
+                # open the error log using the default text editor 
+                m_run xdg-open "${LOG_PATH}"
+            fi
         fi
         # Remove temp files before exiting
         if [ -d "${TEMP_PATH}" ]; then
@@ -158,6 +159,8 @@ function m_run() {
 
 
 function yes_or_no {
+    msg "$* [y/n]"
+
     # Skip check if user prompts are disabled
     if [[ $NO_PROMPT -eq 1 ]]; then
         msg "'NO_PROMPT' environment variable set! returning 'y'."
@@ -165,7 +168,6 @@ function yes_or_no {
     fi
 
     while true; do
-        msg "$* [y/n]"
         read -p "   > " yn
         case $yn in
             [Yy]*) return 0 ;;  
@@ -187,12 +189,13 @@ function curl_download() {
     dbg "Download url: ${url}"
     dbg "Download output path: ${output_path}"
     msg "curl_download: Downloading '${filename}'"
-    m_run curl -f -L --connect-timeout 60 --max-redirs $max_redirs --create-dirs $url -o "${output_path}" \
-    || warn "Failed to download file from '${url}'"
+    m_run curl -f -L --connect-timeout 60 --max-redirs $max_redirs --create-dirs $url -o "${output_path}"
 
-    # Check if downloaded file exists
-    [ ! -f "${output_path}" ] && err "curl_download: Download failed"
-    msg "curl_download: ${BLUE}Downloaded '${filename}' successfully${RESET}"
+    local status=$?
+    case ${status} in
+        0) msg "curl_download: ${BLUE}Downloaded '${filename}' successfully${RESET}" ;;
+        *) warn "curl_download: Failed to download '${filename}'" ;;
+    esac
 }
 
 
@@ -408,12 +411,12 @@ function check_flatpak_env() {
     fi
 }
 
+
 function check_eft_running() {
-    if [ $(pidof "BsgLauncher.exe") ]; then
-        err "check_eft_running: Please close the BsgLauncher before installing (and running) SPT"
-    fi
-    # Success
-    msg "check_eft_running: ${BLUE}OK${RESET}"
+    case $(pidof "BsgLauncher.exe") in
+        "") msg "check_eft_running: ${BLUE}OK${RESET}" ;;
+        *) err "check_eft_running: Please close the BsgLauncher and the EFT client before installing (and playing) SPT!" ;;
+    esac
 }
 
 
@@ -473,7 +476,7 @@ function fetch_dependency() {
     local bin_path="${2}"
 
     # Ask for permission to install dependency
-    msg "Dependency '$dep' will be downloaded from:"
+    msg "fetch_dependency: '$dep' will be downloaded from:"
     m_echo "    ${url}"
     yes_or_no "Continue?" || m_exit 3
 
@@ -484,18 +487,18 @@ function fetch_dependency() {
 
     # Download
     curl_download "${url}" "${archive_path}" 1; status=$?
-    [ $status != 0 ] && err "fetch_dep_binary: Failed to download '$dep' - Error code ${status}"
+    [ $status != 0 ] && err "fetch_dependency: Failed to download '$dep' - Error code ${status}"
 
     # Extract
-    msg "Extracting '$dep'..."
+    msg "fetch_dependency: Extracting '$dep'..."
     m_run 7z x "${archive_path}" -o"${temp_path}" 1>/dev/null; status=$?
-    [ $status != 0 ] && err "fetch_dep_binary: Failed to extract '$dep' - Error code ${status}"
+    [ $status != 0 ] && err "fetch_dependency: Failed to extract '$dep' - Error code ${status}"
 
     # Install
-    msg "Installing '$dep'..."
+    msg "fetch_dependency: Installing '$dep'..."
     mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || err "Failed to move '$dep' to '${BINARIES_PATH}'"
-    chmod +x "${BINARIES_PATH}/$dep" || err "fetch_dep_binary: Failed to make dependency executable: '$dep'"
-    msg "'${dep}' has been installed successfully!"
+    chmod +x "${BINARIES_PATH}/$dep" || err "fetch_dependency: Failed to make file executable: '$dep'"
+    msg "fetch_dependency: '${dep}' has been installed successfully!"
 }
 
 
@@ -662,7 +665,7 @@ function fetch_metadata() {
     dbg "Metadata URL: '${url}'"
     dbg "Metadata PATH: '${path}'"
 
-    validate_metadata "${path}"; valid=$?
+    validate_metadata "${path}"; local valid=$?
     if [ $valid != 0 ]; then
         # Download json file
         curl_download "${url}" "${path}"
