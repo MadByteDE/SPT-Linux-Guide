@@ -50,13 +50,13 @@ To get rid of this extra step and also improve on stability and usability, we be
 ## Dependencies
 
 #### Ubuntu-based distros
-`sudo apt-get install xdelta3 p7zip xxd`
+`sudo apt-get install p7zip xxd`
 
 #### Arch-based distros
-`sudo pacman -S xdelta3 p7zip xxd`
+`sudo pacman -S p7zip xxd`
 
 #### Fedora
-`sudo dnf install xdelta p7zip-plugins vim-common`
+`sudo dnf install p7zip-plugins vim-common`
 
 ## Notes
 

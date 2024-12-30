@@ -88,17 +88,6 @@ We provide two methods to patch the game files on Linux.
 
 - **[spt-linux-additions](../installers/spt-linux-additions)**
 
-### Dependencies
-
-#### Ubuntu-based distros
-`sudo apt-get install xdelta3`
-
-#### Arch-based distros
-`sudo pacman -S xdelta3`
-
-#### Fedora
-`sudo dnf install xdelta`
-
 ## Installation
 
 - **1) Move `SPT_Patches` to your install directory**

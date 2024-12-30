@@ -28,7 +28,6 @@ To get rid of this extra step and also improve on stability and usability, we've
 ### Are there any other advantages?
 
 Yes! No longer having to rely on Wine to function correctly comes with quite some nice advantages:
-- Patching can be almost twice as fast when `xdelta3` is run natively
 - We can take advantage of [reflinking](https://btrfs.readthedocs.io/en/latest/Reflink.html) on supported filesystems (e.g. btrfs) when copying game files which can save a lot of time
 - Patches don't necessarily need to be located inside the game directory (optional `SOURCE` argument)
 - More helpful debug output possible (verbose / debug options set)
@@ -59,10 +58,10 @@ This option also comes with some disadvantages that you might want to consider:
 ## Dependencies
 
 ### Ubuntu-based distros
-    sudo apt-get install p7zip xdelta3 xxd
+    sudo apt-get install p7zip xxd
 
 ### Arch-based distros
-    sudo pacman -S p7zip xdelta3 xxd
+    sudo pacman -S p7zip xxd
 
 ### Fedora
     sudo yum install p7zip-plugins xdelta vim-common
