@@ -37,7 +37,7 @@
 
 ################################################################################
 TITLE="spt-linux-additions"
-VERSION="2024.12-1.2"
+VERSION="2024.12-1.3"
 ################################################################################
 
 ################################################################################
@@ -972,7 +972,7 @@ function opt_version() {
     m_echo "${RED}[!] This script is made by the SPT community & is NOT offically supported by the mod developers!${RESET}"
     m_echo
     m_echo "Report bugs over at:"
-    m_echo "${BOLD}  -> https://dev.sp-tarkov.com/MadByte/Linux-Guide${RESET}"
+    m_echo "${BOLD}  -> https://github.com/MadByteDE/SPT-Linux-Guide${RESET}"
     m_echo
 }
 
@@ -1136,7 +1136,7 @@ function opt_restore() {
  
 function opt_self_update() {
     local script_path="${SCRIPT_ROOT_PATH}/${TITLE}"
-    local script_update_url="https://dev.sp-tarkov.com/MadByte/Linux-Guide/raw/branch/main/installers/spt-linux-additions"
+    local script_update_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/spt-linux-additions"
     # Display warning for not fully implemented feature
     warn "opt_self_update: Not fully implemented yet"
     m_echo
