@@ -37,7 +37,7 @@
 
 ################################################################################
 TITLE="spt-linux-additions"
-VERSION="2024.12-1.3"
+VERSION="2025.1-1"
 ################################################################################
 
 ################################################################################
@@ -496,7 +496,7 @@ function fetch_dependency() {
 
     # Install
     msg "fetch_dependency: Installing '$dep'..."
-    mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || err "Failed to move '$dep' to '${BINARIES_PATH}'"
+    m_run mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || err "Failed to move '$dep' to '${BINARIES_PATH}'"
     chmod +x "${BINARIES_PATH}/$dep" || err "fetch_dependency: Failed to make file executable: '$dep'"
     msg "fetch_dependency: '${dep}' has been installed successfully!"
 }
