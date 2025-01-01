@@ -1,4 +1,4 @@
-## SPT Lutris installer v2024.12-1.1 ##
+## SPT Lutris installer v2025.1-1 ##
 
 ## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
 ## If you want to view the source before running the lutris installer - go here:
@@ -45,12 +45,6 @@ script:
         file: eft
         format: gog
     - task:
-        app: --self-update
-        arch: win64
-        description: Updating winetricks ...
-        name: winetricks
-        prefix: $GAMEDIR
-    - task:
         app: arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
         arch: win64
         description: Installing game dependencies ...
@@ -77,9 +71,9 @@ script:
         key: winhttp
         value: native,builtin
     - task:
-        app: win81
+        app: win10
         arch: win64
-        description: Setting windows version to Windows 8.1...
+        description: Setting windows version to Windows 10...
         name: winetricks
         prefix: $GAMEDIR
     - task:
