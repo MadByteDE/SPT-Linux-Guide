@@ -1,4 +1,4 @@
-## SPT Lutris installer v2024.12-1 ##
+## SPT Lutris installer v2025.1-1 ##
 
 ## This Lutris installer is using the -OFFICIAL- SPT installer
 
@@ -45,12 +45,6 @@ script:
         dst: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/
         file: eft
         format: gog
-    - task:
-        app: --self-update
-        arch: win64
-        description: Updating winetricks ...
-        name: winetricks
-        prefix: $GAMEDIR
     - task:
         app: arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
         arch: win64
