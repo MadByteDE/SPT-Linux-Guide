@@ -1,17 +1,13 @@
-## SPT Lutris installer v2025.1-1 ##
-
+## SPT Lutris installer v2025.1-2 ##
 ## This Lutris installer is using the -OFFICIAL- SPT installer
-
-## ※\(^o^)/※ ##
-description: 'Installs the BSG Launcher & SPT for you, the game has to be installed manually'
-notes: "Please read before installing:\n
-        https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/docs/lutris_installer_official.md"
+description: 'Installs the BSG Launcher & SPT for you. The game needs to be installed manually!'
+notes: "You likely need to set a custom *global* wine version or the 'SPTInstaller.exe' might not work!\nPlease check out the link for further details & assistence"
+credits: "https://github.com/MadByteDE/SPT-Linux-Guide"
 game_slug: escape-from-tarkov
-gogslug: ''
-humblestoreid: ''
 installer_slug: spt-installer-official
 name: SPTarkov - Launcher
 runner: wine
+
 script:
     files:
     - eft:
@@ -46,7 +42,7 @@ script:
         file: eft
         format: gog
     - task:
-        app: arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
+        app: arial times vcrun2022 dotnetdesktop6 dotnetdesktop8
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
@@ -63,12 +59,6 @@ script:
         path: HKEY_CURRENT_USER\Software\Wine\X11 Driver
         key: UseTakeFocus
         value: N
-    - task:
-        description: Adding dll override for 'winhttp' ...
-        name: set_regedit
-        path: HKEY_CURRENT_USER\Software\Wine\DllOverrides
-        key: winhttp
-        value: native,builtin
     - task:
         app: win81
         arch: win64
@@ -106,21 +96,17 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            # Needed to launch multiple application instances with GE-Proton
-            # 2024-12-23: Switching to `run` instead of `runinprefix` since it seems to fix
-            # issues with running the server (without cli mode) and the launcher at the same time
             PROTON_VERB: run
-            # Workarounds for dotnet package issues with SPTInstaller and the downpatcher
+            # Possible workarounds for dotnet package issues (SPT Launcher)
             DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             DOTNET_ROOT: 
         # Without terminal mode the server won't run!
-        # Small issue - another terminal opens for the launcher as well ¯\_( ͡° ͜ʖ ͡°)_/¯
         terminal: true
-        wine:
-            overrides:
-            # Workaround for SPT to be able to load
-                winhttp: n,b
+    wine:
+        overrides:
+            winhttp: n,b
+            icu: d
+
 slug: sptarkov
-steamid: null
 version: sptinstaller-latest
 year: 2017
