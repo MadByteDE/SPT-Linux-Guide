@@ -10,14 +10,11 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 - **~100GB free disk space**
 - **[Lutris](https://lutris.net/downloads)**
-    - We recommend using a native Lutris package (not Flatpak/Snap)
-        - For Ubuntu-based/Debian-based distros: You can find the latest release *.deb package [here](https://github.com/lutris/lutris/releases)!
     - Check if you have all your [Wine dependencies](https://github.com/lutris/docs/blob/master/WineDependencies.md) installed.
     - Check if GPU and vulkan drivers are installed!
 - **[SPT Lutris installer](../installers/lutris-installer-official.yml) (*.yml)**
-- **Wine**
-    - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation!
-
+- **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
+    - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation! (can be changed back afterwards)
 
 ## Notes
 
@@ -33,7 +30,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     - To use a custom Wine version, select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
     
-            /home/USER/Downloads/wine-9.19-amd64/bin/wine
+            ~/Downloads/wine-9.19-amd64/bin/wine64
 
 2. **Run the `SPT Lutris installer` script:**
 
