@@ -25,7 +25,7 @@ script:
           name: SPTarkov - Server
         - exe: BsgLauncher.exe
           name: BSG Launcher
-          args: --disable-gpu --disable-software-rasterizer
+          args: --disable-software-rasterizer
           working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     installer:
     - task:
@@ -69,7 +69,7 @@ script:
         description: Launching BSG Launcher ...
         executable: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/BsgLauncher.exe
         name: wineexec
-        args: --disable-gpu --disable-software-rasterizer
+        args: --disable-software-rasterizer
         working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     - task:
         name: winekill
