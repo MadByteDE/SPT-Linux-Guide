@@ -1,19 +1,13 @@
-## SPT Lutris installer v2025.1-1 ##
-
+## SPT Lutris installer v2025.1-2 ##
 ## This Lutris installer is using an -UNOFFICIAL- SPT installer script.
-## If you want to view the source before running the lutris installer - go here:
-## https://dev.sp-tarkov.com/MadByte/Linux-Guide/src/branch/main/installers/spt-linux-additions
-
-## ※\(^o^)/※ ##
-description: 'Installs the BSG Launcher & SPT for you, the game has to be installed manually'
-notes: "Please read before installing:\n
-        https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/docs/lutris_installer_additions.md"
+description: 'Installs the BSG Launcher & SPT for you. The game needs to be installed manually!'
+notes: "Please check out the link for further details & assistence"
+credits: "https://github.com/MadByteDE/SPT-Linux-Guide"
 game_slug: escape-from-tarkov
-gogslug: ''
-humblestoreid: ''
-installer_slug: sptarkov-installer
+installer_slug: sptarkov-additions-latest
 name: SPTarkov - Launcher
 runner: wine
+
 script:
     files:
     - eft:
@@ -45,7 +39,7 @@ script:
         file: eft
         format: gog
     - task:
-        app: arial times vcrun2019 dotnetdesktop6 dotnetdesktop8
+        app: arial times vcrun2022 dotnetdesktop6 dotnetdesktop8
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
@@ -65,12 +59,6 @@ script:
         key: UseTakeFocus
         value: N
     - task:
-        description: Adding dll override for 'winhttp' ...
-        name: set_regedit
-        path: HKEY_CURRENT_USER\Software\Wine\DllOverrides
-        key: winhttp
-        value: native,builtin
-    - task:
         app: win10
         arch: win64
         description: Setting windows version to Windows 10...
@@ -85,8 +73,6 @@ script:
         working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     - task:
         name: winekill
-    # Use 'spt-linux-additions' script to install SPT
-    # There will be a log generated in '~/.cache/spt-linux-additions'
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR
@@ -108,21 +94,17 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            # Needed to launch multiple application instances with GE-Proton
-            # 2024-12-23: Switching to `run` instead of `runinprefix` since it seems to fix
-            # issues with running the server (without cli mode) and the launcher at the same time
             PROTON_VERB: run
-            # Workarounds for dotnet package issues with SPTInstaller, the downpatcher and the Launcher on some distros
+            # Possible workarounds for dotnet package issues (SPT Launcher)
             # DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             # DOTNET_ROOT: 
         # Without terminal mode the server won't run!
-        # Small issue - another terminal opens for the launcher as well ¯\_( ͡° ͜ʖ ͡°)_/¯
         terminal: true
-        wine:
-            overrides:
-            # Workaround for SPT to be able to load
-                winhttp: n,b
+    wine:
+        overrides:
+            winhttp: n,b
+            icu: d
+
 slug: sptarkov
-steamid: null
-version: spt-linux-additions-latest
+version: sptarkov-additions-latest
 year: 2017
