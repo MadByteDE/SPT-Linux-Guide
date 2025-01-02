@@ -37,7 +37,7 @@
 
 ################################################################################
 TITLE="spt-linux-additions"
-VERSION="2025.1-1"
+VERSION="2025.1-1.2"
 ################################################################################
 
 ################################################################################
@@ -82,7 +82,7 @@ function m_exit() {
         # Remove temp files before exiting
         if [ -d "${TEMP_PATH}" ]; then
             msg "Removing temp files in '${TEMP_PATH}'"
-            m_run rm -r "${TEMP_PATH}" || warn "Failed to remove temp files"
+            rm -r "${TEMP_PATH}" || warn "Failed to remove temp files"
         fi
     fi
     # Exit the shell / subshell
@@ -1235,15 +1235,6 @@ readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
 
 readonly SCRIPT_ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Check if the script is run from the root prefix directory
-# if [ ! -f "${SCRIPT_ROOT_PATH}/system.reg"]; then
-#     warn "Looks like the script is not run from the root prefix directory"
-# fi
-
-# Create temp directory
-readonly TEMP_PATH="$(mktemp -d -t "${TITLE}.XXXXXXXXX")"
-[ ! "${TEMP_PATH}" ] && err "Couldn't create temp directory"
-
 # Create cache directory
 readonly CACHE_PATH="${XDG_CACHE_HOME}/${TITLE}"
 if [ ! -d "${CACHE_PATH}" ]; then
@@ -1256,9 +1247,13 @@ if [ ! -d "${BINARIES_PATH}" ]; then
     mkdir "${BINARIES_PATH}" || err "Couldn't create directory at '${BINARIES_PATH}'"
 fi
 
+# Create temp directory
+readonly TEMP_PATH="$(mktemp -d -t "${TITLE}.XXXXXXXXX")"
+[ ! -d "${TEMP_PATH}" ] && err "Couldn't create temp directory"
+
 readonly LOG_PATH="${CACHE_PATH}/spt-linux-additions.log"
 # Remove old log file, otherwise we just append more lines to it
-[ -f "${LOG_PATH}" ] && rm -f "${LOG_PATH}" 2>/dev/null
+[ -f "${LOG_PATH}" ] && m_run rm -f "${LOG_PATH}" 2>/dev/null
 
 # Mod variables
 readonly MOD_RELEASE_JSON_URL="https://spt-releases.modd.in/release.json"
