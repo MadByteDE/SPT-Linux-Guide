@@ -1,18 +1,14 @@
 ## SPT Lutris installer v2025.1-2 ##
-## This Lutris installer is using the -OFFICIAL- SPT installer
-description: 'Installs the BSG Launcher & SPT for you. The game needs to be installed manually!'
-notes: "You likely need to set a custom *global* wine version or the 'SPTInstaller.exe' might not work!\nPlease check out the link for further details & assistence"
+## This Lutris installer is using the -OFFICIAL- SPT Windows installer.
+description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
+notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
 credits: "https://github.com/MadByteDE/SPT-Linux-Guide"
-game_slug: escape-from-tarkov
-installer_slug: spt-installer-official
+game_slug: sptarkov
+installer_slug: sptarkov-official-installer
 name: SPTarkov - Launcher
 runner: wine
-
 script:
     files:
-    - eft:
-        url: https://prod.escapefromtarkov.com/launcher/download
-        filename: BsgLauncher.exe
     - spt-installer:
         url: https://ligma.waffle-lord.net/SPTInstaller.exe
         filename: SPTInstaller.exe
@@ -23,42 +19,16 @@ script:
         launch_configs:
         - exe: SPT.Server.exe
           name: SPTarkov - Server
-        - exe: BsgLauncher.exe
-          name: BSG Launcher
-          args: --disable-software-rasterizer
-          working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
+    requires: escape-from-tarkov
     installer:
     - task:
-        name: create_prefix
-        overrides:
-            mscoree: d
-        arch: win64
-    - merge:
-        src: spt-installer
-        dst: $GAMEDIR/drive_c/SPTarkov/
-    - extract:
-        description: Installing BSG Launcher ...
-        dst: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/
-        file: eft
-        format: gog
-    - task:
-        app: arial times vcrun2022 dotnetdesktop6 dotnetdesktop8
+        app: arial times dotnetdesktop6 dotnetdesktop8
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
         prefix: $GAMEDIR
     - task:
-        app: dotnet48
-        arch: win64
-        description: Installing .NET 4.8 (This can take a while ...)
-        name: winetricks
-        prefix: $GAMEDIR
-    - task:
-        description: Adding mouse focus workaround registry key ...
-        name: set_regedit
-        path: HKEY_CURRENT_USER\Software\Wine\X11 Driver
-        key: UseTakeFocus
-        value: N
+        name: winekill
     - task:
         app: win81
         arch: win64
@@ -67,19 +37,18 @@ script:
         prefix: $GAMEDIR
     - task:
         arch: win64
-        description: Launching BSG Launcher (Login sometimes takes a bit ...)
-        executable: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher/BsgLauncher.exe
-        args: --disable-software-rasterizer
+        description: Launching SPTInstaller ...
+        executable: spt-installer
+        args: installpath="C:\SPTarkov"
         name: wineexec
-        working_dir: $GAMEDIR/drive_c/Battlestate Games/BsgLauncher
     - task:
         name: winekill
     - task:
+        app: win10
         arch: win64
-        description: Launching SPTInstaller ...
-        executable: $GAMEDIR/drive_c/SPTarkov/SPTInstaller.exe
-        args: installpath="C:\SPTarkov"
-        name: wineexec
+        description: Setting windows version to Windows 10...
+        name: winetricks
+        prefix: $GAMEDIR
     - task:
         name: winekill
     # Installation complete
@@ -108,5 +77,5 @@ script:
             icu: d
 
 slug: sptarkov
-version: sptinstaller-latest
+version: sptarkov-official-latest
 year: 2017
