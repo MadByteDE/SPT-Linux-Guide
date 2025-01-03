@@ -22,13 +22,13 @@ assignees: MadByteDE
 <!-- (e.g Arch Linux, Ubuntu, Fedora...) --->
 
 **Install method**:
-<!-- Which guide did you follow? (Lutris Installer, Lutris, Bottles) --->
+<!-- Which guide did you follow? (Installer/Manual, Lutris/Bottles) --->
 
 **EFT Version**:
 <!-- If applicable: Which EFT release version have you installed? --->
 
 **Mod Version**:
-<!-- If applicable: Which SPT-AKI release version did you use? --->
+<!-- If applicable: Which SPT release version did you use? --->
 
 ## Description
 <!-- Please add a detailed description of the issue here --->
