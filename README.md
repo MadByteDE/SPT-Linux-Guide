@@ -18,18 +18,18 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ### Automated install
 
-[Lutris installer](docs/lutris_installer_additions.md) (Additions) ✨
+[Lutris installer](docs/lutris/installer_additions.md) (Additions) ✨
   - 
   - Recommended method
   - Using a custom **native Linux** installer script ([view source](installers/spt-linux-additions))
 
-[Lutris installer](docs/lutris_installer_official.md) (Official)
+[Lutris installer](docs/lutris/installer_official.md) (Official)
   - 
-  - Using the official [SPTInstaller](https://dev.sp-tarkov.com/SPT/Installer) via `Wine`
+  - Using the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
 
 ### Manual install
-- [Using Lutris](docs/lutris_guide.md)
-- [Using Bottles](docs/bottles_guide.md)
+- [Using Lutris](docs/lutris/manual_guide.md)
+- [Using Bottles](docs/bottles/manual_guide.md)
 
 ### [FAQ](docs/faq.md)
 
@@ -39,13 +39,13 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 If you want to contribute to the guide, feel free to:
 - Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare)
 - Open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose)
-- Contact us on [Discord](https://discord.com/invite/Xn9msqQZan)
+- Contact us on [Discord](https://discord.com/channels/875684761291599922/1258435265664520302)
 
 If you want to send us a PR, please make sure the formatting of your addition matches the existing content in our guide.
 
 
 ## Find us on Discord
-Check out the offical [SPT Discord server](https://discord.com/invite/Xn9msqQZan)!
+Check out the offical [SPT Discord server](https://discord.com/channels/875684761291599922/1258435265664520302)!
 
 
 ## Credits
