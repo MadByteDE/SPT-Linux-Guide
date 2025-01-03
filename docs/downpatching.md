@@ -4,7 +4,41 @@ Whenever Escape from Tarkov receives a new update, SPT has to be updated as well
 
 We provide two methods to patch the game files on Linux.
 
-## Method 1: Official downgrade patcher
+## Method 1: Additions script
+
+> [!NOTE]
+> <span style="color:lightblue">This script is made by the SPT community & is **NOT** officially supported by the mod developers!</span>
+
+<details>
+
+**<summary>Instructions (click to show)</summary>**
+
+## What you need
+
+- **[Downgrade patcher](https://hub.sp-tarkov.com/emergency.html)**
+    - Click on `Latest Downgrade Patcher` at the top
+    - Make sure your downgrade patcher matches the installed EFT version!
+
+- **[spt-linux-additions](../installers/spt-linux-additions)**
+
+## Installation
+
+- **1) Move `SPT_Patches` to your install directory**
+    - Extract the downgrade patcher archive, then copy and paste the `SPT_Patches` directory to your SPT install directory
+
+- **2) Run the script**
+    - Launch a terminal from within the script's directory and run the following command - pointing to the correct SPT install directory, e.g. :
+
+          ./spt-linux-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
+
+        > [!TIP]
+        > <span style="color:lightgreen">For more details, run `./spt-linux-additions` without any commands.</span>
+
+</details>
+
+***
+
+## Method 2: Official downgrade patcher
 
 <details>
 
@@ -70,42 +104,6 @@ We provide two methods to patch the game files on Linux.
         Now wait until the patching is done & voila!
 
 </details>
-
-## Method 2: Linux Installer script
-
-> [!NOTE]
-> <span style="color:lightblue">This script is made by the SPT community & is **NOT** officially supported by the mod developers!</span>
-
-<details>
-
-**<summary>Instructions (click to show)</summary>**
-
-## What you need
-
-- **[Downgrade patcher](https://hub.sp-tarkov.com/emergency.html)**
-    - Click on `Latest Downgrade Patcher` at the top
-    - Make sure your downgrade patcher matches the installed EFT version!
-
-- **[spt-linux-additions](../installers/spt-linux-additions)**
-
-## Installation
-
-- **1) Move `SPT_Patches` to your install directory**
-    - Extract the downgrade patcher archive, then copy and paste the `SPT_Patches` directory to your SPT install directory
-
-- **2) Run the script**
-    - Launch a terminal from within the script's directory and run the following command - pointing to the correct SPT install directory, e.g. :
-
-          ./spt-linux-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
-
-        > [!TIP]
-        > <span style="color:lightgreen">For more details, run `./spt-linux-additions` without any commands.</span>
-
-</details>
-
-## Why is there a custom installer script?
-
-Go [here](../docs/lutris_installer_additions.md) and click `More details` at the top to read more about the script.
 
 ***
 [Back to landing page](../README.md)
