@@ -24,31 +24,40 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 ## Installation
 
-1. **Launch `Lutris` and set the **global** `Wine version` to your `Wine` build:**
+1. **Installing Escape from Tarkov**
+
+    First, you will need to install Escape from Tarkov in Lutris. You can search for `Escape from Tarkov` inside the application or click the button below to launch the Installer automatically:
+
+    [![Install EFT]](lutris:escape-from-tarkov-official)
+
+    > [!IMPORTANT]
+    > <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
+
+    [Install EFT]: https://img.shields.io/badge/Install_EFT-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+
+
+2. **Preparing the wine runner**
+
+
+    Launch `Lutris` and set the **global** `Wine version` to your custom `Wine` version:
 
     <img src="../media/lutris_wine.jpg" alt="drawing" width="580"/>
 
-    - To use a custom Wine version, select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
+    To use a custom Wine version, enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
     
             ~/Downloads/wine-9.19-amd64/bin/wine64
 
-2. **Run the `SPT Lutris installer` script:**
+    Now, save the changes.
 
-    <img src="../media/lutris_install_script.jpg" alt="drawing" width="580"/>
+3. **Installing SPTarkov**
 
-3. **Wait until the `BSG Launcher` shows up, → `login`, then either:**
-
-    - press `Download` in the launcher
+    To use the custom SPT installer, download the script:
     
-    **OR**
-    - Copy/paste an existing **VANILLA** game installation into the prefix, e.g:
-        
-            /home/USER/Games/escape-from-tarkov/drive_c/Battlestate Games
+    [![Download SPT Installer]](../installers/lutris-installer-additions.yml)
 
-    - Select `set the path to existing game installation` in the launcher & navigate to the directory by selecting  `My computer` → `C:` → `Battlestate Games` & then the copied game directory.
-    - Wait until the file verification is completed
-
-4. **After EFT has been successfully installed, close the `BSG Launcher` to proceed.**
+    [Download SPT Installer]: https://img.shields.io/badge/Download_Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+    
+    Then open Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded **.yml** installer file:
     
 5. **Wait until `SPTInstaller` launches, follow the instructions shown & close it when it's done.**
 

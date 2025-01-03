@@ -65,32 +65,38 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 ## Installation
 
-1. **Run the `SPT Lutris installer` script:**
+1. **Installing Escape from Tarkov**
+
+    First, you will need to install Escape from Tarkov using the default Lutris installer. You can search in Lutris for `Escape from Tarkov` or click the button below to launch the Installer automatically:
+
+    [![Install EFT]](lutris:escape-from-tarkov-official)
+
+    > [!IMPORTANT]
+    > <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
+
+    [Install EFT]: https://img.shields.io/badge/Install_EFT-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+
+
+2. **Installing SPTarkov**
+
+    To use the custom SPT installer, download the script:
+    
+    [![Download SPT Installer]](../installers/lutris-installer-additions.yml)
+
+    [Download SPT Installer]: https://img.shields.io/badge/Download_Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+    
+    Then open Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded **.yml** installer file:
 
     <img src="../media/lutris_install_script.jpg" alt="drawing" width="580"/>
 
-2. **Wait until the `BSG Launcher` shows up, → `login`, then either:**
+    Now wait for the installation to complete.
 
-    - press `Download` in the launcher
-    
-    **OR**
-    - Copy/paste an existing **VANILLA** game installation into the prefix, e.g:
-        
-            /home/USER/Games/escape-from-tarkov/drive_c/Battlestate Games
+    If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
 
-    - Select `set the path to existing game installation` in the launcher & navigate to the directory by selecting  `My computer` → `C:` → `Battlestate Games` & then the copied game directory.
-    - Wait until the file verification is completed
-
-3. **After EFT has been successfully installed, close the `BSG Launcher` to proceed.**
-
-4. **Wait for the installer script to complete**
+    Have fun!
 
     > [!TIP]
     > <span style="color:lightgreen">For better performance & additional fixes, we recommend using latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
-
-    - If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
-
-    Have fun!
 
 ***
 Still having issues? Visit our [issues section](../docs/issues.md).
