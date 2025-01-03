@@ -58,7 +58,6 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 ## Notes
 
-- If you have issues with the default wine provided by Lutris, try [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation!
 - Sometimes the `Bsg Launcher` can return an error when being closed, resulting in the installation to fail. Make sure to keep all game files when asked by Lutris & retry running the script
 - It's possible that the EFT client launches during the installation in the `BSG Launcher`. You can close it e.g. using `Alt+F4` to continue with the installation process
 
