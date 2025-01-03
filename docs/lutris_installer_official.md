@@ -28,7 +28,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     First, you will need to install Escape from Tarkov in Lutris. You can search for `Escape from Tarkov` inside the application or click the button below to launch the Installer automatically:
 
-    [![Install EFT]](lutris:escape-from-tarkov-official)
+    [![Install EFT]][lutris:escape-from-tarkov-official]
 
     > [!IMPORTANT]
     > <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
@@ -53,7 +53,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     To use the custom SPT installer, download the script:
     
-    [![Download SPT Installer]](../installers/lutris-installer-additions.yml)
+    [![Download SPT Installer]][https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/lutris-installer-official.yml]
 
     [Download SPT Installer]: https://img.shields.io/badge/Download_Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
     
