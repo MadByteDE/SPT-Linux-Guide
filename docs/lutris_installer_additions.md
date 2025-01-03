@@ -67,34 +67,25 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 1. **Installing Escape from Tarkov**
 
-    First, you will need to install Escape from Tarkov in Lutris. You can search for `Escape from Tarkov` inside the application or click the button below & select `install` on the page:
+    First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
-    [![EFT_install]][Link1]
+    <img src="../media/lutris_tarkov.gif" width="580">
 
-    [Link1]: https://lutris.net/games/escape-from-tarkov/
+    Follow the steps shown inside the application, wait until the installation is finished & install the game client as usual.
 
-    [EFT_install]: https://img.shields.io/badge/Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
-
-    
 > [!IMPORTANT]
-> <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
+> <span style="color:mediumslateblue">**You need to install the game client inside the launcher before continuing with the next step!**
 
 
-2. **Installing SPTarkov**
+2. **Installing SPT**
 
-    To use the custom SPT installer, download the script:
-    
-    [![SPT_install]][Link2]
+    First, [download](https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml) the installer script.
 
-    [Link2]: https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml
-
-    [SPT_install]: https://img.shields.io/badge/Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
-    
-    Then open Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded **.yml** script:
+    In Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded file:
 
     <img src="../media/lutris_install_script.jpg" alt="drawing" width="580"/>
 
-    Now wait for the installation to complete.
+    Now follow the steps & wait for the installation to complete.
 
     If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
 
