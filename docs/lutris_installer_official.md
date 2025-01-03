@@ -16,11 +16,6 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
     - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation! (can be changed back afterwards)
 
-## Notes
-
-- Sometimes the `Bsg Launcher` can return an error when being closed, resulting in the installation to fail. Make sure to keep all game files when asked by Lutris & retry running the script
-- It's possible that the EFT client launches during the installation in the `BSG Launcher`. You can close it e.g. using `Alt+F4` to continue with the installation process
-
 
 ## Installation
 
@@ -39,11 +34,11 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 2. **Preparing the wine runner**
 
 
-    Launch `Lutris` and set the **global** `Wine version` to your custom `Wine` version:
+    Set the **global** `Wine version` to your custom `Wine` build:
 
     <img src="../media/lutris_wine.jpg" alt="drawing" width="580"/>
 
-    To use a custom Wine version, enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
+    Enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
     
             ~/Downloads/wine-9.19-amd64/bin/wine64
 
@@ -62,10 +57,9 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
 
-    Have fun!
-
     > [!TIP]
-    > <span style="color:lightgreen">For better performance & additional fixes, we recommend using latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
+    > <span style="color:lightgreen">For better performance & additional fixes, we recommend switching to latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
+
 
 ***
 Still having issues? Visit our [issues section](../docs/issues.md).

@@ -56,11 +56,6 @@ To get rid of this extra step and also improve on stability and usability, we be
 #### Fedora
 `sudo dnf install p7zip-plugins vim-common`
 
-## Notes
-
-- Sometimes the `Bsg Launcher` can return an error when being closed, resulting in the installation to fail. Make sure to keep all game files when asked by Lutris & retry running the script
-- It's possible that the EFT client launches during the installation in the `BSG Launcher`. You can close it e.g. using `Alt+F4` to continue with the installation process
-
 
 ## Installation
 
@@ -88,10 +83,9 @@ To get rid of this extra step and also improve on stability and usability, we be
 
     If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
 
-    Have fun!
-
     > [!TIP]
-    > <span style="color:lightgreen">For better performance & additional fixes, we recommend using latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
+    > <span style="color:lightgreen">For better performance & additional fixes, we recommend switching to latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
+    
 
 ***
 Still having issues? Visit our [issues section](../docs/issues.md).
