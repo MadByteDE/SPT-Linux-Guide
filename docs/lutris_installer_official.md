@@ -28,9 +28,9 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     First, you will need to install Escape from Tarkov in Lutris. You can search for `Escape from Tarkov` inside the application or click the button below to launch the Installer automatically:
 
-    [![EFT_install]][app_link]
+    [![EFT_install]][Link1]
 
-    [app_link]: 'lutris:escape-from-tarkov-official'
+    [Link1]: lutris:escape-from-tarkov-official
 
     [EFT_install]: https://img.shields.io/badge/Install_EFT-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
 
@@ -55,9 +55,9 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     To use the custom SPT installer, download the script:
     
-    [![SPT_install]][installer_link]
+    [![SPT_install]][Link2]
 
-    [installer_link]: 'https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/lutris-installer-official.yml'
+    [Link2]: https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml
 
     [SPT_install]: https://img.shields.io/badge/Download_Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
     

@@ -69,11 +69,12 @@ To get rid of this extra step and also improve on stability and usability, we be
 
     First, you will need to install Escape from Tarkov using the default Lutris installer. You can search in Lutris for `Escape from Tarkov` or click the button below to launch the Installer automatically:
 
-    [![EFT_install]][app_link]
+    [![EFT_install]][Link1]
 
-    [app_link]: 'lutris:escape-from-tarkov-official'
+    [Link1]: lutris:escape-from-tarkov-official
 
     [EFT_install]: https://img.shields.io/badge/Install_EFT-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+
     
     > [!IMPORTANT]
     > <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
@@ -83,9 +84,9 @@ To get rid of this extra step and also improve on stability and usability, we be
 
     To use the custom SPT installer, download the script:
     
-    [![SPT_install]][installer_link]
+    [![SPT_install]][Link2]
 
-    [installer_link]: 'https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/lutris-installer-additions.yml'
+    [Link2]: https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml
 
     [SPT_install]: https://img.shields.io/badge/Download_Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
     
