@@ -5,9 +5,8 @@ Since there are many different Linux distributions out there, you might encounte
 ## Table of content
 
 1. Launcher (BSG/SPT)
-    - [1.1 BSG Launcher not rendered correctly (Black window)](#11-bsg-launcher-not-rendered-correctly-black-window)
-    - [1.2 Game crashing within seconds after launching](#12-game-crashing-within-seconds-after-launching)
-    - [1.3 Missing fonts / icons](#13-missing-fonts--icons)
+    - [1.1 Game crashing within seconds after launching](#11-game-crashing-within-seconds-after-launching)
+    - [1.2 Missing fonts / icons](#12-missing-fonts--icons)
 
 2. In-Game
     - [2.1 Random crashes while in-raid or hideout](#21-random-crashes-while-in-raid-or-hideout)
@@ -27,21 +26,7 @@ Since there are many different Linux distributions out there, you might encounte
 
 ## 1. Launcher
 
-### 1.1 BSG Launcher not rendered correctly (Black window)
-
-**Description**
-
-The BSG Launcher is not rendered correctly, only showing a black window. (Log shows `EGL_NOT_INITIALIZED`).
-
-**Solution**
-
-Usually restarting the launcher (or installation script) "fixes" the issue.
-
-[Back](#table-of-content)
-
-***
-
-### 1.2 Game crashing within seconds after launching
+### 1.1 Game crashing within seconds after launching
 
 **Description**
 
@@ -58,7 +43,7 @@ If the game worked previously & this happens after installing new mods, chances 
 
 ***
 
-### 1.3 Missing fonts / icons
+### 1.2 Missing fonts / icons
 
 **Description**
 
