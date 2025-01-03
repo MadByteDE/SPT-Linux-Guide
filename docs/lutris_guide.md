@@ -43,13 +43,13 @@
 
 **1. Installing LIVE EFT**
 
-- First off, we need to install the official BSG launcher. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for `Escape from Tarkov`.
+- First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
-    <img src="../media/lutris_tarkov.gif" width="580">
+<img src="../media/lutris_tarkov.gif" width="580">
 
-- Follow the steps shown inside the application and wait until the installation is finished.
+- Follow the steps shown inside the application, wait until the installation is finished
 
-- Install EFT using the BSG launcher as usual.
+- Install the game client as usual.
 
 
 **2. Preparing the prefix**
