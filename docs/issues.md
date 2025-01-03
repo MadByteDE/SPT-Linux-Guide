@@ -52,8 +52,6 @@ After clicking `Play`, the game briefly opens & closes shortly after.
 Usually this means the DLL override for `winhttp` is missing!
 Manually set `winhttp` to `n,b` in `Configure` > `Runner options` > `DLL Overrides`.
 
-For some users this appearently also happens when using an automated Lutris Installer script, despite the script already adding the override to the prefix (twice actually - into the prefix registry and as environment variable). This appears to be an issue with Lutris or some specific Linux setups.
-
 If the game worked previously & this happens after installing new mods, chances are you're running into issues with the mod(s). Check compatibilty of the mod with other mods as well as the installed SPT version.
 
 [Back](#table-of-content)
@@ -64,21 +62,15 @@ If the game worked previously & this happens after installing new mods, chances 
 
 **Description**
 
-##### SPT Installer/Launcher
-
-On Linux, the title bar icons will not be displayed by default. That's because the Launcher (as well as the Installer) uses a non-redistributable Microsoft font (Segoe MDL2 Assets - `segmdl2.ttf`).
-
-<img src="../media/issue_icons1.jpg">
+The BSG Launcher will not show correct fonts (Bender font family) for some text.
 
 **Solution**
-
-You can download & install the Segoe font family on your distribution to get it working correctly. Please check out the included `EULA` as well.
-
-https://aka.ms/SegoeFonts
 
 ##### BSG Launcher
 
 To fix fonts in the BSG Launcher, you can download & install the [Bender font](https://www.1001fonts.com/download/bender.zip) (external link, *.zip archive) on your distribution.
+
+Unfortunately, this will not work when using a Proton runner for the application.
 
 [Back](#table-of-content)
 
