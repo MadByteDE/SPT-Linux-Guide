@@ -52,7 +52,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 3. **Installing SPT**
 
-    First, [download](https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml) the installer script.
+    [Download](https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-official.yml) the installer script.
 
     In Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded file:
 
