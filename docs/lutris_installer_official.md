@@ -26,16 +26,16 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 1. **Installing Escape from Tarkov**
 
-    First, you will need to install Escape from Tarkov in Lutris. You can search for `Escape from Tarkov` inside the application or click the button below to launch the Installer automatically:
+    First, you will need to install Escape from Tarkov in Lutris. You can search for `Escape from Tarkov` inside the application or click the button below & select `install` on the page:
 
     [![EFT_install]][Link1]
 
-    [Link1]: lutris:escape-from-tarkov-official
+    [Link1]: https://lutris.net/games/escape-from-tarkov/
 
-    [EFT_install]: https://img.shields.io/badge/Install_EFT-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+    [EFT_install]: https://img.shields.io/badge/Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
 
-    > [!IMPORTANT]
-    > <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
+> [!IMPORTANT]
+> <span style="color:mediumslateblue">**You need to install the game client inside the BSG Launcher before continuing with the next step!**
 
 
 2. **Preparing the wine runner**
@@ -59,10 +59,12 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     [Link2]: https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml
 
-    [SPT_install]: https://img.shields.io/badge/Download_Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
+    [SPT_install]: https://img.shields.io/badge/Installer-EF2D5E?style=for-the-badge&logoColor=white&logo=Lutris
     
-    Then open Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded **.yml** installer file:
+    Then open Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded **.yml** script:
     
+    <img src="../media/lutris_install_script.jpg" alt="drawing" width="580"/>
+
 5. **Wait until `SPTInstaller` launches, follow the instructions shown & close it when it's done.**
 
     > [!TIP]

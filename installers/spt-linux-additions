@@ -1156,9 +1156,6 @@ opt_self_update() {
     m_download "${SCRIPT_UPDATE_URL}" "${script_path}"
     [ $? != 0 ] && m_err "Failed to update script!"
     m_msg "Script has been updated! Run './spt-linux-additions version' to see the updated version info!"
-
-    # Exit success
-    m_exit 0
 }
 
 
@@ -1183,7 +1180,6 @@ opt_clear_cache() {
     m_msg "Clearing cache"
     rm -r "${CACHE_PATH}" || m_err "Failed to clear cache directory"
     m_msg "Cache has been cleared successfully"
-    m_exit 0
 }
 
 
