@@ -14,8 +14,8 @@
     - Make sure GPU and vulkan drivers are installed and working.
 
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
-    - Make sure to update to the latest EFT version and follow the [downpatching guide](./downpatching.md) if needed.
-
+    - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
+<!-- - [Cover art](../../docs/lutris/cover_art.md) (Optional) -->
 
 ## Installation
 
@@ -45,7 +45,7 @@
 
 - First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
-<img src="../media/lutris_tarkov.gif" width="580">
+<img src="../../media/lutris/tarkov.gif" width="580">
 
 - Follow the steps shown inside the application, wait until the installation is finished
 
@@ -59,13 +59,13 @@
       winetricks --self-update
       winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 win81
 
-    <img src="../media/lutris_terminal.jpg" width="580">
+    <img src="../../media/lutris/terminal.jpg" width="580">
 
 **3. Downpatching & mod installation**
 
 - Make a copy of your live EFT game files. You need to place it inside the same prefix, e.g at `/home/USER/Games/escape-from-tarkov/drive_c/SPTarkov`.
 
-- If needed, downpatch EFT to the correct version e.g. by running the downgrade patcher inside the game directory. Check out our [downpatching guide](./downpatching.md).
+- If needed, downpatch EFT to the correct version e.g. by running the downgrade patcher inside the game directory. Check out our [downpatching guide](../downpatching.md).
 
 - When it's done, extract the contents of the `RELEASE-SPT-x.x.x.zip` into your copied SPT game directory.
 
@@ -78,7 +78,7 @@
 
 - Next in the `Runner options` → `DLL overrides` section, add the key `winhttp` with the value `n,b` and → `Save`.
 
-    <img src="../media/lutris_config.gif" width="580">
+    <img src="../../media/lutris/config.gif" width="580">
 
 **5. SPT Server config**
 
@@ -98,8 +98,8 @@
 Have fun!
 
 ***
-Still having issues? Visit our [issues section](../docs/issues.md).
+Still having issues? Visit our [issues section](../../docs/issues.md).
 ***
-[Back to landing page](../README.md)
+[Back to landing page](../../README.md)
 
 

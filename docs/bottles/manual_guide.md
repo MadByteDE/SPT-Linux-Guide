@@ -16,7 +16,7 @@
     - Make sure GPU and vulkan drivers are installed and working.
 
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
-    - Make sure to update to the latest EFT version and follow the [downpatching guide](./downpatching.md) if needed.
+    - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
 - **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
 
@@ -53,7 +53,7 @@
 
 - Now we need to set up a new bottle to install EFT. Click on the `+` symbol at the top left. In the `Environment` section select `Gaming`, give it a name and click `Create` at the top right of the window.
 
-    <img src="../media/bottles_new_bottle.gif" class="fit-picture">
+    <img src="../../media/bottles/new_bottle.gif" class="fit-picture">
 
 
 **3. Setting the bottle up**
@@ -64,7 +64,7 @@
 
        dotnet48 dotnetcoredesktop6 dotnetcoredesktop8 vcredist2022
 
-    <img src="../media/bottles_install_deps.gif" class="fit-picture">
+    <img src="../../media/bottles/install_deps.gif" class="fit-picture">
 
 - look for the `DLL Overrides` section and add `winhttp` - make sure it's as `Native, then Builtin`.
 - And to finish up, select `Windows 8.1` as `Windows Version` to use for the bottle.
@@ -81,7 +81,7 @@
 
 - Make a copy of your live EFT game files. You need to place it inside the same prefix, e.g at `~/.var/app/com.usebottles.bottles/data/bottles/bottles/SPTarkov/drive_c/SPTarkov`.
 
-- If needed, downpatch EFT to the correct version e.g. by running the downgrade patcher inside the game directory. Check out our [downpatching guide](./downpatching.md).
+- If needed, downpatch EFT to the correct version e.g. by running the downgrade patcher inside the game directory. Check out our [downpatching guide](../downpatching.md).
 
 - When it's done, extract the contents of the `RELEASE-SPT-x.x.x.zip` into your copied SPT game directory.
 
@@ -97,10 +97,10 @@
 
 - To run the launcher you just have to click on the play icon at the right side of the `SPT.Launcher` shortcut.
 
-    <img src="../media/bottles_launch_game.gif" class="fit-picture">
+    <img src="../../media/bottles/launch_game.gif" class="fit-picture">
 
 ***
-Still having issues? Visit our [issues section](../docs/issues.md).
+Still having issues? Visit our [issues section](../../docs/issues.md).
 ***
 
-[Back to landing page](../README.md)
+[Back to landing page](../../README.md)
