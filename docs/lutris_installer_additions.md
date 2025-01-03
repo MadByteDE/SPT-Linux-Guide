@@ -1,8 +1,6 @@
 
 # SPT Lutris installer (Additions)
 
-> [!TIP]
-> <span style="color:lightgreen">You can use `protonup-qt` to install new wine versions in Lutris! </span>
 
 This *.yml script uses a **custom**, native Linux install script.
 
@@ -85,7 +83,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 
     > [!TIP]
     > <span style="color:lightgreen">For better performance & additional fixes, we recommend switching to latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
-    
+
 
 ***
 Still having issues? Visit our [issues section](../docs/issues.md).
