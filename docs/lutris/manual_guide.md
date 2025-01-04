@@ -5,7 +5,7 @@
 
 ## What you need
 
-- **~100GB free disk space**
+- **~120GB free disk space**
 
 - **[Lutris](https://lutris.net/downloads)**
     - If possible, get a native Lutris package (not Flatpak/Snap)!

@@ -9,7 +9,7 @@
 
 ## What you need
 
-- **~100GB free disk space**
+- **~120GB free disk space**
 
 - **[Bottles](https://usebottles.com/)**
     - Make sure you have all your [wine dependencies](https://github.com/lutris/docs/blob/master/WineDependencies.md) installed.
