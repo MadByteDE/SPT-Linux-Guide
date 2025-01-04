@@ -72,7 +72,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 2. **Installing SPT**
 
-    [Download](https://github.com/MadByteDE/SPT-Linux-Guide/blob/addon_installer/installers/lutris-installer-additions.yml) the installer script.
+    [Download](../../installers/lutris-installer-additions.yml) the installer script.
 
     In Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded file:
 
