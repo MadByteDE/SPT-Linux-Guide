@@ -12,8 +12,9 @@
 
 Easiest way to do it:
 
+- Download the images
 - Right click the `SPTarkov shortcut` → `Configure`
-- Click on the desired format & navigate to the download cover/banner
+- Click on the desired format & navigate to the downloaded cover/banner
 
 The images will automatically be saved in the correct Lutris directory. 
 The downloaded images can be removed after this.
