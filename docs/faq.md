@@ -14,7 +14,8 @@ You can find the official SPT FAQ [here](https://hub.sp-tarkov.com/faq/).
 
 The short answer is no.
 
-You can play Offline-Raids without progression but that's about it.
+You can play most maps in "offline" PVE if you bought `Edge of Darkness` or the `Unheard` edition. `Streets` will not work since it would still require online services & BSG doesn't support that.
+
 EFT utilizes BattleEye Anti-cheat software, which works great on Linux. However, game developers have to opt into it manually, and BattleState Games hasn't done so thus far. Since gaming on Linux is still considered niche, it's unlikely that the developers will enable it anytime soon.
 
 ## 2. Can I play SPT on Linux?
@@ -53,7 +54,7 @@ Before lowering graphics settings in the game, here are some tips on how to impr
 - **For AMD**: Make sure Mesa packages are up-to-date
 
 #### 3. Update Wine
-- For best performance, search for updated wine builds including `fsync` / `ntsync` and other optimization patchsets, e.g. `GE-Proton`. Easiest way to get new Wine builds is installing them using `protonup-qt`. Check it out!
+- For best performance, search for updated wine builds including `fsync` / `ntsync` and other optimization patchsets, e.g. `GE-Proton`. Easiest way to get new Wine builds is installing them using tools like `protonup-qt`.
 
 #### 4. Use rolling-release distros
 - Rolling-release distributions receive the latest packages much faster then fixed or semi-rolling release distros.
@@ -63,8 +64,8 @@ Before lowering graphics settings in the game, here are some tips on how to impr
 - **[De-Clutterer](https://hub.sp-tarkov.com/files/file/1546-de-clutterer/)**: Removes smaller clutter game objects like trash and bullet shells
 - **[AI-Limit](https://hub.sp-tarkov.com/files/file/793-ai-limit/)**: Limits the amount of active bots dynamically. Similar functionality can also be included in other mods like Questing Bots.
 
-#### 6. GPU bottleneck: Enable DLSS/FSR2.2
-- Turning on DLSS/FSR2.2 can give you significant performance benefits if you're GPU limited.
+#### 6. GPU bottleneck: Enable DLSS/FSR
+- Turning on DLSS/FSR can give you significant performance benefits if you're GPU limited.
 
 #### 7. Tweak mod settings
 - Having mods like SAIN, That's Lit, Questing Bots or Looting Bots installed can take a lot of breath out of your system. You can tweak mod settings e.g. reduce total amount of bots spawned or set slower intervals for checks (like bots looking for loot/looking for cover) to get improved performance.
@@ -77,6 +78,7 @@ The best Wine version for playing SPT should be a recent build of `GE-Proton`. I
 
 We found that using the `GE-Proton (Latest)` option in Lutris actually installs a version of `UMU-Proton` instead of `GE-Proton`, resulting in minor issues with video playback (e.g. the Unheard menu background) because some required libraries are not bundled in that version of Proton. To fix those issues, make sure to get the latest `GE-Proton` e.g. using `protonup-qt` and select it in Lutris.
 
+One thing to note when using a Proton runner is that Lutris still doesn't completely support running games through Proton. You might get issues with game processes not closing correctly & still being executed in the background.
 
 ***
 [Back to landing page](../README.md)
