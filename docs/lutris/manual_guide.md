@@ -15,7 +15,7 @@
 
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
-<!-- - [Cover art](../../docs/lutris/cover_art.md) (Optional) -->
+- [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
 ## Installation
 

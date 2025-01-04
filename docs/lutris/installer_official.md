@@ -15,7 +15,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
     - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation! (can be changed back afterwards)
-<!-- - [Cover art](../../docs/lutris/cover_art.md) (Optional) -->
+- [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
 
 ## Installation
