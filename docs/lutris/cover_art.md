@@ -17,7 +17,6 @@ Easiest way to do it:
 - Click on the desired format & navigate to the downloaded cover/banner
 
 The images will automatically be saved in the correct Lutris directory. 
-The downloaded images can be removed after this.
 
 ### Art directories
 
