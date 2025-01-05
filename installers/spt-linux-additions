@@ -37,7 +37,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 TITLE="spt-linux-additions"
-VERSION="2025.1-2.1"
+VERSION="2025.1-2.2"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -1253,6 +1253,10 @@ if [[ -f "${LOG_PATH}" ]]; then
     rm -f "${LOG_PATH}" || m_warn "Failed to remove old log file in '${LOG_PATH}'"
 fi
 
+# Reserve first argument which always has to be the option command
+OPTION="${1}"
+shift 1
+
 # Apply launch arguments
 for arg in "$@"; do
     case "${arg}" in
@@ -1308,10 +1312,6 @@ set_backup_path
 
 # Update global variable for the cached backup path
 get_cached_backup_path
-
-# Reserve first argument which always has to be the option command
-OPTION="${1}"
-shift 1
 
 # Apply launch option
 case $OPTION in
