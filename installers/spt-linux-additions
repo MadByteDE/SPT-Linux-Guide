@@ -37,7 +37,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 TITLE="spt-linux-additions"
-VERSION="2025.1-2.3"
+VERSION="2025.1-3"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -45,8 +45,10 @@ readonly RED="\e[31m"; readonly GREEN="\e[32m"; readonly BLUE="\e[36m"
 readonly YELLOW="\e[33m"; readonly GRAY="\e[90m"
 
 # Common paths
+readonly DATA_PATH="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly CONFIG_PATH="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly CACHE_PATH="${XDG_CACHE_HOME:-${HOME}/.cache}/${TITLE}"
+readonly TEMP_PATH="${CACHE_PATH}/tmp"
 readonly BINARIES_PATH="${CACHE_PATH}/binaries"
 readonly LOG_PATH="${CACHE_PATH}/spt-linux-additions.log"
 
@@ -73,12 +75,19 @@ readonly SPT_LATEST_BACKUP_FILE="${CACHE_PATH%/}/latest_backup"
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-# Downloadable dependencies #
+# Dependencies #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-# hpatchz
+# hpatchz (Download)
 readonly HPATCHZ_URL="https://github.com/sisong/HDiffPatch/releases/download/v4.8.0/hdiffpatch_v4.8.0_bin_linux64.zip"
 readonly HPATCHZ_BIN_PATH="linux64/hpatchz"
+
+# xxd (Download)
+readonly XXD_URL="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.0.1378-2_amd64.deb"
+readonly XXD_BIN_PATH="usr/bin/xxd"
+
+# 7z (Lutris runtime)
+readonly ZIP_BIN_PATH="${DATA_PATH}/lutris/runtime/p7zip/7z"
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -123,7 +132,7 @@ m_exit() {
         # Remove temp files before exiting
         if [ -d "${TEMP_PATH}" ]; then
             m_dbg "Removing temp files in '${TEMP_PATH}'"
-            rm -r "${TEMP_PATH}" || m_warn "Failed to remove temp files"
+            rm -rf "${TEMP_PATH}" || m_warn "Failed to remove temp files"
         fi
     fi
     # Exit the shell / subshell
@@ -166,6 +175,22 @@ m_subshell_err() {
 }
 
 
+m_mkdir() {
+    local target_path="$1"
+
+    if [[ ! -d "${target_path}" ]]; then
+        # Check if the target path is inside a valid directory
+        case "${target_path}" in
+            *"${PREFIX_PATH}"* | *"${CACHE_PATH}"*) ;;
+            *) m_err "Invalid target directory '$target_path'" ;;
+        esac
+
+        # Create missing directories
+        mkdir -p "${target_path}" 1>/dev/null || m_err "Failed to create directory in '${target_path}'"
+    fi
+}
+
+
 m_cp() {
     local source_path="${1}"
     local target_path="${2}"
@@ -173,12 +198,14 @@ m_cp() {
     # Check exists
     [ ! "${source_path}" ] && m_err "Source '${source_path}' does not exist"
 
-    # Check if the target is inside the prefix directory
-    [[ "${target_path}" == *"${PREFIX_PATH}"* ]] \
-    || m_err "Target '${target_path}' is not inside the prefix directory"
+    # Check if the target path is inside a valid directory
+    case "${target_path}" in
+        *"${PREFIX_PATH}"* | *"${CACHE_PATH}"*) ;;
+        *) m_err "Invalid target directory '$target_path'" ;;
+    esac
 
     # Create missing directories
-    mkdir -p "${target_path}" 1>/dev/null || m_err "Failed to create directory in '${target_path}'"
+    m_mkdir "${target_path}"
 
     # Copy files to target path
     if ! [[ -z "$( ls -A "${source_path}" )" ]]; then
@@ -189,10 +216,8 @@ m_cp() {
 
 
 m_run() {
-    case "${FLATPAK_ENV}" in
-        1) flatpak-spawn --host "$@" ;;
-        *) "$@" ;;
-    esac
+    # Execute custom command
+    "$@"
 
     # Raise warning & echo error code
     local err_code=$?
@@ -240,7 +265,6 @@ m_download() {
     m_dbg "Download url: ${url}"
     m_dbg "Download output path: ${output_path}"
     m_msg "Downloading '${filename}'"
-    # TODO: Use sandboxed curl (needs fixing sandbox permission issues with the tmp directory)
     m_run curl -f -L --connect-timeout 60 --max-redirs $max_redirs --create-dirs $url -o "${output_path}"
 
     case "$?" in
@@ -254,10 +278,9 @@ m_extract() {
     local archive_path="${1}"
     local target_path="${2}"
     local filename="${archive_path##*/}"
+
     m_msg "Extracting '${filename}'"
-    # HACK: Running host 7z while in a Flatpak sandbox is a workaround for the bundled lib
-    # throwing an E_FAIL error on large archives
-    m_run 7z x "${archive_path}" -o"${target_path}" 1>/dev/null || >&2
+    m_run ${ZIP_BIN_PATH} x "${archive_path}" -o"${target_path}" 1>/dev/null || >&2
 
     case "$?" in
         0) m_success "Extracted '${filename}' successfully" ;; 
@@ -424,7 +447,7 @@ check_hash() {
 
     # use file to calculate MD5 hash and ENCODE in base64
     m_msg "Calculating checksum of file '${file_path##*/}'"
-    file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | m_run xxd -r -p | base64)
+    file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | m_run "$BINARIES_PATH/xxd" -r -p | base64)
     [ $? != 0 ] && m_subshell_err "${file_hash}"
     m_dbg "File hash: ${file_hash} Expected hash: ${expected_hash}"
 
@@ -467,39 +490,25 @@ check_eft_running() {
 
 
 check_dependencies() {
-    local cmds=("7z" "xxd" "$BINARIES_PATH/hpatchz")
+    local cmds=("$ZIP_BIN_PATH" "$BINARIES_PATH/xxd" "$BINARIES_PATH/hpatchz")
     local missing_pkgs=()
 
     # Check each cmd and error out if something is missing
     # We need to handle packages as well - different ones for Fedora (who would have guessed :/)
     for cmd in "${cmds[@]}"; do
         local pkgs=()
-        if ! m_run command -v $cmd &>/dev/null; then
+        if ! command -v $cmd &> /dev/null; then
             case ${cmd} in
-                "7z")
-                    if [ -f "/etc/fedora-release" ]; then pkgs+=("p7zip-plugins")
-                    else pkgs+=("p7zip"); fi
-                ;;
-                "xxd")
-                    if [ -f "/etc/fedora-release" ]; then pkgs+=("vim-common")
-                    else pkgs+=("xxd"); fi
+                "$BINARIES_PATH/xxd")
+                    fetch_dependency "${XXD_URL}" "${XXD_BIN_PATH}" || m_err "Failed to fetch dependency: 'xxd'"
                 ;;
                 "$BINARIES_PATH/hpatchz")
-                    fetch_dependency "${HPATCHZ_URL}" "${HPATCHZ_BIN_PATH}"
+                    fetch_dependency "${HPATCHZ_URL}" "${HPATCHZ_BIN_PATH}" || m_err "Failed to fetch dependency: 'hpatchz'"
                 ;;
+                "7z") m_err "Missing dependency: '${cmd}'" ;;
             esac
-            m_dbg "Found missing package(s): '${pkgs[*]}'"
-            missing_pkgs+=("${pkgs[@]}")
         fi
     done
-
-    # Show all missing pkgs and raise an error
-    if [ "${#missing_pkgs[@]}" != 0 ]; then
-        m_warn "You are missing the following packages:"
-        m_msg "   ${missing_pkgs[@]}"
-        m_msg "Please install all missing packages and try again (e.g. using 'sudo apt install ${missing_pkgs[*]}' or 'sudo dnf install ${missing_pkgs[*]}')"
-        m_err "Missing dependencies"
-    fi
 
     # Success
     m_success "OK"
@@ -509,6 +518,7 @@ check_dependencies() {
 fetch_dependency() {
     local url="${1}"
     local bin_path="${2}"
+    local filename="${url##*/}"
     local dep=${bin_path##*/}
 
     # Ask for permission to install dependency
@@ -519,7 +529,7 @@ fetch_dependency() {
     # TODO: Check if the URLs target file is an archive or an executable!
 
     local temp_path="${TEMP_PATH}/$dep"
-    local archive_path="${temp_path}/build.zip"
+    local archive_path="${temp_path}/${filename}"
 
     # Download
     m_download "${url}" "${archive_path}" 1 || m_err "Failed to download '$dep'"
@@ -527,9 +537,15 @@ fetch_dependency() {
     # Extract
     m_extract "${archive_path}" "${temp_path}"
 
+    case "${filename}" in
+        *deb*) m_extract "${temp_path}/data.tar" "${temp_path}" ;;
+        *) ;;
+    esac
+
     # Install
     m_msg "Installing '$dep'..."
-    m_run mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || m_err "Failed to move '$dep' to '${BINARIES_PATH}'"
+    m_mkdir "${BINARIES_PATH}"
+    mv -f "${temp_path}/$bin_path" "${BINARIES_PATH}/" || m_err "Failed to move '$dep' to '${BINARIES_PATH}'"
     chmod +x "${BINARIES_PATH}/$dep" || m_err "Failed to make file executable: '$dep'"
     m_msg "'${dep}' has been installed successfully!"
 }
@@ -610,7 +626,7 @@ verify_cached() {
             m_msg "Removing cached file '${filename}'"
             rm -f "${cached_path}" \
             || m_err "Failed to remove file '${filename}'"
-            return $?
+            return 1
         else
             return 0
         fi
@@ -753,7 +769,7 @@ opt_patcher() {
     local patcher_args="";
 
     # Make sure hpatchz is installed
-    if ! m_run command -v "${BINARIES_PATH}/hpatchz" &>/dev/null; then
+    if ! command -v "${BINARIES_PATH}/hpatchz" &>/dev/null; then
         fetch_dependency "${HPATCHZ_URL}" "${HPATCHZ_BIN_PATH}" \
         || m_err "Missing dependency 'hpatchz'. Please install it & try again"
     fi
@@ -813,9 +829,7 @@ opt_patcher() {
             "new")
                 m_msg "${progress_current} (+) Adding: ${formatted}"
                 local dir_path="${output%/*}"
-                if [[ ! -d "${dir_path}" ]]; then
-                    mkdir -p "${dir_path}" || m_err "Failed to create new directory: ${dir_path}"
-                fi
+                m_mkdir "${dir_path}"
                 cp "${source}" "${output}" || m_err "Failed to add file"
             ;;
             *)
@@ -1291,17 +1305,15 @@ for arg in "$@"; do
     esac
 done
 
-# Create directories (temp / cache)
-readonly TEMP_PATH="$(mktemp -d -t "${TITLE}.XXXXXXXXX")"
-[ ! -d "${TEMP_PATH}" ] && m_err "Failed to create temp directory"
-
-if [ ! -d "${CACHE_PATH}" ]; then
-    mkdir -p "${CACHE_PATH}" || m_err "Failed to create directory at '${CACHE_PATH}'"
+# Remove old temp directory if it exists
+if [ -d "${TEMP_PATH}" ]; then
+    m_dbg "Removing old temp directory"
+    rm -rf "${TEMP_PATH}" || m_err "Failed to remove temp directory in '${TEMP_PATH}'"
 fi
 
-if [ ! -d "${BINARIES_PATH}" ]; then
-    mkdir "${BINARIES_PATH}" || m_err "Failed to create directory at '${BINARIES_PATH}'"
-fi
+# Create missing directories if needed
+m_mkdir "${CACHE_PATH}"
+m_mkdir "${BINARIES_PATH}"
 
 # Set default prefix path
 set_prefix_path
