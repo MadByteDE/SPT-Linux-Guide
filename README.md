@@ -39,13 +39,13 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 If you want to contribute to the guide, feel free to:
 - Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare)
 - Open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose)
-- Contact us on [Discord](https://discord.com/channels/875684761291599922/1258435265664520302)
+- Contact us on [Discord](https://discord.com/invite/Xn9msqQZan)
 
 If you want to send us a PR, please make sure the formatting of your addition matches the existing content in our guide.
 
 
 ## Find us on Discord
-Check out the offical [SPT Discord server](https://discord.com/channels/875684761291599922/1258435265664520302)!
+Check out the offical [SPT Discord server](https://discord.com/invite/Xn9msqQZan)!
 
 
 ## Credits
