@@ -37,7 +37,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 TITLE="spt-linux-additions"
-VERSION="2025.1-3.1"
+VERSION="2025.1-3.2"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -281,7 +281,7 @@ m_extract() {
     local filename="${archive_path##*/}"
 
     m_msg "Extracting '${filename}'"
-    m_run ${ZIP_BIN_PATH} x "${archive_path}" -o"${target_path}" 1>/dev/null || >&2
+    m_run ${ZIP_BIN_PATH} x "${archive_path}" -o"${target_path}" 1>/dev/null
 
     local status=$?
     case $status in
