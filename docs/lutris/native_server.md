@@ -2,7 +2,7 @@
 ## Native Server installation using Lutris
 
 > [!WARNING]
-> <span style="color:khaki"> This setup is not supported - do **NOT** ask the SPT team for support. Also, please do **NOT** open `issues` in this repository. There's a [Linux support thread](https://discord.com/channels/875684761291599922/1258435265664520302) in #community-support on the [SPT Discord](https://discord.com/invite/Xn9msqQZan) where you can ask for help.</span>
+> <span style="color:khaki"> If you encounter issues while using / installing the native Linux server, do **NOT** ask the SPT team for support or open a bug report in this repository. You can ask for help in the [SPT on Linux - user discussion thread](https://discord.com/channels/875684761291599922/1258435265664520302) on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan).</span>
 
 > [!NOTE]
 > <span style="color:lightblue">Please note that most server mods are primarily made for running on Windows. Some might require additional steps or won't work at all.</span>
