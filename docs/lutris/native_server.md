@@ -2,10 +2,10 @@
 ## Native Server installation using Lutris
 
 > [!WARNING]
-> <span style="color:khaki"> This setup is not supported by the SPT team - do **NOT** ask for help in #spt-support on Discord. Also, please do **NOT** open `issues` in this repository. There's a [Linux support thread](https://discord.com/channels/875684761291599922/1258435265664520302) in #community-support on the [SPT Discord](https://discord.com/invite/Xn9msqQZan) where you can ask for help.</span>
+> <span style="color:khaki"> This setup is not supported - do **NOT** ask the SPT team for support. Also, please do **NOT** open `issues` in this repository. There's a [Linux support thread](https://discord.com/channels/875684761291599922/1258435265664520302) in #community-support on the [SPT Discord](https://discord.com/invite/Xn9msqQZan) where you can ask for help.</span>
 
 > [!NOTE]
-> <span style="color:lightblue">Please note that most server mods are primarly made for running on Windows. Some might require additional steps or won't work at all natively on Linux.</span>
+> <span style="color:lightblue">Please note that most server mods are primarily made for running on Windows. Some might require additional steps or won't work at all.</span>
 
 After installing SPTarkov using an Lutris installer script, you'll have a single shortcut for both the `SPT.Launcher` & `SPT.Server`. This is due to limitations of Lutris installer scripts. 
 
@@ -36,7 +36,7 @@ This guide will describe how to set up & use a native Linux server for SPTarkov 
 
     - Follow the instructions to [install NVM](https://github.com/nvm-sh/nvm?tab=readme-ov-file#intro).
 
-    - Prepare the project directory as described in the [Github repository](https://github.com/sp-tarkov/server?tab=readme-ov-file#installation).
+    - Prepare the project as described in the [SPT Github repository](https://github.com/sp-tarkov/server?tab=readme-ov-file#installation).
 
     - Use `CTRL+SHIFT+B` **OR** `Terminal` > `Run Build Task...` & build the project with `npm: build:release - project`. By default this will build the server for the latest SPT release.
 
