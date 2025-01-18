@@ -58,7 +58,8 @@ This guide will describe how to set up & use a native Linux server for SPTarkov 
     Almost done. In Lutris, click the `+` in the top left & select `Add locally installed game`:
 
     - Enter a `Name` & select `Linux` as runner.
-    - In `Game options` navigate to the `SPT.Server` Linux executable in your SPTarkov install directory & `save` the changes.
+    - In `Game options` navigate to the `SPT.Server` Linux executable in your SPTarkov install directory.
+    - In `System options` enable `CLI mode` & `save` the changes.
 
     If everything worked, you should be able to launch the server & play.
 
