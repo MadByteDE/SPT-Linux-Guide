@@ -7,15 +7,6 @@ assignees: ''
 
 ---
 
----
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: MadByteDE
-
----
-
 ## Issue Report
 
 **Distro**:
@@ -36,4 +27,4 @@ assignees: MadByteDE
 ## Attachments
 <!-- Either use file uploads directly or put attachments here --->
 <!-- Please add logs, detailed system information, screenshots or other helpful resources --->
-<!-- Make sure to use collapsable sections or Github Gists / Pastebin for long text attachments --->
+<!-- Make sure to use collapsable sections or Github Gists for long text attachments --->
