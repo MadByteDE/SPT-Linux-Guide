@@ -37,7 +37,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 TITLE="spt-linux-additions"
-VERSION="2025.1-4"
+VERSION="2025.1-4.1"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -1092,7 +1092,8 @@ opt_help() {
 
 opt_backup() {
     # TODO: Add feature to exclude unwanted sub-directories (e.g. ! prefixed)
-    local dirs=("$*")
+    # TODO: Custom paths including spaces are not supported yet
+    local dirs=($*)
 
     # if no args given, restore all defined user data directories
     [ "$#" -eq 0 ] && dirs=("${SPT_USER_DATA_DIRS[@]}")
@@ -1142,7 +1143,8 @@ opt_backup() {
 
 opt_restore() {
     # TODO: Add feature to exclude unwanted sub-directories (e.g. ! prefixed)
-    local dirs=("$*")
+    # TODO: Custom paths including spaces are not supported yet
+    local dirs=($*)
 
     # if no args given, restore all defined user config directories
     [ "$#" -eq 0 ] && dirs=("${SPT_USER_CONFIG_DIRS[@]}")
@@ -1177,7 +1179,9 @@ opt_restore() {
         local source_path="${CACHED_BACKUP_PATH%/}/${dir}"
         local target_path="${SPT_INSTALL_PATH%/}/${dir}"
         local formatted="${source_path#*"${CACHED_BACKUP_PATH}"/}"
-        if [[ -d "${source_path}" ]] then
+        m_dbg "source: ${source_path}"
+        m_dbg "target: ${target_path}"
+        if [[ -d "${source_path}" ]]; then
             m_msg "Restoring: ${formatted}"
             m_cp "${source_path%/}/" "${target_path%/}/" || m_err "Failed to restore '${source_path}'"
         fi
