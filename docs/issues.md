@@ -69,21 +69,23 @@ The game crashes while playing a raid or being in the hideout.
 
 **Solution**
 
-This can indicate a problem with Tarkov running into the `vm.max_map_count` limit.
+- Make sure you've `Swap` set up on your system. Tarkov will need at least some `Swap`, even on systems with a lot of RAM available.
 
-A detailed explaination of what this is can be found [here](https://thelinuxcode.com/using_mmap_function_linux/).
+- Another issue could be the `vm.max_map_count` limit (mostly on older distros).
 
-The recommended solution is to raise it to a 'safe' value of `1048576` e.g. by adding:
+    A detailed explaination of what that is can be found [here](https://thelinuxcode.com/using_mmap_function_linux/).
 
-    vm.max_map_count=1048576
+    The recommended solution is to raise it to a recommend value of `1048576` e.g. by adding:
 
-to `/etc/sysctl.conf` and run
+        vm.max_map_count=1048576
 
-    sudo sysctl -p
+    to `/etc/sysctl.conf` and run
 
-as stated [here](https://stackoverflow.com/a/50371108).
+        sudo sysctl -p
 
-As of early 2024, [most common distros changed their default value](https://www.gamingonlinux.com/2024/04/arch-linux-changes-vmmax-map-count-to-match-fedora-ubuntu-for-better-gaming/) to the one stated above as well.
+    as stated [here](https://stackoverflow.com/a/50371108).
+
+    As of early 2024, [most common distros changed their default value](https://www.gamingonlinux.com/2024/04/arch-linux-changes-vmmax-map-count-to-match-fedora-ubuntu-for-better-gaming/) as well.
 
 [Back](#table-of-content)
 
@@ -226,15 +228,30 @@ When launching SPT.Launcher, either one of two issues can occur:
 
 **Solution**
 
+Unfortunately, this can mean a bunch of things. Here's a check-list:
+
 1. Make sure .NET Desktop Runtime 8.0 is installed inside the wine prefix. You should find a `dotnet` folder at `WINEPREFIX/drive_c/Program Files/dotnet/` containing the `dotnet.exe` executable.
-2. The system package `dotnet-host` can interfere with the installed dotnet in your prefix. If you don't need this system package for development, remove it and try again.
-3. You can try to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
+
+2. Try to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
 
    - Bottles: `Settings` → `Environment variables`
    - Lutris: `Configure` → `System options` → `Environment variables`
 
-4. **Proton only**: When using a Proton runner, sometimes it can help to get rid of the `vrclient` directory in `drive_c`. It's not needed for running the Launcher & for whatever reason it seems to cause issues sometimes.
-5. There's a rare issue sometimes with the `icu.dll` used by the prefix. Usually it will show a log entry mentioning `icu.dll` in the wine/proton log. You can try to disable the `icu.dll` in the `DLL overrides`:
+3. **Proton only**: When using a Proton runner, sometimes it can help to get rid of the `vrclient` directory in `drive_c`. It's not needed for running the Launcher & for whatever reason it seems to cause issues sometimes. Root of this likely is a missing registry entry for `HKEY_CURRENT_USER\\Software\\Wine\\VR`. More details can be found [here](https://github.com/ValveSoftware/Proton/issues/8256#issue-2673557168).
+
+4. Sometimes the Lutris runtime or a wine runner can cause issues as well.
+
+    - Check if the correct `wine version` is set for the game and the runner is working.
+    - If that didn't help, you could try deleting the `runtime` directory in:
+
+        - Flatpak: `~/.var/app/net.lutris.Lutris/data/lutris/runtime`
+        - Native: `~/.local/share/lutris/runtime`
+
+        & re-download the runtime from `Preferences` > `Updates`:
+
+        <img src="../media/lutris/runtime.jpg" width="640">
+
+5. There's a rare issue sometimes with the `icu.dll` used by the prefix & some wine versions. Usually it will show a log entry mentioning `icu.dll` or `icuc` in the wine/proton log. You can try to disable the `icu.dll` in the `DLL overrides`:
 
     - Bottles: `Settings` → `DLL overrides`: Add key `icu`, select `disabled` as value & save the changes.
     - Lutris: `Configure` → `Runner options` → `DLL overrides`: Add key `icu`, value `d` & save the changes.
