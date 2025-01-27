@@ -31,9 +31,6 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 - [Using Lutris](docs/lutris/manual_guide.md)
 - [Using Bottles](docs/bottles/manual_guide.md)
 
-### Advanced guides
-- [Native server installation using Lutris](docs/lutris/native_server.md)
-
 ### [FAQ](docs/faq.md)
 
 ### [Troubleshooting](docs/issues.md)
