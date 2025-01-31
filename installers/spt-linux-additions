@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.1-4.2"
+readonly VERSION="2025.1-5"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -110,7 +110,7 @@ m_echo() {
 
 m_sleep() {
     local delay=${1:-2}
-    [[ ${NO_WAIT} -eq 0 ]] && sleep "${delay}"
+    [[ ${NO_WAIT} -ne 1 ]] && sleep "${delay}"
 }
 
 
@@ -213,17 +213,16 @@ m_cp() {
 
 m_run() {
     # Execute custom command
-    "$@"
+    "$@"; local status=$?
 
-    local err_code=$?
-    if [[ $err_code -ne 0 ]]; then
+    if [[ $status -ne 0 ]]; then
         # Prevent messages when in a subshell to not break return values
-        if [[ ${BASH_SUBSHELL} -eq 0 ]]; then
+        if [[ ! -v ${BASH_SUBSHELL} || ${BASH_SUBSHELL} -eq 0 ]]; then
             m_warn "Failed to run command:"
             m_echo "    > $*"
-            m_echo "    > ${BOLD}Exit code:${RESET} $err_code"
+            m_echo "    > ${BOLD}Error code:${RESET} $status"
         fi
-        return $err_code
+        return $status
     fi
 }
 
@@ -251,7 +250,8 @@ m_download() {
     local output_path="${2}"
     local max_redirs="${3:-0}"
     local filename="${url##*/}"
-
+    local args=(-f -L --connect-timeout 60 --max-redirs "$max_redirs" --create-dirs)
+    
     [[ -z "${filename}" ]] \
     && filename="${output_path##*/}"
 
@@ -259,10 +259,8 @@ m_download() {
     m_dbg "Download output path: ${output_path}"
     m_msg "Downloading '${filename}'"
 
-    local args=(-f -L --connect-timeout 60 --max-redirs "$max_redirs" --create-dirs)
-    m_run curl "${args[@]}" "${url}" -o "${output_path}"
+    m_run curl "${args[@]}" "${url}" -o "${output_path}"; local status=$?
     
-    local status=$?
     case $status in
         0) m_success "Downloaded '${filename}' successfully" ;;
         *) m_warn "Failed to download '${filename}'"; return $status ;;
@@ -778,9 +776,8 @@ opt_patcher() {
 
     local progress_start=1
     local progress_total=$(find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c)
-    # Process each file in source directory
-    find "$source_path/SPT_Patches" \( -type f -print0 \) \
-    | while read -d $'\0' source; do
+
+    find "$source_path/SPT_Patches" \( -type f \) | while read source; do
         # progress_current
         local progress_current="[${progress_start}/${progress_total}]"
         # Isolate the operation extension
@@ -792,30 +789,32 @@ opt_patcher() {
 
         local output="${target_path}/${formatted}"
         local target="${output}.decoded"
+        local dir_path="${output%/*}"
 
         case "$extension" in
             "delta")
-                # Start patching
-                m_msg "${progress_current} (*) Patching: ${formatted}"
-                m_run "${patcher_cmd}" "$output" "$source" "$target" &>/dev/null \
-                || m_err "A patch failed to apply"
-                # Success - remove old file and replace with .decoded file
+                m_msg "${progress_current} (*) Patching: ${formatted##*/}"
+                m_run "${patcher_cmd}" "$output" "$source" "$target" &>/dev/null
+
+                # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && m_err "Decoded file not found!"
-                rm "${output}" || m_err "Unable to remove file"
-                mv "${target}" "${output}"
+                rm "${output}" || m_err "Failed to remove '${output}'"
+                mv "${target}" "${output}" || m_err "Failed to move '${target##*/}' to '${output}'"
             ;;
             "del")
-                m_msg "${progress_current} (-) Deleting: ${formatted}"
-                rm "${output}" || m_err "Failed to delete file"
-                local dir_path="${output%/*}"
+                m_msg "${progress_current} (-) Deleting: ${formatted##*/}"
+                rm "${output}" || m_err "Failed to remove '${output}'"
                 if [[ -z "$(ls -A "${dir_path}")" ]]; then
-                    rmdir "${dir_path}" || m_err "Failed to remove empty directory: ${dir_path}"
+                    m_dbg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
+                    rmdir "${dir_path}" || m_err "Failed to remove: ${dir_path}"
                 fi
             ;;
             "new")
-                m_msg "${progress_current} (+) Adding: ${formatted}"
-                local dir_path="${output%/*}"
-                m_mkdir "${dir_path}"
+                m_msg "${progress_current} (+) Adding: ${formatted##*/}"
+                if [[ ! -d "${dir_path}" ]]; then
+                    m_dbg "${progress_current} (+) Adding directory: ${dir_path##*/}"
+                    m_mkdir "${dir_path}"
+                fi
                 cp "${source}" "${output}" || m_err "Failed to add file"
             ;;
             *)
@@ -824,7 +823,7 @@ opt_patcher() {
         esac
         progress_start=$((${progress_start}+1))
     done
-    
+
     if [ $? -ne 0 ]; then
         remove_spt_install
         m_err "Failed to patch game files"
@@ -925,12 +924,11 @@ opt_installer() {
         || m_err "Downloaded mod archive is corrupted"
     fi
 
+    m_msg "Latest SPT release is '${MOD_VERSION}'"
     # Check if we need to patch the game files
-    m_msg "Comparing installed EFT <--> required EFT versions (latest SPT release is '${MOD_VERSION}')"
+    m_msg "Comparing installed EFT <--> required EFT versions"
     if [[ "${INSTALLED_EFT_VERSION}" -ne "${REQUIRED_EFT_VERSION}" ]]; then
-        m_warn "Latest SPT / installed EFT versions not compatible"
-        m_msg "Checking for a compatible downpatcher"
-
+        m_msg "Incompatible EFT version found - Checking latest downpatcher"
         # Check if target EFT version is lower, greater or equal to required EFT version
         if [[ "${PATCHER_TARGET_EFT_VERSION}" -lt "${INSTALLED_EFT_VERSION}" ]]; then
             # No patcher available yet!
@@ -952,7 +950,7 @@ opt_installer() {
 
         elif [[ "${PATCHER_TARGET_EFT_VERSION}" -eq "${INSTALLED_EFT_VERSION}" ]]; then
             # Downpatcher is compatible!
-            m_success "Patcher is compatible with your installed EFT version"
+            m_success "Patcher is compatible"
 
             # Check for cached patcher archive
             if ! verify_cached "${PATCHER_FILE_PATH}" "${PATCHER_EXPECTED_HASH}"; then
@@ -976,11 +974,10 @@ opt_installer() {
             || m_err "Failed to move patcher files to SPT install directory" 
 
             # Patch game using downloaded patcher files
-            opt_patcher "${SPT_INSTALL_PATH}" \
-            || m_err "Something went wrong while patching game files"
+            opt_patcher "${SPT_INSTALL_PATH}" || m_err "Something went wrong while patching game files"
         fi
     else
-        m_msg "Your installed EFT version is compatible with the latest SPT release"
+        m_msg "Installed EFT version is compatible with 'SPT ${MOD_VERSION}'"
         # Remove old SPT install if needed & copy EFT files
         [[ ${REINSTALL_SPT} -eq 1 ]] && remove_spt_install
         cp_eft_files
@@ -1314,7 +1311,9 @@ case $OPTION in
         m_echo "  ${BOLD}-> ${LOG_PATH}${RESET}"
         m_echo
         m_sleep
+        local SECONDS=0
         opt_patcher "$@"
+        m_dbg "$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
     ;;
     "install")
         opt_version
