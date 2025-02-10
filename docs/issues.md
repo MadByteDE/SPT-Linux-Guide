@@ -110,13 +110,11 @@ That should fix the issue.
 
 ### 2.3 NVIDIA / Wayland: Frozen screen / Black screen
 
+(Updated 2025/02/10)
+
 **Description**
 
-With NVIDIA proprietary drivers on Wayland at Raid-Start or Raid-End the screen freezes. The game is still running in the background (e.g. sounds still play when the mouse hovers UI elements).
-
-**Solution**
-
-This was a bug in NVIDIA drivers prior to version 560 - It's related to high VRAM usage and Wayland. The driver did not fallback to virtual memory / swap whenever the GPUs VRAM was maxed out.
+With NVIDIA proprietary drivers on Wayland at Raid-Start, Raid-End or when tabbing out of the game, the screen freezes. The game is still running in the background (e.g. sounds still play when the mouse hovers UI elements).
 
 If you check your kernel log with `journalctl -b -r` shortly after it occurs, you'd probably see the following error:
 
@@ -124,7 +122,11 @@ If you check your kernel log with `journalctl -b -r` shortly after it occurs, yo
 Jun 11 19:28:15 kernel: [drm:nv_drm_gem_alloc_nvkms_memory_ioctl [nvidia_drm]] *ERROR* [nvidia-drm] [GPU ID 0x00002600] Failed to allocate NVKMS memory for GEM object
 ```
 
-We recommend using a Nvidia driver version >= 560 and let the GSP firmware blob **enabled** to fix the issue.
+**Solution**
+
+This is an ongoing issue with NVIDIA drivers on Linux with no known fix / workaround available.
+
+For more informations, go [here](https://forums.developer.nvidia.com/t/non-existent-shared-vram-on-nvidia-linux-drivers/260304).
 
 [Back](#table-of-content)
 
