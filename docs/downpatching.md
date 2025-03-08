@@ -15,9 +15,8 @@ We provide two methods to patch the game files on Linux.
 
 ## What you need
 
-- **[Downgrade patcher](https://hub.sp-tarkov.com/emergency.html)**
-    - Click on `Latest Downgrade Patcher` at the top
-    - Make sure your downgrade patcher matches the installed EFT version!
+- **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
+    - Make sure the downgrade patcher matches the installed EFT version!
 
 - **[spt-linux-additions](../installers/spt-linux-additions)**
 
@@ -49,9 +48,8 @@ We provide two methods to patch the game files on Linux.
 
 ## What you need
 
-- **[Downgrade patcher](https://hub.sp-tarkov.com/emergency.html)**
-    - Click on `Latest Downgrade Patcher` at the top
-    - Make sure your downgrade patcher matches the installed EFT version!
+- **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
+    - Make sure the downgrade patcher matches the installed EFT version!
 
 - **Wine**
     - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation!
