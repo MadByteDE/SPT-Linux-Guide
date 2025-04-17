@@ -62,7 +62,7 @@
 
 -  Then go to the `Dependencies` tab and install the following dependencies:
 
-       dotnet48 dotnetcoredesktop6 dotnetcoredesktop8 vcredist2022
+       dotnet48 vcredist2022 dotnetcoredesktop6 dotnetcoredesktop8 dotnetcoredesktop9
 
     <img src="../../media/bottles/install_deps.gif" class="fit-picture">
 
