@@ -58,9 +58,6 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
 
-> [!TIP]
-> <span style="color:lightgreen">For better performance & additional fixes, we recommend switching to latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!</span>
-
 ***
 Still having issues? Visit our [issues section](../../docs/issues.md).
 

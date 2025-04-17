@@ -8,7 +8,6 @@ You can find the official SPT FAQ [here](https://hub.sp-tarkov.com/faq/).
 2. [Can I play SPT on Linux?](#2-can-i-play-spt-on-linux)
 3. [What about the Steam Deck?](#3-what-about-the-steam-deck)
 4. [My performance is bad, help!](#4-my-performance-is-bad-help)
-5. [What Wine version is recommended for playing SPT?](#5-what-wine-version-is-recommended-for-playing-spt)
 
 ## 1. Can I play vanilla EFT on Linux?
 
@@ -71,14 +70,6 @@ Before lowering graphics settings in the game, here are some tips on how to impr
 - Having mods like SAIN, That's Lit, Questing Bots or Looting Bots installed can take a lot of breath out of your system. You can tweak mod settings e.g. reduce total amount of bots spawned or set slower intervals for checks (like bots looking for loot/looking for cover) to get improved performance.
 
     Check out the mod pages on the [SPT Hub](https://hub.sp-tarkov.com/files/) to get more details!
-
-## 5. What Wine version is recommended for playing SPT?
-
-The best Wine version for playing SPT should be a recent build of `GE-Proton`. It includes a bunch of performance and gaming related improvements.
-
-We found that using the `GE-Proton (Latest)` option in Lutris actually installs a version of `UMU-Proton` instead of `GE-Proton`, resulting in minor issues with video playback (e.g. the Unheard menu background) because some required libraries are not bundled in that version of Proton. To fix those issues, make sure to get the latest `GE-Proton` e.g. using `protonup-qt` and select it in Lutris.
-
-One thing to note when using a Proton runner is that Lutris still doesn't completely support running games through Proton. You might get issues with game processes not closing correctly & still being executed in the background.
 
 ***
 [Back to landing page](../README.md)
