@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.1-2 ##
+## SPT Lutris installer v2025.4-1 ##
 ## This Lutris installer is using an -UNOFFICIAL- bash installer script.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -22,19 +22,19 @@ script:
     requires: escape-from-tarkov
     installer:
     - task:
-        app: arial times dotnetdesktop6 dotnetdesktop8
+        app: arial times dotnetdesktop8 dotnetdesktop9
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
         prefix: $GAMEDIR
     - task:
-        name: winekill
-    - task:
-        app: win10
+        app: win81
         arch: win64
-        description: Setting windows version to Windows 10...
+        description: Setting windows version to Windows 8.1...
         name: winetricks
         prefix: $GAMEDIR
+    - task:
+        name: winekill
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR
@@ -42,6 +42,7 @@ script:
     - execute:
         command: NO_ANSI=1 ./spt-linux-additions install -np "$GAMEDIR"
         description: Installing SPT ...
+
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
@@ -56,7 +57,7 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            PROTON_VERB: run
+            PROTON_VERB: runinprefix
             # Possible workarounds for dotnet package issues (SPT Launcher)
             # DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             # DOTNET_ROOT: 
