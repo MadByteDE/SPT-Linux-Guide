@@ -26,7 +26,7 @@
 1. Install EFT in `Lutris` using the installer script
 2. Install game in `BSG launcher`
 3. Run `winetricks --self-update` via Lutris bash console
-4. Run `winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 win81` via Lutris bash console
+4. Run `winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9 win81` via Lutris bash console
 5. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
 6. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
 7. Duplicate config, new profile `SPTarkov Launcher`
@@ -57,7 +57,7 @@
 - Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the EFT game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
       winetricks --self-update
-      winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 win81
+      winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9 win81
 
     <img src="../../media/lutris/terminal.jpg" width="580">
 
@@ -92,8 +92,6 @@
 **6. Voila!**
 
 - If everything worked you should be able to launch the `SPTarkov Server`, followed by the `SPTarkov Launcher` & login.
-
-- For better performance & additional fixes, we recommend using latest [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases) or `wine-ge-8-26` for playing!
 
 Have fun!
 
