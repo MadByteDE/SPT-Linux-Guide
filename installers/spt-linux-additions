@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.3-1"
+readonly VERSION="2025.4-1"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -48,7 +48,7 @@ readonly DATA_PATH="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly CONFIG_PATH="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly CACHE_PATH="${XDG_CACHE_HOME:-${HOME}/.cache}/${TITLE}"
 readonly TEMP_PATH="${CACHE_PATH}/tmp"
-readonly BINARIES_PATH="${CACHE_PATH}/binaries"
+readonly BINARIES_PATH="${CACHE_PATH}/binaries"; export PATH=$BINARIES_PATH:$PATH
 readonly METADATA_PATH="${CACHE_PATH}/json"
 readonly LOG_PATH="${CACHE_PATH}/spt-linux-additions.log"
 
@@ -87,7 +87,7 @@ readonly XXD_URL="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.0.1378-2
 readonly XXD_BIN_PATH="usr/bin/xxd"
 
 # 7z (Lutris runtime)
-readonly ZIP_BIN_PATH="${DATA_PATH}/lutris/runtime/p7zip/7z"
+readonly ZIP_BIN_PATH="${DATA_PATH}/lutris/runtime/p7zip/7z"; export PATH=$ZIP_BIN_PATH:$PATH
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -274,7 +274,7 @@ m_extract() {
     local filename="${archive_path##*/}"
 
     m_msg "Extracting '${filename}'"
-    m_run "${ZIP_BIN_PATH}" x "${archive_path}" -o"${target_path}" 1>/dev/null
+    m_run 7z x "${archive_path}" -o"${target_path}" 1>/dev/null
 
     local status=$?
     case $status in
@@ -388,12 +388,12 @@ get_patcher_target_eft_version() {
 
 
 download_patcher() {
-    # Get all mirror urls
-    local urls="${1:-${PATCHER_MIRROR_URLS}}"; [ "${urls}" == '' ] && m_err "Missing mirror urls"
-    m_dbg "Got mirrors: '${urls}'"
+    # Set global variable for patcher mirror urls
+    PATCHER_MIRROR_URLS=$(get_patcher_urls) || m_subshell_err "${PATCHER_MIRROR_URLS}"
+    m_dbg "Patcher mirror urls: Got '${PATCHER_MIRROR_URLS}'"
     
     # Try to download from first to last
-    echo "${urls}" | while read -r url; do
+    echo "${PATCHER_MIRROR_URLS}" | while read -r url; do
         m_msg "Using mirror: '${url}'"
         m_download "${url}" "${PATCHER_FILE_PATH}" && break
     done
@@ -438,7 +438,7 @@ check_hash() {
 
     # use file to calculate MD5 hash and ENCODE in base64
     m_msg "Calculating checksum of file '${file_path##*/}'"
-    local file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | m_run "$BINARIES_PATH/xxd" -r -p | base64) \
+    local file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | m_run xxd -r -p | base64) \
     || m_subshell_err "${file_hash}"
     m_dbg "File hash: ${file_hash} Expected hash: ${expected_hash}"
 
@@ -481,18 +481,18 @@ check_eft_running() {
 
 
 check_dependencies() {
-    local cmds=("$ZIP_BIN_PATH" "$BINARIES_PATH/xxd" "$BINARIES_PATH/hpatchz")
+    local cmds=("7z" "xxd" "hpatchz")
 
     # Check each cmd and error out if something is missing
     # We need to handle packages as well - different ones for Fedora (who would have guessed :/)
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             case ${cmd} in
-                "$BINARIES_PATH/xxd")
+                "xxd")
                     fetch_dependency "${XXD_URL}" "${XXD_BIN_PATH}" \
                     || m_err "Failed to fetch dependency: 'xxd'"
                 ;;
-                "$BINARIES_PATH/hpatchz")
+                "hpatchz")
                     fetch_dependency "${HPATCHZ_URL}" "${HPATCHZ_BIN_PATH}" \
                     || m_err "Failed to fetch dependency: 'hpatchz'"
                 ;;
@@ -746,15 +746,14 @@ get_cached_backup_path() {
 
 opt_patcher() {
     m_msg "Launching patcher..."
-    local target_path="${1:-"${PATCHER_TARGET_PATH}"}" 
+    
+    local target_path="${1:-"${SPT_DEFAULT_INSTALL_PATH}"}" 
     target_path="${target_path%/}"
-    local source_path="${2:-"${PATCHER_SOURCE_PATH}"}" 
+    local source_path="${2:-"${SPT_DEFAULT_INSTALL_PATH}"}" 
     source_path="${source_path%/}"
 
-    local patcher_cmd="${BINARIES_PATH}/hpatchz"
-
     # Make sure hpatchz is installed
-    if ! command -v "${BINARIES_PATH}/hpatchz" &>/dev/null; then
+    if ! command -v "hpatchz" &>/dev/null; then
         fetch_dependency "${HPATCHZ_URL}" "${HPATCHZ_BIN_PATH}" \
         || m_err "Missing dependency 'hpatchz'. Please install it & try again"
     fi
@@ -794,7 +793,7 @@ opt_patcher() {
         case "$extension" in
             "delta")
                 m_msg "${progress_current} (*) Patching: ${formatted##*/}"
-                m_run "${patcher_cmd}" "$output" "$source" "$target" &>/dev/null
+                m_run hpatchz "$output" "$source" "$target" 1>/dev/null
 
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && m_err "Decoded file not found!"
@@ -879,10 +878,6 @@ opt_installer() {
     # Get required metadata for mod and patcher releases
     fetch_metadata "${MOD_RELEASE_JSON_URL}" "${MOD_RELEASE_JSON_PATH}"
     fetch_metadata "${PATCHER_MIRRORS_JSON_URL}" "${PATCHER_MIRRORS_JSON_PATH}"
-
-    # Set global variable for patcher mirror urls
-    PATCHER_MIRROR_URLS=$(get_patcher_urls) || m_subshell_err "${PATCHER_MIRROR_URLS}"
-    m_dbg "Patcher mirror urls: Got '${PATCHER_MIRROR_URLS}'"
 
     # Fetch latest mod release URL
     MOD_RELEASE_URL=$(get_json_value "${MOD_RELEASE_JSON_PATH}" "DownloadUrl") \
@@ -1311,7 +1306,7 @@ case $OPTION in
         m_echo "  ${BOLD}-> ${LOG_PATH}${RESET}"
         m_echo
         m_sleep
-        local SECONDS=0
+        SECONDS=0
         opt_patcher "$@"
         m_dbg "$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
     ;;
