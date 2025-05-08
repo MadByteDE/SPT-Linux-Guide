@@ -484,7 +484,6 @@ check_dependencies() {
     local cmds=("7z" "xxd" "hpatchz")
 
     # Check each cmd and error out if something is missing
-    # We need to handle packages as well - different ones for Fedora (who would have guessed :/)
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             case ${cmd} in
