@@ -14,7 +14,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
     - Check if GPU and vulkan drivers are installed!
 - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
-    - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation! (can be changed back afterwards)
+    - We recommend [Kron4ek wine-10.7-staging-tkg-ntsync-amd64-wow64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.7) for the installation! (can be changed back afterwards)
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
 
@@ -41,7 +41,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
     Enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
     
-            ~/Downloads/wine-9.19-amd64/bin/wine64
+            ~/Downloads/wine-10.7-amd64/bin/wine64
 
     Now, save the changes.
 
