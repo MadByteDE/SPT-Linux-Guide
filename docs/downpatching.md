@@ -52,7 +52,7 @@ We provide two methods to patch the game files on Linux.
     - Make sure the downgrade patcher matches the installed EFT version!
 
 - **Wine**
-    - We recommend [Kron4ek vanilla wine-9.19-amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/9.19) for the installation!
+    - We recommend [Kron4ek wine-10.7-staging-tkg-ntsync-amd64-wow64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.7) for the installation!
 
 
 ## Installation
