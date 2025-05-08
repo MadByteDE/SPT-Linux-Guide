@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.4-1.1 ##
+## SPT Lutris installer v2025.5-1 ##
 ## This Lutris installer is using the -OFFICIAL- SPT Windows installer.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -22,7 +22,7 @@ script:
     requires: escape-from-tarkov
     installer:
     - task:
-        app: arial times dotnetdesktop6 dotnetdesktop8 dotnetdesktop9
+        app: arial times dotnetdesktop8 dotnetdesktop9
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
@@ -31,7 +31,7 @@ script:
         app: win81
         arch: win64
         description: Setting windows version to Windows 8.1...
-        name: winetricks
+        name: winetricks 
         prefix: $GAMEDIR
     - task:
         arch: win64
