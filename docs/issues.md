@@ -167,7 +167,7 @@ To debug issues that might be caused by Wine, you also need to enable debug logg
 
 - `Configure` → `Runner options` → `Output debugging info` → `Enabled`
 
-That should enabled wine logs in the console / output added to the `lutris.log` file.
+That should enable wine logs in the console / output added to the `lutris.log` file.
 
 
 [Back](#table-of-content)
