@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.4-1"
+readonly VERSION="2025.6-1"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -87,7 +87,7 @@ readonly XXD_URL="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.0.1378-2
 readonly XXD_BIN_PATH="usr/bin/xxd"
 
 # 7z (Lutris runtime)
-readonly ZIP_BIN_PATH="${DATA_PATH}/lutris/runtime/p7zip/7z"; export PATH=$ZIP_BIN_PATH:$PATH
+readonly ZIP_BIN_PATH="${DATA_PATH}/lutris/runtime/p7zip"; export PATH=$ZIP_BIN_PATH:$PATH
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -274,7 +274,7 @@ m_extract() {
     local filename="${archive_path##*/}"
 
     m_msg "Extracting '${filename}'"
-    m_run 7z x "${archive_path}" -o"${target_path}" 1>/dev/null
+    (cd "${ZIP_BIN_PATH}" && 7z x "${archive_path}" -o"${target_path}" 1>/dev/null)
 
     local status=$?
     case $status in
