@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.6-1"
+readonly VERSION="2025.6-2"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -129,8 +129,7 @@ m_exit() {
         fi
         # Remove temp files before exiting
         if [[ -d "${TEMP_PATH}" ]]; then
-            m_dbg "Removing temp files in '${TEMP_PATH}'"
-            rm -rf "${TEMP_PATH}" || m_warn "Failed to remove temp files"
+            m_remove "${TEMP_PATH}"
         fi
     fi
     exit "${status}"
@@ -208,6 +207,28 @@ m_cp() {
         cp --reflink=auto -r "${source_path}"* "${target_path}" \
         || m_err "Failed to copy files to '${target_path}'"
     fi
+}
+
+
+m_remove() {
+    local target_path="${1}"
+
+    case "${target_path}" in
+        *"${PREFIX_PATH}"* | *"${CACHE_PATH}"*)
+            if [[ -f "${target_path}" ]]; then rm -f "${target_path}"
+            elif [[ -d "${target_path}" ]]; then rm -rf "${target_path}"; fi
+            local status=$?
+            # Fail with non zero exit status
+            if [[ $status -ne 0 ]]; then
+                m_warn "Failed to remove '${target_path}'"
+                return $status
+            fi
+        ;;
+        *)
+            m_warn "Invalid target path '${target_path}'"
+            return 1
+        ;;
+    esac
 }
 
 
@@ -611,14 +632,13 @@ verify_cached() {
         # Check hash
         if ! check_hash "${cached_path}" "${expected_hash}"; then
             m_msg "Removing cached file '${filename}'"
-            rm -f "${cached_path}" \
-            || m_err "Failed to remove file '${filename}'"
+            m_remove "${cached_path}" || m_err "Failed to remove file '${filename}'"
             return 1
         else
             return 0
         fi
     else
-        m_warn "File not cached"
+        m_msg "File '${cached_path}' not found in cache directory"
         return 1
     fi
 }
@@ -627,10 +647,7 @@ verify_cached() {
 remove_spt_install() {
     # Remove old spt installation
     m_msg "Removing old/corrupted SPT files"
-    # Make sure to remove only stuff inside the prefix directory
-    if [[ "${SPT_INSTALL_PATH}" == *"${PREFIX_PATH}"* ]]; then
-        rm -rf "${SPT_INSTALL_PATH}" || m_warn "Failed to remove SPT install directory"
-    fi
+    m_remove "${SPT_INSTALL_PATH}"
 }
 
 
@@ -690,7 +707,7 @@ validate_metadata() {
     local file_path="${1}"
     # Check if file exists, if not - fail the check
     if [[ ! -f "${file_path}" ]]; then
-        m_warn "File does not exist"
+        m_msg "File '${1}' does not exist"
         return 1
     fi
 
@@ -746,9 +763,9 @@ get_cached_backup_path() {
 opt_patcher() {
     m_msg "Launching patcher..."
     
-    local target_path="${1:-"${SPT_DEFAULT_INSTALL_PATH}"}" 
+    local target_path="${1:-"${SPT_INSTALL_PATH}"}" 
     target_path="${target_path%/}"
-    local source_path="${2:-"${SPT_DEFAULT_INSTALL_PATH}"}" 
+    local source_path="${2:-"${SPT_INSTALL_PATH}"}" 
     source_path="${source_path%/}"
 
     # Make sure hpatchz is installed
@@ -771,6 +788,9 @@ opt_patcher() {
     else
         m_err "Unable to locate 'SPT_Patches' directory in '${source_path}'"
     fi
+
+    m_dbg "Source path: ${source_path}"
+    m_dbg "Target path: ${target_path}"
 
     local progress_start=1
     local progress_total=$(find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c)
@@ -796,12 +816,12 @@ opt_patcher() {
 
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && m_err "Decoded file not found!"
-                rm "${output}" || m_err "Failed to remove '${output}'"
+                m_remove "${output}" || m_err "Failed to remove '${output}'"
                 mv "${target}" "${output}" || m_err "Failed to move '${target##*/}' to '${output}'"
             ;;
             "del")
                 m_msg "${progress_current} (-) Deleting: ${formatted##*/}"
-                rm "${output}" || m_err "Failed to remove '${output}'"
+                m_remove "${output}" || m_err "Failed to remove '${output}'"
                 if [[ -z "$(ls -A "${dir_path}")" ]]; then
                     m_dbg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
                     rmdir "${dir_path}" || m_err "Failed to remove: ${dir_path}"
@@ -828,13 +848,13 @@ opt_patcher() {
     fi
 
     # SUCCESS! ※\(^o^)/※
-    if [[ "${source_path}" == "${target_path}" ]]; then
+    if [[ "${target_path}" == *"${source_path}"* ]]; then
         m_msg "Cleaning up ..."
         if [[ -d "${source_path}/SPT_Patches" ]]; then
-            rm -rf "${source_path}/SPT_Patches" || m_warn "Failed to remove 'SPT_Patches' directory"
+            m_remove "${source_path}/SPT_Patches"
         fi
         if [[ -f "${source_path}/patcher.exe" ]]; then
-            rm -rf "${source_path}/patcher.exe" || m_warn "Failed to remove 'patcher.exe'"
+            m_remove "${source_path}/patcher.exe"
         fi
     fi
     
@@ -1195,7 +1215,7 @@ opt_clear_cache() {
     m_ask "Do you want to continue?"
 
     m_msg "Clearing cache"
-    rm -r "${CACHE_PATH}" || m_err "Failed to clear cache directory"
+    m_remove "${CACHE_PATH}" || m_err "Failed to clear cache directory"
     m_msg "Cache has been cleared successfully"
 }
 
@@ -1211,7 +1231,7 @@ opt_clear_metadata() {
 
     if [[ -d "${METADATA_PATH}" ]]; then
         m_dbg "Removing '${METADATA_PATH}'"
-        rm -r "${METADATA_PATH}" 2>/dev/null || m_err "Failed to remove '${METADATA_PATH}'"
+        m_remove "${METADATA_PATH}" || m_err "Failed to remove '${METADATA_PATH}'"
     fi
 
     m_msg "Metadata has been cleared successfully"
@@ -1240,7 +1260,7 @@ set_reinstall() {
 
 # Remove old log, otherwise we just append more lines to it
 if [[ -f "${LOG_PATH}" ]]; then
-    rm -f "${LOG_PATH}" || m_warn "Failed to remove old log file in '${LOG_PATH}'"
+    m_remove "${LOG_PATH}"
 fi
 
 # Reserve first argument which always has to be the option command
@@ -1276,8 +1296,7 @@ done
 
 # Remove old temp directory if it exists
 if [[ -d "${TEMP_PATH}" ]]; then
-    m_dbg "Removing old temp directory"
-    rm -rf "${TEMP_PATH}" || m_err "Failed to remove temp directory in '${TEMP_PATH}'"
+    m_remove "${TEMP_PATH}"
 fi
 
 # Create missing directories if needed
