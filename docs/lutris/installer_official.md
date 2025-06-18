@@ -10,7 +10,6 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 - **~120GB free disk space**
 - **[Lutris](https://lutris.net/downloads)**
-    - Check if you have all your [Wine dependencies](https://github.com/lutris/docs/blob/master/WineDependencies.md) installed.
     - Check if GPU and vulkan drivers are installed!
 - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!

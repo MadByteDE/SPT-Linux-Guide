@@ -10,7 +10,6 @@
 - **[Lutris](https://lutris.net/downloads)**
     - If possible, get a native Lutris package (not Flatpak/Snap)!
         - For Ubuntu-based/Debian-based distros: You can find the latest release *.deb package [here](https://github.com/lutris/lutris/releases)!
-    - Make sure you have all your [wine dependencies](https://github.com/lutris/docs/blob/master/WineDependencies.md) installed.
     - Make sure GPU and vulkan drivers are installed and working.
 
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**

@@ -12,7 +12,6 @@
 - **~120GB free disk space**
 
 - **[Bottles](https://usebottles.com/)**
-    - Make sure you have all your [wine dependencies](https://github.com/lutris/docs/blob/master/WineDependencies.md) installed.
     - Make sure GPU and vulkan drivers are installed and working.
 
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
