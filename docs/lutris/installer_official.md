@@ -75,8 +75,6 @@ In Lutris, click the `+` in the top left, select `Install from a local install s
 
 Now follow the steps & wait for the installation to complete.
 
-If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
-
 **4. Running SPT**
 
 - Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
