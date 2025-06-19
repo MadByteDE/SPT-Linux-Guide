@@ -90,9 +90,11 @@ Now follow the steps & wait for the installation to complete.
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
 > [!TIP]
-> <span style="color:lightgreen">You can also add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkv.Server.Linux` executable in the `Game options`. You also need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
+> <span style="color:lightgreen">You can also add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkv.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
 
 - To run the launcher you just double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
+
+Have fun!
 
 ***
 Still having issues? Visit our [issues section](../../docs/issues.md).

@@ -114,12 +114,11 @@ sudo pacman -S install dotnet-runtime aspnet-runtime
 
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
-> [!TIP]
-> <span style="color:lightgreen">You can also add the server to Lutris by selecting `Add locally installed game`, select the `Linux` runner & navigate to the `SPTarkv.Server.Linux` executable in the `Game options`. You also need to to enable `CLI mode` in the `System options` to run the server in a terminal emulator.</span>
-
 - To run the launcher you just have to click on the play icon at the right side of the `SPT.Launcher` shortcut.
 
     <img src="../../media/bottles/launch_game.gif" class="fit-picture">
+
+Have fun!
 
 ***
 Still having issues? Visit our [issues section](../../docs/issues.md).
