@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.4-1.1 ##
+## SPT Lutris installer v2025.6-1 ##
 ## This Lutris installer is using an -UNOFFICIAL- bash installer script.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -16,21 +16,12 @@ script:
         arch: win64
         exe: drive_c/SPTarkov/SPT.Launcher.exe
         prefix: $GAMEDIR
-        launch_configs:
-        - exe: SPT.Server.exe
-          name: SPTarkov - Server
     requires: escape-from-tarkov
     installer:
     - task:
         app: arial times dotnetdesktop8 dotnetdesktop9
         arch: win64
         description: Installing game dependencies ...
-        name: winetricks
-        prefix: $GAMEDIR
-    - task:
-        app: win81
-        arch: win64
-        description: Setting windows version to Windows 8.1...
         name: winetricks
         prefix: $GAMEDIR
     - task:
@@ -47,8 +38,8 @@ script:
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
                      Quick start:\n
-                     1. Launch 'SPTarkov - Server'\n
-                     2. Launch 'SPTarkov - Launcher'\n
+                     1. Launch 'SPTarkov.Server.Linux' in a terminal\n
+                     2. Launch 'SPTarkov - Launcher' in Lutris\n
                      3. Create a new profile & play\n
                      \n
                      For the latest updates & mods, visit:\n
@@ -57,16 +48,14 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            PROTON_VERB: run
+            # PROTON_VERB: run
             # Possible workarounds for dotnet package issues (SPT Launcher)
             # DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             # DOTNET_ROOT: 
-        # Without terminal mode the server won't run!
-        terminal: true
     wine:
         overrides:
             winhttp: n,b
-            icu: d
+            # icu: d
 
 slug: sptarkov
 version: sptarkov-additions-latest

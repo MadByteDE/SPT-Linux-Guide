@@ -11,12 +11,10 @@ Since there are many different Linux distributions out there, you might encounte
 2. In-Game
     - [2.1 Random crashes while in-raid or hideout](#21-random-crashes-while-in-raid-or-hideout)
     - [2.2 Audio crackling/distortion issues](#22-audio-cracklingdistortion-issues)
-    - [2.3 NVIDIA / Wayland: Frozen screen / Black screen](#23-nvidia--wayland-frozen-screen--black-screen)
 
 3. Lutris / Installer scripts
     - [3.1 Error code 256/512/1280/...](#31-error-code-2565121280)
     - [3.2 Issues on hardware with multiple GPUs (e.g. iGPU / dGPU)](#32-issues-on-hardware-with-multiple-gpus-eg-igpu--dgpu)
-    - [3.3 SPT.Server keeps running in the background after closing it](#33-sptserver-keeps-running-in-the-background-after-closing-it)
 
 4. Manual installation / Others
     - [4.1 SPT.Launcher not launching / .NET Desktop Runtime not found](#41-sptlauncher-not-launching--net-desktop-runtime-not-found)
@@ -108,29 +106,6 @@ That should fix the issue.
 
 ***
 
-### 2.3 NVIDIA / Wayland: Frozen screen / Black screen
-
-(Updated 2025/02/10)
-
-**Description**
-
-With NVIDIA proprietary drivers on Wayland at Raid-Start, Raid-End or when tabbing out of the game, the screen freezes. The game is still running in the background (e.g. sounds still play when the mouse hovers UI elements).
-
-If you check your kernel log with `journalctl -b -r` shortly after it occurs, you'd probably see the following error:
-
-```
-Jun 11 19:28:15 kernel: [drm:nv_drm_gem_alloc_nvkms_memory_ioctl [nvidia_drm]] *ERROR* [nvidia-drm] [GPU ID 0x00002600] Failed to allocate NVKMS memory for GEM object
-```
-
-**Solution**
-
-This is an ongoing issue with NVIDIA drivers on Linux with no known fix / workaround available.
-
-For more informations, go [here](https://forums.developer.nvidia.com/t/non-existent-shared-vram-on-nvidia-linux-drivers/260304).
-
-[Back](#table-of-content)
-
-
 ## 3. Lutris installer script
 
 ### 3.1 Error code 256/512/1280/...
@@ -199,22 +174,6 @@ This should make sure that Lutris is seeing your discrete GPU only.
 [Back](#table-of-content)
 
 ***
-
-### 3.3 SPT.Server keeps running in the background after closing it
-
-**Description**
-
-When using Lutris 0.5.17 & running the `SPT.Server` via **Proton** (Proton ≠ Wine!), the server will keep running in the background after closing the window.
-
-**Solution**
-
-*(Updated 2024/12/23)*
-
-It's a missing ""feature"" in Lutris.
-It's possible to work around the issue by disabling `CLI mode` in the `system options` tab & changing/setting the value of the environment variable `PROTON_VERB` to `run`. This will launch the server window in a custom windows-like CMD window (without ANSI/color support).
-
-[Back](#table-of-content)
-
 
 
 ## 4. Manual installation / Others

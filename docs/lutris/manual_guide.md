@@ -3,13 +3,30 @@
 > [!WARNING]
 > <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
 
+## Dependencies
+
+To run the native Linux server you need the following packages installed on your system:
+
+**Ubuntu / Mint**
+```
+sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+```
+
+**Fedora / RHEL**
+```
+sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+```
+
+**Arch**
+```
+sudo pacman -S install dotnet-runtime aspnet-runtime
+```
+
 ## What you need
 
 - **~120GB free disk space**
 
 - **[Lutris](https://lutris.net/downloads)**
-    - If possible, get a native Lutris package (not Flatpak/Snap)!
-        - For Ubuntu-based/Debian-based distros: You can find the latest release *.deb package [here](https://github.com/lutris/lutris/releases)!
     - Make sure GPU and vulkan drivers are installed and working.
 
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
@@ -23,18 +40,15 @@
 **<summary>TL;DR version</summary>** 
 
 1. Install EFT in `Lutris` using the installer script
-2. Install game in `BSG launcher`
+2. Install game in `BSG Launcher`
 3. Run `winetricks --self-update` via Lutris bash console
-4. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9 win81` via Lutris bash console
+4. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9` via Lutris bash console
 5. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
 6. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
 7. Duplicate config, new profile `SPTarkov Launcher`
 8. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
 9. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
-10. Duplicate `SPTarkov Launcher` config, new profile is `SPTarkov Server`
-11. Change executable to `SPT.Server.exe` in `Configure` → `Game Settings`
-12. In `System options`, enable `CLI mode` for `SPT Server`
-13. Run `SPTarkov Server`, then `SPTarkov Launcher`
+13. Run `SPTarkov.Server.Linux`, then `SPTarkov Launcher`
 
 </details>
 
@@ -79,18 +93,10 @@
 
     <img src="../../media/lutris/config.gif" width="580">
 
-**5. SPT Server config**
-
-- For the server shortcut we duplicate the `SPTarkov Launcher` shortcut instead of the EFT one. We recommend renaming the duplicate to something like `"SPTarkov Server"`.
-  
-- Again, select the executable e.g located at `YOUR_PREFIX/drive_c/SPTarkov/SPT.Server.exe`.
-
-- Inside the `Configure` window go to the `System options` tab, toggle the `Advanced` switch in the top right, find the `CLI mode` option below and enable it, → `Save`.
-
 
 **6. Voila!**
 
-- If everything worked you should be able to launch the `SPTarkov Server`, followed by the `SPTarkov Launcher` & login.
+- If everything worked you should be able to launch the `SPTarkov.Server.Linux`, followed by the `SPTarkov Launcher` & login.
 
 Have fun!
 

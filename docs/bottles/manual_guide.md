@@ -6,6 +6,24 @@
 > [!WARNING]
 > <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
 
+## Dependencies
+
+To run the native Linux server you need the following packages installed on your system:
+
+**Ubuntu / Mint**
+```
+sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+```
+
+**Fedora / RHEL**
+```
+sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+```
+
+**Arch**
+```
+sudo pacman -S install dotnet-runtime aspnet-runtime
+```
 
 ## What you need
 
@@ -88,11 +106,16 @@
 
 - Once you installed SPT, go to your bottle main menu and click `Add Shortcuts`.
 
-- Look for the directory you installed SPT in (Reminder that you can click on the three dots at the top right and then `Browse files` to find the location of your bottle's C: directory) and add `SPT.Launcher.exe` and `SPT.Server.exe`.
+- Look for the directory you installed SPT in (Reminder that you can click on the three dots at the top right and then `Browse files` to find the location of your bottle's C: directory) and add `SPT.Launcher.exe`.
 
 **7. Running SPT**
 
-- Everything now is pretty much done, so now to run the game we need to run the server and the launcher, HOWEVER to run the server we need to run it in a terminal, we do so by clicking the three dots at the right of the `SPT.Server` shortcut and then on the icon that looks like a terminal (If you hover over it, it should display `Launch with Terminal`).
+- Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
+
+- To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
+
+> [!TIP]
+> <span style="color:lightgreen">You can also add the server to Lutris by selecting `Add locally installed game`, select the `Linux` runner & navigate to the `SPTarkv.Server.Linux` executable in the `Game options`. You also need to to enable `CLI mode` in the `System options` to run the server in a terminal emulator.</span>
 
 - To run the launcher you just have to click on the play icon at the right side of the `SPT.Launcher` shortcut.
 
