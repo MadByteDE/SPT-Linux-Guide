@@ -191,7 +191,7 @@ When launching SPT.Launcher, either one of two issues can occur:
 
 Unfortunately, this can mean a bunch of things. Here's a check-list:
 
-1. Make sure .NET Desktop Runtime 8.0 is installed inside the wine prefix. You should find a `dotnet` folder at `WINEPREFIX/drive_c/Program Files/dotnet/` containing the `dotnet.exe` executable.
+1. Make sure .NET Desktop Runtime 9.0 is installed inside the wine prefix. You should find a `dotnet` folder at `WINEPREFIX/drive_c/Program Files/dotnet/` containing the `dotnet.exe` executable.
 
 2. Try to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
 
