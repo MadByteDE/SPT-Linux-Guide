@@ -40,7 +40,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 - **[Lutris](https://lutris.net/downloads)**
     - Check if GPU and vulkan drivers are installed!
-    
+
 - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
@@ -93,7 +93,7 @@ Now follow the steps & wait for the installation to complete.
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
 > [!TIP]
-> <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkv.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
+> <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkov.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
 
 - To run the launcher you just double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 

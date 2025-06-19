@@ -17,7 +17,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
     - We recommend `GE-Proton` for the installation!
-    
+
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
 To run the native Linux server you need the following packages installed on your system:
@@ -84,7 +84,7 @@ If everything worked you should be able to launch the `SPTarkov - Server`, follo
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
 > [!TIP]
-> <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkv.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
+> <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkov.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
 
 - To run the launcher you just double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 
