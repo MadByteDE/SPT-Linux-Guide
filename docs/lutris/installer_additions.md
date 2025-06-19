@@ -34,30 +34,30 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 </details>
 
-## Dependencies
+## What you need
 
 To run the native Linux server you need the following packages installed on your system:
 
-**Ubuntu / Mint**
-```
-sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Fedora / RHEL**
-```
-sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Arch**
-```
-sudo pacman -S install dotnet-runtime aspnet-runtime
-```
-
-## What you need
 - **~120GB free disk space**
+
 - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
+
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
-    
+
+- **Ubuntu / Mint**
+    ```
+    sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Fedora / RHEL**
+    ```
+    sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Arch**
+    ```
+    sudo pacman -S install dotnet-runtime aspnet-runtime
+    ```
 
 ## Installation
 
