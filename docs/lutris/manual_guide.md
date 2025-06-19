@@ -3,25 +3,6 @@
 > [!WARNING]
 > <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
 
-## Dependencies
-
-To run the native Linux server you need the following packages installed on your system:
-
-**Ubuntu / Mint**
-```
-sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Fedora / RHEL**
-```
-sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Arch**
-```
-sudo pacman -S install dotnet-runtime aspnet-runtime
-```
-
 ## What you need
 
 - **~120GB free disk space**
@@ -32,6 +13,23 @@ sudo pacman -S install dotnet-runtime aspnet-runtime
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
+
+To run the native Linux server you need the following packages installed on your system:
+
+- **Ubuntu / Debian (based)**
+    ```
+    sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Fedora (based)**
+    ```
+    sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Arch (based)**
+    ```
+    sudo pacman -S install dotnet-runtime aspnet-runtime
+    ```
 
 ## Installation
 

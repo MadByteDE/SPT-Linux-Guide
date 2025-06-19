@@ -6,35 +6,36 @@
 
 This *.yml script uses the regular windows installer to install SPT on your system.
 
-## Dependencies
-
-To run the native Linux server you need the following packages installed on your system:
-
-**Ubuntu / Mint**
-```
-sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Fedora / RHEL**
-```
-sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Arch**
-```
-sudo pacman -S install dotnet-runtime aspnet-runtime
-```
-
 ## What you need
 
 - **~120GB free disk space**
+
 - **[Lutris](https://lutris.net/downloads)**
     - Check if GPU and vulkan drivers are installed!
+
 - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
+
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
     - We recommend `GE-Proton` for the installation!
+    
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
+To run the native Linux server you need the following packages installed on your system:
+
+- **Ubuntu / Debian (based)**
+    ```
+    sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Fedora (based)**
+    ```
+    sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Arch (based)**
+    ```
+    sudo pacman -S install dotnet-runtime aspnet-runtime
+    ```
 
 ## Installation
 

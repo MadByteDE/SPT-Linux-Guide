@@ -6,25 +6,6 @@
 > [!WARNING]
 > <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
 
-## Dependencies
-
-To run the native Linux server you need the following packages installed on your system:
-
-**Ubuntu / Mint**
-```
-sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Fedora / RHEL**
-```
-sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-```
-
-**Arch**
-```
-sudo pacman -S install dotnet-runtime aspnet-runtime
-```
-
 ## What you need
 
 - **~120GB free disk space**
@@ -37,6 +18,22 @@ sudo pacman -S install dotnet-runtime aspnet-runtime
 
 - **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
 
+To run the native Linux server you need the following packages installed on your system:
+
+- **Ubuntu / Debian (based)**
+    ```
+    sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Fedora (based)**
+    ```
+    sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+    ```
+
+- **Arch (based)**
+    ```
+    sudo pacman -S install dotnet-runtime aspnet-runtime
+    ```
 
 ## Installation
 
