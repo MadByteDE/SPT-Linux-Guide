@@ -40,11 +40,11 @@ sudo pacman -S install dotnet-runtime aspnet-runtime
 
 **1. Installing Escape from Tarkov**
 
-    First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
+First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
-    <img src="../../media/lutris/tarkov.gif" width="580">
+<img src="../../media/lutris/tarkov.gif" width="580">
 
-    Follow the steps shown inside the application, wait until the installation is finished & install the game client as usual.
+Follow the steps shown inside the application, wait until the installation is finished & install the game client as usual.
 
 > [!IMPORTANT]
 > <span style="color:mediumslateblue">**You need to install the game client inside the launcher before continuing with the next step!**
@@ -53,28 +53,28 @@ sudo pacman -S install dotnet-runtime aspnet-runtime
 **2. Preparing the wine runner**
 
 
-    Set the **global** `Wine version` to your custom `Wine` build:
+Set the **global** `Wine version` to your custom `Wine` build:
 
-    <img src="../../media/lutris/wine.jpg" alt="drawing" width="580"/>
+<img src="../../media/lutris/wine.jpg" alt="drawing" width="580"/>
 
-    Enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
-    
-            ~/Downloads/wine-10.7-amd64/bin/wine64
+Enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
 
-    Now, save the changes.
+        ~/Downloads/wine-10.7-amd64/bin/wine64
+
+Now, save the changes.
 
 
 **3. Installing SPT**
 
-    [Download](../../installers/lutris-installer-official.yml) the installer script.
+[Download](../../installers/lutris-installer-official.yml) the installer script.
 
-    In Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded file:
+In Lutris, click the `+` in the top left, select `Install from a local install script` & navigate to the downloaded file:
 
-    <img src="../../media/lutris/install_script.jpg" alt="drawing" width="580"/>
+<img src="../../media/lutris/install_script.jpg" alt="drawing" width="580"/>
 
-    Now follow the steps & wait for the installation to complete.
+Now follow the steps & wait for the installation to complete.
 
-    If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
+If everything worked you should be able to launch the `SPTarkov - Server`, followed by `SPTarkov - Launcher` & login.
 
 **4. Running SPT**
 
