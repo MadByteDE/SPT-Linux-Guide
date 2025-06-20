@@ -67,7 +67,7 @@ To run the native Linux server you need the following packages installed on your
 
 <img src="../../media/lutris/install_script.jpg" alt="drawing" width="580"/>
 
-Now follow the steps & wait for the installation to complete.
+- Now follow the steps & wait for the installation to complete.
 
 **4. Running SPT**
 
@@ -78,7 +78,7 @@ Everything now is pretty much done, so now to run the game we need to run the se
 > [!TIP]
 > <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkov.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
 
-- To run the launcher you just double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
+- To run the launcher, double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 
 Have fun!
 
