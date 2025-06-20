@@ -107,11 +107,11 @@ To run the native Linux server you need the following packages installed on your
 
 **7. Running SPT**
 
-- Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
+Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
-- To run the launcher you just have to click on the play icon at the right side of the `SPT.Launcher` shortcut.
+- To run the launcher, click on the play icon at the right side of the `SPT.Launcher` shortcut.
 
     <img src="../../media/bottles/launch_game.gif" class="fit-picture">
 

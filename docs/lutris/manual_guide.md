@@ -43,10 +43,10 @@ To run the native Linux server you need the following packages installed on your
 4. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9` via Lutris bash console
 5. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
 6. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
-7. Duplicate config, new profile `SPTarkov Launcher`
+7. Duplicate config, new profile `SPTarkov - Launcher`
 8. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
 9. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
-13. Run `SPTarkov.Server.Linux`, then `SPTarkov Launcher`
+13. Run `SPTarkov.Server.Linux`, then `SPTarkov - Launcher`
 
 </details>
 
@@ -83,7 +83,7 @@ To run the native Linux server you need the following packages installed on your
 
 **4. SPT Launcher config**
 
-- Back in Lutris, right-click the `Escape From Tarkov` shortcut and select `Duplicate`. We recommend renaming the duplicate to something like `"SPTarkov Launcher"`.
+- Back in Lutris, right-click the `Escape From Tarkov` shortcut and select `Duplicate`. We recommend renaming the duplicate to something like `"SPTarkov - Launcher"`.
   
 - Now you'll need to select the correct executable e.g located at `YOUR_PREFIX/drive_c/SPTarkov/SPT.Launcher.exe`.
 
@@ -94,12 +94,14 @@ To run the native Linux server you need the following packages installed on your
 
 **6. Running SPT**
 
-- Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
+Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
 > [!TIP]
 > <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPTarkov.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
+
+- To run the launcher, double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 
 Have fun!
 
