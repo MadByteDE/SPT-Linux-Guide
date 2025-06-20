@@ -39,8 +39,8 @@ To get rid of this extra step and also improve on stability and usability, we be
 - **~120GB free disk space**
 
 - **[Lutris](https://lutris.net/downloads)**
-    - Check if GPU and vulkan drivers are installed!
-
+    - Check if GPU and vulkan drivers are installed
+    - We recommend using `GE-Proton (Latest)` for the installation
 - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)

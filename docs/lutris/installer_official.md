@@ -16,8 +16,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 
 - **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
-    - We recommend `GE-Proton` for the installation!
-
+    - We recommend using `GE-Proton (Latest)` for the installation
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
 To run the native Linux server you need the following packages installed on your system:
@@ -53,16 +52,11 @@ Follow the steps shown inside the application, wait until the installation is fi
 
 **2. Preparing the wine runner**
 
+    - In the main window, goto the `Runners` section, hover `Wine` & select `Configure`.
 
-Set the **global** `Wine version` to your custom `Wine` build:
+    - Enable `Advanced` settings in the top right, then select `GE-Proton (Latest)` & save the changes.
 
 <img src="../../media/lutris/wine.jpg" alt="drawing" width="580"/>
-
-Enable `Advanced` settings in the top right, then select `Custom` in the drop-down menu & navigate to the `wine` executable in the extracted Wine directory, e.g. :
-
-        ~/Downloads/wine-10.7-amd64/bin/wine64
-
-Now, save the changes.
 
 
 **3. Installing SPT**
