@@ -52,9 +52,9 @@ Follow the steps shown inside the application, wait until the installation is fi
 
 **2. Preparing the wine runner**
 
-    - In the main window, goto the `Runners` section, hover `Wine` & select `Configure`.
+- In the main window, goto the `Runners` section, hover `Wine` & select `Configure`.
 
-    - Enable `Advanced` settings in the top right, then select `GE-Proton (Latest)` & save the changes.
+- Enable `Advanced` settings in the top right, then select `GE-Proton (Latest)` & save the changes.
 
 <img src="../../media/lutris/wine.jpg" alt="drawing" width="580"/>
 
