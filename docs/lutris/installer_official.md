@@ -71,7 +71,7 @@ Now follow the steps & wait for the installation to complete.
 
 **4. Running SPT**
 
-- Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
+Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 
 - To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
 
