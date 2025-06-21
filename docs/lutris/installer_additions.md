@@ -40,7 +40,12 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 - **[Lutris](https://lutris.net/downloads)**
     - Check if GPU and vulkan drivers are installed
-    - We recommend using `GE-Proton (Latest)` for the installation
+    - Tested wine versions:
+        - **wine-ge-8-26** (install & play)
+        - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (install & play)
+        - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
+        - **[ge-proton](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (play only)
+
 - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)

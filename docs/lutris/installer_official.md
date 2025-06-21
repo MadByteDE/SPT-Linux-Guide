@@ -12,11 +12,13 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 - **[Lutris](https://lutris.net/downloads)**
     - Check if GPU and vulkan drivers are installed!
-
+    - Tested wine versions:
+        - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (install & play)
+        - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
+        - **[ge-proton](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (play only)
+        
 - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 
-- **Wine**: The default wine runner (wine-ge-8-26-x86_64) will not run the `SPTInstaller` executable!
-    - We recommend using `GE-Proton (Latest)` for the installation
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
 To run the native Linux server you need the following packages installed on your system:
