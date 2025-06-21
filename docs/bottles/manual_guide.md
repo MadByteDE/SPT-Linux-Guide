@@ -52,9 +52,8 @@ To run the native Linux server you need the following packages installed on your
 9. Click on the three dots at the top right, then `Browse files`
 10. Copy `EFT game files` somewhere else inside the bottle and `downpatch` if needed
 11. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
-12. In bottles click `Add Shortcuts` for `SPT.Server` and `SPT.Launcher`
-13. Run `SPT Server` in terminal mode, then the `SPT Launcher`
-14. Set correct path in `SPT.Launcher` settings (e.g `C:/SPTarkov`)
+12. In bottles click `Add Shortcuts` for `SPT.Launcher`
+13. Run `SPT.Server.Linux` in a terminal, then the `SPT.Launcher`
 
 </details>
 
@@ -109,7 +108,7 @@ To run the native Linux server you need the following packages installed on your
 
 Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 
-- To run the server, run the `SPTarkov.Server.Linux` executable in a terminal.
+- To run the server, run the `SPT.Server.Linux` executable in a terminal.
 
 - To run the launcher, click on the play icon at the right side of the `SPT.Launcher` shortcut.
 
