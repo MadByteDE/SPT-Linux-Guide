@@ -1,9 +1,6 @@
 
 # SPT Lutris installer (Official)
 
-> [!TIP]
-> <span style="color:lightgreen">You can use `protonup-qt` to install new wine versions in Lutris!</span>
-
 This *.yml script uses the regular windows installer to install SPT on your system.
 
 ## What you need
@@ -54,9 +51,14 @@ To run the native Linux server you need the following packages installed on your
 
 **2. Preparing the wine runner**
 
-- In the main window, goto the `Runners` section, hover `Wine` & select `Configure`.
+> [!TIP]
+> <span style="color:lightgreen">You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!</span>
 
-- Enable `Advanced` settings in the top right, then select `GE-Proton (Latest)` & save the changes.
+- Install your preferred wine version
+
+- In Lutris, goto the `Runners` section, hover `Wine` & select `Configure`.
+
+- Enable `Advanced` settings in the top right, then select your wine version & save the changes.
 
 <img src="../../media/lutris/wine.jpg" alt="drawing" width="580"/>
 
