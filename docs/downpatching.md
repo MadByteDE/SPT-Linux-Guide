@@ -43,63 +43,64 @@ We provide two methods to patch the game files on Linux.
 
 **<summary>Instructions (click to show)</summary>**
 
-> [!TIP]
-> <span style="color:lightgreen">You can use `protonup-qt` to install new wine versions in Lutris / Bottles</span>
-
 ## What you need
+
+> [!TIP]
+> <span style="color:lightgreen">You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!</span>
 
 - **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
     - Make sure the downgrade patcher matches the installed EFT version!
 
 - **Wine**
-    - We recommend [Kron4ek wine-10.7-staging-tkg-ntsync-amd64-wow64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.7) for the installation!
-
+    - Tested wine versions:
+        - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)**
+        - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)**
 
 ## Installation
 
 - **1) Extract the downloaded downgrade patcher archive**
 
-    > [!TIP]
-    > <span style="color:lightgreen">If you get an error about lzma, try `7z` to extract!</span>
+> [!TIP]
+> <span style="color:lightgreen">If you get an error about lzma, try `7z` to extract!</span>
 
 
 - **2) Move the patcher files to your copied EFT game directory, e.g:**
 
-    > [!NOTE]
-    > <span style="color:lightblue">`patcher.exe` needs to be inside the root directory alongside the game executable.</span>
+> [!NOTE]
+> <span style="color:lightblue">`patcher.exe` needs to be inside the root directory alongside the game executable.</span>
 
-    - **Lutris:**
+- **Lutris:**
 
-          ~/Games/escape-from-tarkov/drive_c/SPTarkov
+        ~/Games/escape-from-tarkov/drive_c/SPTarkov
 
-    - **Bottles:**
+- **Bottles:**
 
-          ~/.var/app/com.usebottles.bottles/data/bottles/bottles/SPTarkov/drive_c/SPTarkov
+        ~/.var/app/com.usebottles.bottles/data/bottles/bottles/SPTarkov/drive_c/SPTarkov
 
 - **3) Run `patcher.exe`**
 
-    > [!WARNING]
-    > <span style="color:khaki">If you get an error on launch, you *might* also need to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` as environment variables:</span>
-    > - Bottles: `Settings` → `Environment variables`
-    > - Lutris: `Configure` → `System options` → `Environment variables`
+> [!WARNING]
+> <span style="color:khaki">If you get an error on launch, you *might* also need to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` as environment variables:</span>
+> - Bottles: `Settings` → `Environment variables`
+> - Lutris: `Configure` → `System options` → `Environment variables`
 
-    - **Lutris:**
+- **Lutris:**
 
-        → Goto `Configure` > `Runner options` > `Wine Version` and set it to the correct Wine version
+    → Goto `Configure` > `Runner options` > `Wine Version` and set it to the correct Wine version
 
-        → Select one of the previously created shortcuts, click the wine glass icon, → `Open Bash terminal`, and use the following command:
+    → Select one of the previously created shortcuts, click the wine glass icon, → `Open Bash terminal`, and use the following command:
 
-          cd drive_c/SPTarkov/ && wine ./patcher.exe
+        cd drive_c/SPTarkov/ && wine ./patcher.exe
 
-    - **Bottles:**
+- **Bottles:**
 
-        → In `Settings` → `Runner` select the correct Wine version
+    → In `Settings` → `Runner` select the correct Wine version
 
-        → Select `Tools` → `Command Line` and use the following command:
+    → Select `Tools` → `Command Line` and use the following command:
 
-          cd drive_c/SPTarkov/ && ./patcher.exe
+        cd drive_c/SPTarkov/ && ./patcher.exe
 
-        Now wait until the patching is done & voila!
+    Now wait until the patching is done & voila!
 
 </details>
 
