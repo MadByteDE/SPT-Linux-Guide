@@ -44,7 +44,7 @@ To get rid of this extra step and also improve on stability and usability, we be
         - **wine-ge-8-26** (install & play)
         - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (install & play)
         - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-        - **[ge-proton](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (play only)
+        - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
 
 - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
