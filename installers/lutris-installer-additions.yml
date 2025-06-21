@@ -48,7 +48,7 @@ script:
                      Have fun! ('-')7"
     system:
         env:
-            # PROTON_VERB: run
+            PROTON_VERB: run
             # Possible workarounds for dotnet package issues (SPT Launcher)
             # DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             # DOTNET_ROOT: 
