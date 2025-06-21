@@ -9,10 +9,6 @@ We provide two methods to patch the game files on Linux.
 > [!NOTE]
 > <span style="color:lightblue">This script is made by the SPT community & is **NOT** officially supported by the mod developers!</span>
 
-<details>
-
-**<summary>Instructions (click to show)</summary>**
-
 ## What you need
 
 - **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
@@ -33,15 +29,9 @@ We provide two methods to patch the game files on Linux.
         > [!TIP]
         > <span style="color:lightgreen">For more details, run `./spt-linux-additions` without any commands.</span>
 
-</details>
-
 ***
 
 ## Method 2: Official downgrade patcher
-
-<details>
-
-**<summary>Instructions (click to show)</summary>**
 
 ## What you need
 
@@ -101,8 +91,6 @@ We provide two methods to patch the game files on Linux.
         cd drive_c/SPTarkov/ && ./patcher.exe
 
     Now wait until the patching is done & voila!
-
-</details>
 
 ***
 [Back to landing page](../README.md)
