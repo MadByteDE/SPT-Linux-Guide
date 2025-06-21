@@ -9,14 +9,14 @@ We provide two methods to patch the game files on Linux.
 > [!NOTE]
 > <span style="color:lightblue">This script is made by the SPT community & is **NOT** officially supported by the mod developers!</span>
 
-## What you need
+### What you need
 
 - **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
     - Make sure the downgrade patcher matches the installed EFT version!
 
 - **[spt-linux-additions](../installers/spt-linux-additions)**
 
-## Installation
+### Installation
 
 - **1) Move `SPT_Patches` to your install directory**
     - Extract the downgrade patcher archive, then copy and paste the `SPT_Patches` directory to your SPT install directory
@@ -26,14 +26,13 @@ We provide two methods to patch the game files on Linux.
 
           ./spt-linux-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
 
-        > [!TIP]
-        > <span style="color:lightgreen">For more details, run `./spt-linux-additions` without any commands.</span>
+> [!TIP]
+> <span style="color:lightgreen">For more details, run `./spt-linux-additions` without any commands.</span>
 
-***
 
 ## Method 2: Official downgrade patcher
 
-## What you need
+### What you need
 
 > [!TIP]
 > <span style="color:lightgreen">You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!</span>
@@ -46,7 +45,7 @@ We provide two methods to patch the game files on Linux.
         - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)**
         - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)**
 
-## Installation
+### Installation
 
 - **1) Extract the downloaded downgrade patcher archive**
 
