@@ -25,6 +25,12 @@ script:
         name: winetricks
         prefix: $GAMEDIR
     - task:
+        app: win10
+        arch: win64
+        description: Setting windows version to Windows 10...
+        name: winetricks 
+        prefix: $GAMEDIR
+    - task:
         name: winekill
     - merge:
         src: spt-linux-additions
@@ -49,7 +55,6 @@ script:
     system:
         env:
             PROTON_VERB: run
-            # Possible workarounds for dotnet package issues (SPT Launcher)
             DOTNET_BUNDLE_EXTRACT_BASE_DIR:
             DOTNET_ROOT: 
     wine:
