@@ -14,9 +14,9 @@ You can review the source code [here](../../installers/spt-linux-additions).
 
 The initial reason for writting the script was to work around issues with the official `SPTInstaller` running through Wine.
 
-There is a bug in most common Wine runners used by `Lutris` or `Bottles` that is causing the patching process to fail randomly. To work around this, the user needs to manually install a custom Wine runner in Lutris and use it globally for the installation.
+There was a bug in most common Wine runners used by `Lutris` or `Bottles` that causing the patching process to fail randomly. To work around this, the user needed to manually install a custom Wine runner in Lutris and use it globally for the installation.
 
-To get rid of this extra step and also improve on stability and usability, we began experimenting with patching game files on our own using `xdelta3` and the patch files included in the official patcher archive. Later, a custom installation script has been written as well.
+To get rid of this extra step and also improve on stability and usability, we began experimenting with patching game files on our own using `xdelta3` (now replaced by `hpatchz`) and the patch files included in the official patcher archive. Later, a custom installation script has been written as well.
 
 ### What are the advantages?
 
@@ -25,7 +25,6 @@ To get rid of this extra step and also improve on stability and usability, we be
     - Native installer & patcher in a single script
     - Support for [reflinking](https://btrfs.readthedocs.io/en/latest/Reflink.html) on supported filesystems (e.g. btrfs)
     - Reinstall mode - creates a backup of user files and reinstalls the latest SPT version
-    - **WIP**: Create & restore user backups using CLI commands
 
 ### What about disadvantages?
 
