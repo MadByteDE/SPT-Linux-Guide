@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.6-2"
+readonly VERSION="2025.6-3"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -816,12 +816,12 @@ opt_patcher() {
 
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && m_err "Decoded file not found!"
-                m_remove "${output}" || m_err "Failed to remove '${output}'"
+                rm -f "${output}" || m_err "Failed to remove '${output}'"
                 mv "${target}" "${output}" || m_err "Failed to move '${target##*/}' to '${output}'"
             ;;
             "del")
                 m_msg "${progress_current} (-) Deleting: ${formatted##*/}"
-                m_remove "${output}" || m_err "Failed to remove '${output}'"
+                rm -f "${output}" || m_err "Failed to remove '${output}'"
                 if [[ -z "$(ls -A "${dir_path}")" ]]; then
                     m_dbg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
                     rmdir "${dir_path}" || m_err "Failed to remove: ${dir_path}"
@@ -843,7 +843,7 @@ opt_patcher() {
     done
 
     if [ $? -ne 0 ]; then
-        remove_spt_install
+        if [ $NO_PROMPT == 1 ]; then remove_spt_install; fi
         m_err "Failed to patch game files"
     fi
 
@@ -851,10 +851,10 @@ opt_patcher() {
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         m_msg "Cleaning up ..."
         if [[ -d "${source_path}/SPT_Patches" ]]; then
-            m_remove "${source_path}/SPT_Patches"
+            rm -rf "${source_path}/SPT_Patches"
         fi
         if [[ -f "${source_path}/patcher.exe" ]]; then
-            m_remove "${source_path}/patcher.exe"
+            rm -rf "${source_path}/patcher.exe"
         fi
     fi
     
@@ -1367,4 +1367,3 @@ esac
 
 # Exit properly & clean up temp files
 m_exit
-
