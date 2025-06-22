@@ -50,7 +50,7 @@ The BSG Launcher will not show correct fonts (Bender font family) for some text.
 
 ##### BSG Launcher
 
-To fix fonts in the BSG Launcher, you can download & install the [Bender font](https://www.1001fonts.com/download/bender.zip) (external link, *.zip archive) on your distribution.
+To fix fonts in the BSG Launcher, you can download & install the [Bender font](https://www.1001fonts.com/bender-font.html) on your distribution.
 
 Unfortunately, this will not work when using a Proton runner for the application.
 
