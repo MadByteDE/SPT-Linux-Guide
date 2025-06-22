@@ -9,11 +9,6 @@
 
 - **[Lutris](https://lutris.net/downloads)**
     - Make sure GPU and vulkan drivers are installed and working.
-    - Tested wine versions:
-        - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (install & play)
-        - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-        - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
-
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 - [Cover art](../../docs/lutris/cover_art.md) (Optional)
