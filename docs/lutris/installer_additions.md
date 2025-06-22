@@ -14,7 +14,7 @@ You can review the source code [here](../../installers/spt-linux-additions).
 
 The initial reason for writting the script was to work around issues with the official `SPTInstaller` running through Wine.
 
-There was a bug in most common Wine runners used by `Lutris` or `Bottles` that causing the patching process to fail randomly. To work around this, the user needed to manually install a custom Wine runner in Lutris and use it globally for the installation.
+There was a bug in most common Wine runners used by `Lutris` or `Bottles` that caused the patching process to fail randomly. To work around this, the user needed to manually install a custom Wine runner in Lutris and use it globally for the installation.
 
 To get rid of this extra step and also improve on stability and usability, we began experimenting with patching game files on our own using `xdelta3` (now replaced by `hpatchz`) and the patch files included in the official patcher archive. Later, a custom installation script has been written as well.
 
