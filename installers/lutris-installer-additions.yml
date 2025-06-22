@@ -50,8 +50,8 @@ script:
         env:
             PROTON_VERB: run
             # Possible workarounds for dotnet package issues (SPT Launcher)
-            # DOTNET_BUNDLE_EXTRACT_BASE_DIR:
-            # DOTNET_ROOT: 
+            DOTNET_BUNDLE_EXTRACT_BASE_DIR:
+            DOTNET_ROOT: 
     wine:
         overrides:
             winhttp: n,b
