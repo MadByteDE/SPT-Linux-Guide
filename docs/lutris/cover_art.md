@@ -1,20 +1,20 @@
 
 ## Bonus: Lutris cover/banner
 
-[Download archive](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.zip)
+<img src="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart_overview.webp" >
 
-<img src="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/sptarkov_cover.jpg" >
-<img src="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/sptarkov_banner.jpg" >
+[Download archive (*.tar.gz)](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
 
 >**Credits:** @Rasdow (OG Artist), SPT team, MadByte (Edit)
 
 ## How to install
 
-Easiest way to do it:
+Here is the easiest way to install:
 
-- Download the images
+- Download the [archive (*.tar.gz)](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
+
 - Right click the `SPTarkov shortcut` → `Configure`
-- Click on the desired format & navigate to the downloaded cover/banner
+- Click on the desired format & navigate to the downloaded cover/banner/icon
 
 The images will automatically be saved in the correct Lutris directory. 
 
@@ -24,15 +24,13 @@ The images will automatically be saved in the correct Lutris directory.
 
     ~/.local/share/lutris/banners
     ~/.local/share/lutris/coverart
+    ~/.local/share/icons/hicolor/128x128/apps
 
 **Flatpak**
 
     ~/.var/app/net.lutris.Lutris/data/lutris/banners
     ~/.var/app/net.lutris.Lutris/data/lutris/coverart
-
-
-
-
+    ~/.local/share/icons/hicolor/128x128/apps
 
 
 ***
