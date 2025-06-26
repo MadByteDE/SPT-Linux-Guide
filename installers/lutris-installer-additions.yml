@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.6-1 ##
+## SPT Lutris installer v2025.6-2 ##
 ## This Lutris installer is using an -UNOFFICIAL- bash installer script.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -32,6 +32,7 @@ script:
         prefix: $GAMEDIR
     - task:
         name: winekill
+    - chmodx: ./spt-linux-additions
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR
@@ -39,6 +40,19 @@ script:
     - execute:
         command: NO_ANSI=1 ./spt-linux-additions install -np "$GAMEDIR"
         description: Installing SPT ...
+    - write_file:
+        description: Create prelaunch script ...
+        file: $GAMEDIR/drive_c/SPTarkov/server.sh
+        content: "#!/bin/bash\n
+            TERMS=(\"foot\" \"alacritty\" \"ptyxis\" \"konsole\" \"gnome-terminal\" \"xfce4-terminal\" \"kgx\" \"kitty\" \"xterm\")\n
+            cd \"$GAMEDIR/drive_c/SPTarkov\"\n
+            for term in \"${TERMS[@]}\"; do\n
+            \tif command -v $term; then\n
+            \t\t$term -e \"./SPT.Server.Linux\"\n
+            \t\tbreak\n
+            \tfi\n
+            done"
+    - chmodx: $GAMEDIR/drive_c/SPTarkov/server.sh
 
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
@@ -53,6 +67,7 @@ script:
                      \n
                      Have fun! ('-')7"
     system:
+        prelaunch_command: $GAMEDIR/drive_c/SPTarkov/server.sh
         env:
             PROTON_VERB: run
             DOTNET_BUNDLE_EXTRACT_BASE_DIR:
