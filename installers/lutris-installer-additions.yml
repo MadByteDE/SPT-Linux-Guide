@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.6-2 ##
+## SPT Lutris installer v2025.6-3 ##
 ## This Lutris installer is using an -UNOFFICIAL- bash installer script.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -32,7 +32,6 @@ script:
         prefix: $GAMEDIR
     - task:
         name: winekill
-    - chmodx: ./spt-linux-additions
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR
