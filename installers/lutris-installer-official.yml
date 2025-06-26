@@ -55,7 +55,7 @@ script:
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
                      Quick start:\n
-                     1. Launch 'SPTarkov.Server.Linux' in a terminal\n
+                     1. Launch 'SPT.Server.Linux' in a terminal\n
                      2. Launch 'SPTarkov - Launcher' in Lutris\n
                      3. Create a new profile & play\n
                      \n
