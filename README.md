@@ -61,4 +61,5 @@ Thanks to everyone helping out and contributing to the guide <3 !
 - **nyuware**
 - **Penkov**
 - **TheSpectator**
+- **Witek**
 
