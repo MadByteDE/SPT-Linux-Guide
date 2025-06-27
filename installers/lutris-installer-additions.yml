@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.6-3 ##
+## SPT Lutris installer v2025.6-4 ##
 ## This Lutris installer is using an -UNOFFICIAL- bash installer script.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -57,9 +57,9 @@ script:
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
                      Quick start:\n
-                     1. Launch 'SPT.Server.Linux' in a terminal\n
-                     2. Launch 'SPTarkov - Launcher' in Lutris\n
-                     3. Create a new profile & play\n
+                     1. Launch 'SPTarkov - Launcher' in Lutris\n
+                     2. Wait for the server to show 'Server has started, happy playing'\n
+                     3. Connect, create a new profile & play\n
                      \n
                      For the latest updates & mods, visit:\n
                      https://hub.sp-tarkov.com/\n
