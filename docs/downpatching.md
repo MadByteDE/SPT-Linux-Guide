@@ -14,7 +14,7 @@ We provide two methods to patch the game files on Linux.
 - **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
     - Make sure the downgrade patcher matches the installed EFT version!
 
-- **[spt-linux-additions](../installers/spt-linux-additions)**
+- **[spt-linux-additions](../scripts/spt-linux-additions)**
 
 ### Installation
 

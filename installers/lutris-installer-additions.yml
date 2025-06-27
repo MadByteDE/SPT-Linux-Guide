@@ -10,7 +10,7 @@ runner: wine
 script:
     files:
     - spt-linux-additions:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/spt-linux-additions
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-linux-additions
         filename: spt-linux-additions
     - server-launch-script:
         url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/server.sh
@@ -39,7 +39,7 @@ script:
         name: winekill
 
     # Install SPT using the native installer script
-    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/installers/spt-linux-additions
+    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/spt-linux-additions
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR

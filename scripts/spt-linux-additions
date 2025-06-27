@@ -53,7 +53,7 @@ readonly METADATA_PATH="${CACHE_PATH}/json"
 readonly LOG_PATH="${CACHE_PATH}/spt-linux-additions.log"
 
 # Script variables
-readonly SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/spt-linux-additions"
+readonly SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/scripts/spt-linux-additions"
 readonly SCRIPT_ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Mod variables

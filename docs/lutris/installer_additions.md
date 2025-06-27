@@ -4,7 +4,7 @@
 
 This *.yml script uses a **custom**, native Linux install script.
 
-You can review the source code [here](../../installers/spt-linux-additions).
+You can review the source code [here](../../scripts/spt-linux-additions).
 
 <details>
 
