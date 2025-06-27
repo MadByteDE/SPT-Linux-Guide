@@ -1,4 +1,4 @@
-## SPT Lutris installer v2025.6-4 ##
+## SPT Lutris installer v2025.6-5 ##
 ## This Lutris installer is using an -UNOFFICIAL- bash installer script.
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
@@ -43,6 +43,7 @@ script:
         description: Create prelaunch script ...
         file: $GAMEDIR/drive_c/SPTarkov/server.sh
         content: "#!/bin/bash\n
+            [[ $(pidof \"SPT.Server.Linux\") != \"\" ]] && exit 0\n
             TERMS=(\"foot\" \"alacritty\" \"ptyxis\" \"konsole\" \"gnome-terminal\" \"xfce4-terminal\" \"kgx\" \"kitty\" \"xterm\")\n
             cd \"$GAMEDIR/drive_c/SPTarkov\"\n
             for term in \"${TERMS[@]}\"; do\n
@@ -52,7 +53,6 @@ script:
             \tfi\n
             done"
     - chmodx: $GAMEDIR/drive_c/SPTarkov/server.sh
-
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
