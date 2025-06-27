@@ -38,7 +38,7 @@ script:
     - task:
         name: winekill
 
-    # Native SPT install script
+    # Install SPT using the native installer script
     # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/installers/spt-linux-additions
     - merge:
         src: spt-linux-additions

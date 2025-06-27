@@ -22,7 +22,7 @@ script:
     requires: escape-from-tarkov
     installer:
 
-    ## Prepare the wine prefix
+    # Prepare the wine prefix
     - task:
         app: arial times dotnetdesktop8 dotnetdesktop9
         arch: win64
@@ -35,6 +35,8 @@ script:
         description: Setting windows version to Windows 10...
         name: winetricks 
         prefix: $GAMEDIR
+
+    # Install SPT using the windows installer
     - task:
         arch: win64
         description: Launching SPTInstaller ...
