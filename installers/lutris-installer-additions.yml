@@ -12,12 +12,17 @@ script:
     - spt-linux-additions:
         url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main/installers/spt-linux-additions
         filename: spt-linux-additions
+    - server-launch-script:
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/server.sh
+        filename: server.sh
     game:
         arch: win64
         exe: drive_c/SPTarkov/SPT.Launcher.exe
         prefix: $GAMEDIR
     requires: escape-from-tarkov
     installer:
+
+    ## Prepare the wine prefix
     - task:
         app: arial times dotnetdesktop8 dotnetdesktop9
         arch: win64
@@ -32,6 +37,9 @@ script:
         prefix: $GAMEDIR
     - task:
         name: winekill
+
+    # Native SPT install script
+    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/installers/spt-linux-additions
     - merge:
         src: spt-linux-additions
         dst: $GAMEDIR
@@ -39,25 +47,20 @@ script:
     - execute:
         command: NO_ANSI=1 ./spt-linux-additions install -np "$GAMEDIR"
         description: Installing SPT ...
-    - write_file:
-        description: Create prelaunch script ...
-        file: $GAMEDIR/drive_c/SPTarkov/server.sh
-        content: "#!/bin/bash\n
-            [[ $(pidof \"SPT.Server.Linux\") != \"\" ]] && exit 0\n
-            TERMS=(\"foot\" \"alacritty\" \"ptyxis\" \"konsole\" \"gnome-terminal\" \"xfce4-terminal\" \"kgx\" \"kitty\" \"xterm\")\n
-            cd \"$GAMEDIR/drive_c/SPTarkov\"\n
-            for term in \"${TERMS[@]}\"; do\n
-            \tif command -v $term; then\n
-            \t\t$term -e \"./SPT.Server.Linux\"\n
-            \t\tbreak\n
-            \tfi\n
-            done"
+
+    # Used as pre-launch script in Lutris to launch the native server automatically with
+    # the 'SPTarkov - Launcher' shortcut
+    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/server.sh
+    - merge:
+        src: server-launch-script
+        dst: $GAMEDIR/drive_c/SPTarkov
     - chmodx: $GAMEDIR/drive_c/SPTarkov/server.sh
+
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
                      \n
                      Quick start:\n
-                     1. Launch 'SPTarkov - Launcher' in Lutris\n
+                     1. Launch 'SPTarkov - Launcher'\n
                      2. Wait for the server to show 'Server has started, happy playing'\n
                      3. Connect, create a new profile & play\n
                      \n
@@ -65,6 +68,7 @@ script:
                      https://hub.sp-tarkov.com/\n
                      \n
                      Have fun! ('-')7"
+                     
     system:
         prelaunch_command: $GAMEDIR/drive_c/SPTarkov/server.sh
         env:
