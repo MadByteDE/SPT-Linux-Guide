@@ -1,11 +1,17 @@
 #!/bin/bash
-# # Server pre-launch script for Lutris # #
+
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+##       SPT - Server pre-launch script
+##                v2025.6-1 
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly GAMEDIR="${GAMEDIR:-"${ROOT_PATH}"}"
 
-# NOTE: If a Flatpak version of Lutris is used, we still want to launch the native
-# server with the 'dotnet-runtime' and 'aspnet-runtime' packages from the host system.
+# NOTE: When Flatpak Lutris is used, we don't have access to `dotnet-runtime` and
+# `aspnet-runtime` packages on the host system. To work around this limitation,
+# we use `flatpak-spawn --host` to launch the server outside of the sandboxed
+# environment.
 m_run() {
     if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
     else flatpak-spawn --host "$@"; fi

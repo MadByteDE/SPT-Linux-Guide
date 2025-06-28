@@ -1,5 +1,10 @@
-## SPT Lutris installer v2025.6-4 ##
-## This Lutris installer is using the -OFFICIAL- SPT Windows installer.
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+##      SPTarkov Lutris installer script
+##                 v2025.6-4 
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# NOTE: This Lutris installer is using the -OFFICIAL- windows installer.
+
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
 credits: "https://github.com/MadByteDE/SPT-Linux-Guide"
