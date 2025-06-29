@@ -27,7 +27,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 [Lutris installer](docs/lutris/installer_official.md) (Official)
   - 
   - Using the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
-  - Uses a custom server pre-launch script ([view source](scripts/server.sh))
+  - :exclamation: Uses a custom server pre-launch script ([view source](scripts/server.sh)) :exclamation:
 
 ### Manual install
 - [Using Lutris](docs/lutris/manual_guide.md)
