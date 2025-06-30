@@ -2,11 +2,12 @@
 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##       SPT - Server pre-launch script
-##                v2025.6-1 
+##                v2025.6-2 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-readonly GAMEDIR="${GAMEDIR:-"${ROOT_PATH}"}"
+readonly TERMINALS=("foot" "alacritty" "ptyxis" "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm")
+GAMEDIR="${GAMEDIR:-"${ROOT_PATH}"}"
 
 # NOTE: When Flatpak Lutris is used, we don't have access to `dotnet-runtime` and
 # `aspnet-runtime` packages on the host system. To work around this limitation,
@@ -20,12 +21,10 @@ m_run() {
 # Skip launch if another instance is already running
 [[ $(m_run pidof "SPT.Server.Linux") != "" ]] && exit 0
 
-cd "${GAMEDIR}"
-
-TERMS=("foot" "alacritty" "ptyxis" "konsole" "gnome-terminal" "xfce4-terminal" "kgx" "kitty" "xterm")
-for term in "${TERMS[@]}"; do
-    if m_run command -v $term; then
-        m_run $term -e "./SPT.Server.Linux"
+for terminal in "${TERMINALS[@]}"; do
+    if m_run command -v $terminal; then
+        cd "${GAMEDIR}"
+        m_run $terminal -e "./SPT.Server.Linux"
         break
     fi
 done
