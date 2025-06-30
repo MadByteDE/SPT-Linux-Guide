@@ -18,7 +18,7 @@ script:
         url: https://ligma.waffle-lord.net/SPTInstaller.exe
         filename: SPTInstaller.exe
     - launch-server-sh:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/server.sh
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh
         filename: launch-server.sh
     game:
         arch: win64
