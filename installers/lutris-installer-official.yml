@@ -53,7 +53,7 @@ script:
 
     # Used as pre-launch script in Lutris to launch the native server automatically with
     # the 'SPTarkov - Launcher' shortcut
-    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/server.sh
+    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/launch-server.sh
     - merge:
         src: launch-server-sh
         dst: $GAMEDIR/drive_c/SPTarkov
