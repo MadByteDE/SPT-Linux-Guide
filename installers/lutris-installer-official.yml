@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.6-4 
+##                 v2025.6-5
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using the -OFFICIAL- windows installer.
@@ -17,9 +17,9 @@ script:
     - spt-installer:
         url: https://ligma.waffle-lord.net/SPTInstaller.exe
         filename: SPTInstaller.exe
-    - server-launch-script:
+    - launch-server-sh:
         url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/server.sh
-        filename: server.sh
+        filename: launch-server.sh
     game:
         arch: win64
         exe: drive_c/SPTarkov/SPT.Launcher.exe
@@ -55,9 +55,9 @@ script:
     # the 'SPTarkov - Launcher' shortcut
     # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/server.sh
     - merge:
-        src: server-launch-script
+        src: launch-server-sh
         dst: $GAMEDIR/drive_c/SPTarkov
-    - chmodx: $GAMEDIR/drive_c/SPTarkov/server.sh
+    - chmodx: $GAMEDIR/drive_c/SPTarkov/launch-server.sh
 
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
@@ -73,7 +73,7 @@ script:
                      Have fun! ('-')7"
                      
     system:
-        prelaunch_command: $GAMEDIR/drive_c/SPTarkov/server.sh
+        prelaunch_command: $GAMEDIR/drive_c/SPTarkov/launch-server.sh
         env:
             PROTON_VERB: run
             DOTNET_BUNDLE_EXTRACT_BASE_DIR:
