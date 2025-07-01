@@ -11,7 +11,7 @@
 
 Here is the easiest way to install:
 
-- Download the [archive (*.tar.gz)](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
+- Download and extract the [archive (*.tar.gz)](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
 
 - Right click the `SPTarkov shortcut` → `Configure`
 - Click on the desired format & navigate to the downloaded cover/banner/icon
