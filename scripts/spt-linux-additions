@@ -1083,7 +1083,7 @@ opt_backup() {
 
     # Get installed SPT version (if any)
     # TODO: Move to be able to use it somewhere else
-    local core_json_file="${SPT_INSTALL_PATH}/SPT_Data/Server/configs/core.json"
+    local core_json_file="${SPT_INSTALL_PATH}/SPT_Data/configs/core.json"
     INSTALLED_SPT_VERSION=$(get_json_value "${core_json_file}" "sptVersion") \
     || m_subshell_err "${INSTALLED_SPT_VERSION}"
     m_dbg "Installed SPT version: Got '${INSTALLED_SPT_VERSION}'"
