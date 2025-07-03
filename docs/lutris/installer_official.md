@@ -26,7 +26,8 @@ To run the native Linux server you need the following packages installed on your
     sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
     ```
 
-    On Debian / Mint you might need to add the following PPA & update the package list:
+    > [!NOTE]
+    > On some distributions you might need to add the `dotnet/backports` PPA:
 
     ```
     sudo add-apt-repository ppa:dotnet/backports
