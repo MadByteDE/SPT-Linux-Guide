@@ -74,7 +74,7 @@ sudo pacman -S install dotnet-runtime aspnet-runtime
 - Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the EFT game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
       winetricks --self-update
-      winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9 win81
+      winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9
 
     <img src="../../media/lutris/terminal.jpg" width="580">
 
