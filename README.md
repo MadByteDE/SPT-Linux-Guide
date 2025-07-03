@@ -25,7 +25,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
   > [!WARNING]
   > - Uses a custom **native Linux** installer script ([view source](scripts/spt-linux-additions))
-  > - Uses a custom server pre-launch script ([view source](scripts/server.sh))
+  > - Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 [Lutris installer (Official)](docs/lutris/installer_official.md)
   - 
@@ -33,7 +33,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
   > - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
 
   > [!WARNING]
-  > - Uses a custom server pre-launch script ([view source](scripts/server.sh))
+  > - Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 ### Manual install
 - [Using Lutris](docs/lutris/manual_guide.md)
