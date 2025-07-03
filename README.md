@@ -18,21 +18,21 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ### Automated install
 
-[Lutris installer](docs/lutris/installer_additions.md) (Additions) ✨
+[Lutris installer (Additions)](docs/lutris/installer_additions.md) ✨
   - 
   > [!TIP]
   > Recommended install method!
 
-  > [!CAUTION]
+  > [!WARNING]
   > - Uses a custom **native Linux** installer script ([view source](scripts/spt-linux-additions))
   > - Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
-[Lutris installer](docs/lutris/installer_official.md) (Official)
+[Lutris installer (Official)](docs/lutris/installer_official.md)
   - 
   > [!NOTE]
   > - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
 
-  > [!CAUTION]
+  > [!WARNING]
   > - Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 ### Manual install
