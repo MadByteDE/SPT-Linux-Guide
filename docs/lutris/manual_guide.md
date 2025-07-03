@@ -1,7 +1,7 @@
 # SPT installation using Lutris
 
 > [!WARNING]
-> <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
+> Never install SPT into your live EFT's game directory!
 
 ## What you need
 
@@ -105,7 +105,7 @@ Everything now is pretty much done, so now to run the game we need to run the se
 - To run the server, run the `SPT.Server.Linux` executable in a terminal.
 
 > [!TIP]
-> <span style="color:lightgreen">You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
+> You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.
 
 - To run the launcher, double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 

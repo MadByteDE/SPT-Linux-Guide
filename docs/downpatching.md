@@ -7,7 +7,7 @@ We provide two methods to patch the game files on Linux.
 ## Method 1: Additions script
 
 > [!NOTE]
-> <span style="color:lightblue">This script is made by the SPT community & is **NOT** officially supported by the mod developers!</span>
+> This script is made by the SPT community & is **NOT** officially supported by the mod developers!
 
 ### What you need
 
@@ -27,7 +27,7 @@ We provide two methods to patch the game files on Linux.
           ./spt-linux-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
 
 > [!TIP]
-> <span style="color:lightgreen">For more details, run `./spt-linux-additions` without any commands.</span>
+> For more details, run `./spt-linux-additions` without any commands.
 
 
 ## Method 2: Official downgrade patcher
@@ -35,7 +35,7 @@ We provide two methods to patch the game files on Linux.
 ### What you need
 
 > [!TIP]
-> <span style="color:lightgreen">You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!</span>
+> You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!
 
 - **[Downgrade patcher](https://spt-mirror.refringe.com/patchers/)**
     - Make sure the downgrade patcher matches the installed EFT version!
@@ -50,13 +50,13 @@ We provide two methods to patch the game files on Linux.
 - **1) Extract the downloaded downgrade patcher archive**
 
 > [!TIP]
-> <span style="color:lightgreen">If you get an error about lzma, try `7z` to extract!</span>
+> If you get an error about lzma, try `7z` to extract!
 
 
 - **2) Move the patcher files to your copied EFT game directory, e.g:**
 
 > [!NOTE]
-> <span style="color:lightblue">`patcher.exe` needs to be inside the root directory alongside the game executable.</span>
+> `patcher.exe` needs to be inside the root directory alongside the game executable.
 
 - **Lutris:**
 
@@ -69,7 +69,7 @@ We provide two methods to patch the game files on Linux.
 - **3) Run `patcher.exe`**
 
 > [!WARNING]
-> <span style="color:khaki">If you get an error on launch, you *might* also need to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` as environment variables:</span>
+> If you get an error on launch, you *might* also need to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` as environment variables:
 > - Bottles: `Settings` → `Environment variables`
 > - Lutris: `Configure` → `System options` → `Environment variables`
 

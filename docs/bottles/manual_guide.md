@@ -1,10 +1,10 @@
 # SPT installation using Bottles
 
 > [!IMPORTANT]
-> <span style="color:mediumslateblue">The .NET 4.8 dependency installation is broken at the moment, resulting in the BSG Launcher to not launch. [Here](https://github.com/bottlesdevs/Bottles/issues/2887#issuecomment-2451060916) you can find a workaround!</span>
+> The .NET 4.8 dependency installation is broken at the moment, resulting in the BSG Launcher to not launch. [Here](https://github.com/bottlesdevs/Bottles/issues/2887#issuecomment-2451060916) you can find a workaround!
 
 > [!WARNING]
-> <span style="color:khaki">Never install SPT into your live EFT's game directory!</span>
+> Never install SPT into your live EFT's game directory!
 
 ## What you need
 

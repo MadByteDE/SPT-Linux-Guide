@@ -54,13 +54,13 @@ To run the native Linux server you need the following packages installed on your
 - Follow the steps shown inside the application, wait until the installation is finished & install the game client as usual.
 
 > [!IMPORTANT]
-> <span style="color:mediumslateblue">**You need to install the game client inside the launcher before continuing with the next step!**
+> **You need to install the game client inside the launcher before continuing with the next step!**
 
 
 **2. Preparing the wine runner**
 
 > [!TIP]
-> <span style="color:lightgreen">You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!</span>
+> You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!
 
 - Install your preferred wine version
 
@@ -88,7 +88,7 @@ Everything now is pretty much done, so now to run the game we need to run the se
 - The server should launch automatically when using the `SPTarkov - Launcher` shortcut in Lutris. If not, you might be missing the required .NET runtime dependencies or your terminal emulator could not be found. To run the server manually, run the `SPT.Server.Linux` executable in a terminal.
 
 > [!TIP]
-> <span style="color:lightgreen">You also can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.</span>
+> You also can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.
 
 - To run the launcher, double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 
