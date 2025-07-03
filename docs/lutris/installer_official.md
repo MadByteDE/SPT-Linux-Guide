@@ -21,28 +21,27 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 To run the native Linux server you need the following packages installed on your system:
 
-- **Ubuntu / Debian (based)**
-    ```
-    sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-    ```
+**Ubuntu / Debian (based)**
+```
+sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+```
 
-    > [!NOTE]
-    > On some distributions you might need to add the `dotnet/backports` PPA:
+> [!NOTE]
+> On some distributions you might need to add the `dotnet/backports` PPA:
 
-    ```
-    sudo add-apt-repository ppa:dotnet/backports
-    sudo apt update
-    ```
-    
-- **Fedora (based)**
-    ```
-    sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-    ```
+```
+sudo add-apt-repository ppa:dotnet/backports
+sudo apt update
+```
+**Fedora (based)**
+```
+sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+```
 
-- **Arch (based)**
-    ```
-    sudo pacman -S install dotnet-runtime aspnet-runtime
-    ```
+**Arch (based)**
+```
+sudo pacman -S install dotnet-runtime aspnet-runtime
+```
 
 ## Installation
 
