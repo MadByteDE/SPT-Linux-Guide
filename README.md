@@ -10,7 +10,7 @@ Here you can find everything you need to install & play SPT on Linux.
 ## Bug reports
 
 > [!IMPORTANT]
-> <span style="color:mediumpurple">This guide has been written by the SPT community and is **NOT** officially supported by the SPT developers.</span>
+> This guide has been written by the SPT community and is **NOT** officially supported by the SPT developers.
 
 If you encounter an issue while playing SPT on Linux, do **NOT** report it to the dev's unless you're 100% sure it affects Windows installations as well. If possible, verify the issue on a Windows installation of the mod before reporting it.
 
@@ -20,14 +20,20 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 [Lutris installer](docs/lutris/installer_additions.md) (Additions) ✨
   - 
-  - Recommended method
-  - :exclamation: Uses a custom **native Linux** installer script ([view source](scripts/spt-linux-additions)) :exclamation:
-  - :exclamation: Uses a custom server pre-launch script ([view source](scripts/server.sh)) :exclamation:
+  > [!TIP]
+  > Recommended install method!
+
+  > [!CAUTION]
+  > - Uses a custom **native Linux** installer script ([view source](scripts/spt-linux-additions))
+  > - Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 [Lutris installer](docs/lutris/installer_official.md) (Official)
   - 
-  - Using the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
-  - :exclamation: Uses a custom server pre-launch script ([view source](scripts/server.sh)) :exclamation:
+  > [!NOTE]
+  > - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
+
+  > [!CAUTION]
+  > - Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 ### Manual install
 - [Using Lutris](docs/lutris/manual_guide.md)
