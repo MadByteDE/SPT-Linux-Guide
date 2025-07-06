@@ -5,25 +5,25 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 ## What you need
 
-- **~120GB free disk space**
+### - **~120GB free disk space**
 
-- **[Lutris](https://lutris.net/downloads)**
-    - Check if GPU and vulkan drivers are installed!
-    - Tested wine versions:
-        - **[wine-10.x-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-        - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (install & play)
-        - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
-        - **wine-ge-8-26** (play only)
+### - **[Lutris](https://lutris.net/downloads)**
+- Check if GPU and vulkan drivers are installed!
+- [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
+- Tested wine versions:
+    - **[wine-10.x-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
+    - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)** (install & play)
+    - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
+    - **wine-ge-8-26** (play only)
         
-- **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
+### - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 
-- [Cover art](../../docs/lutris/cover_art.md) (Optional)
-
-To run the native Linux server you need the following packages installed on your system:
+### - [.NET / ASP.NET Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
 
 **Ubuntu / Debian (based)**
 ```
-sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+sudo apt install aspnetcore-runtime-9.0
 ```
 
 > [!NOTE]
@@ -35,12 +35,12 @@ sudo apt update
 ```
 **Fedora (based)**
 ```
-sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+sudo dnf install aspnetcore-runtime-9.0
 ```
 
 **Arch (based)**
 ```
-sudo pacman -S install dotnet-runtime aspnet-runtime
+sudo pacman -S install aspnet-runtime
 ```
 
 ## Installation

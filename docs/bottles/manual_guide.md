@@ -8,39 +8,40 @@
 
 ## What you need
 
-- **~120GB free disk space**
+### - **~120GB free disk space**
 
-- **[Bottles](https://usebottles.com/)**
-    - Make sure GPU and vulkan drivers are installed and working.
+### - **[Bottles](https://usebottles.com/)**
+- Make sure GPU and vulkan drivers are installed and working.
 
-- **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
-    - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
+### - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
+- Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
-- **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
+### - **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
 
-To run the native Linux server you need the following packages installed on your system:
+### - [.NET / ASP.NET Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+- To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
 
-- **Ubuntu / Debian (based)**
-    ```
-    sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-    ```
+**Ubuntu / Debian (based)**
+```
+sudo apt install aspnetcore-runtime-9.0
+```
 
-    On Debian / Mint you might need to add the following PPA & update the package list:
+> [!NOTE]
+> On some distributions you might need to add the `dotnet/backports` PPA:
 
-    ```
-    sudo add-apt-repository ppa:dotnet/backports
-    sudo apt update
-    ```
-    
-- **Fedora (based)**
-    ```
-    sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
-    ```
+```
+sudo add-apt-repository ppa:dotnet/backports
+sudo apt update
+```
+**Fedora (based)**
+```
+sudo dnf install aspnetcore-runtime-9.0
+```
 
-- **Arch (based)**
-    ```
-    sudo pacman -S install dotnet-runtime aspnet-runtime
-    ```
+**Arch (based)**
+```
+sudo pacman -S install aspnet-runtime
+```
 
 ## Installation
 

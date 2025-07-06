@@ -5,19 +5,21 @@
 
 ## What you need
 
-- **~120GB free disk space**
+### - **~120GB free disk space**
 
-- **[Lutris](https://lutris.net/downloads)**
-    - Make sure GPU and vulkan drivers are installed and working.
+### - **[Lutris](https://lutris.net/downloads)**
+- Make sure GPU and vulkan drivers are installed and working.
+- [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
-- [Cover art](../../docs/lutris/cover_art.md) (Optional)
 
-To run the native Linux server you need the following packages installed on your system:
+### - [.NET / ASP.NET Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+
+- To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
 
 **Ubuntu / Debian (based)**
 ```
-sudo apt install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+sudo apt install aspnetcore-runtime-9.0
 ```
 
 > [!NOTE]
@@ -29,12 +31,12 @@ sudo apt update
 ```
 **Fedora (based)**
 ```
-sudo dnf install dotnet-runtime-9.0 aspnetcore-runtime-9.0
+sudo dnf install aspnetcore-runtime-9.0
 ```
 
 **Arch (based)**
 ```
-sudo pacman -S install dotnet-runtime aspnet-runtime
+sudo pacman -S install aspnet-runtime
 ```
 
 ## Installation
