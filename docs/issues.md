@@ -234,14 +234,12 @@ Unfortunately, this can mean a bunch of things. Here's a check-list:
 
 1. Make sure .NET Desktop Runtime 8.0 is installed inside the wine prefix. You should find a `dotnet` folder at `WINEPREFIX/drive_c/Program Files/dotnet/` containing the `dotnet.exe` executable.
 
-2. Try to set no value for  `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
+2. Try to set no value for `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` in the environment variables for your wine application.
 
    - Bottles: `Settings` → `Environment variables`
    - Lutris: `Configure` → `System options` → `Environment variables`
 
-3. **Proton only**: When using a Proton runner, sometimes it can help to get rid of the `vrclient` directory in `drive_c`. It's not needed for running the Launcher & for whatever reason it seems to cause issues sometimes. Root of this likely is a missing registry entry for `HKEY_CURRENT_USER\\Software\\Wine\\VR`. More details can be found [here](https://github.com/ValveSoftware/Proton/issues/8256#issue-2673557168).
-
-4. Sometimes the Lutris runtime or a wine runner can cause issues as well.
+3. Sometimes the Lutris runtime or a wine runner can cause issues as well.
 
     - Check if the correct `wine version` is set for the game and the runner is working.
     - If that didn't help, you could try deleting the `runtime` directory in:
@@ -253,7 +251,7 @@ Unfortunately, this can mean a bunch of things. Here's a check-list:
 
         <img src="../media/lutris/runtime.jpg" width="640">
 
-5. There's a rare issue sometimes with the `icu.dll` used by the prefix & some wine versions. Usually it will show a log entry mentioning `icu.dll` or `icuc` in the wine/proton log. You can try to disable the `icu.dll` in the `DLL overrides`:
+4. There's a rare issue sometimes with the `icu.dll` used by the prefix & some wine versions. Usually it will show a log entry mentioning `icu.dll` or `icuc` in the wine/proton log. You can try to disable the `icu.dll` in the `DLL overrides`:
 
     - Bottles: `Settings` → `DLL overrides`: Add key `icu`, select `disabled` as value & save the changes.
     - Lutris: `Configure` → `Runner options` → `DLL overrides`: Add key `icu`, value `d` & save the changes.
@@ -290,7 +288,7 @@ When using a Proton runner, only one application can be launched at a time. When
 
 **Solution**
 
-[This is the default behaviour](https://github.com/Open-Wine-Components/umu-launcher/wiki/Frequently-asked-questions-(FAQ)) for running games using Proton. You can override the behaviour by setting the environment variable `PROTON_VERB` to `runinprefix` before running the executable(s):
+[This is the default behaviour](https://github.com/Open-Wine-Components/umu-launcher/wiki/Frequently-asked-questions-(FAQ)) for running games using Proton. You can override the behaviour by setting the environment variable `PROTON_VERB` to `run` before running the executable(s):
 
 - Bottles: `Settings` → `Environment variables`
 - Lutris: `Configure` → `System options` → `Environment variables`
