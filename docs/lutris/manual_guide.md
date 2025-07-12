@@ -47,20 +47,20 @@ sudo pacman -S install aspnet-runtime
 
 1. Install EFT in `Lutris` using the installer script
 2. Install game in `BSG Launcher`
-3. Run `winetricks --self-update` via Lutris bash console
-4. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9` via Lutris bash console
-5. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
-6. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
-7. Duplicate config, new profile `SPTarkov - Launcher`
-8. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
-9. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
-13. Run `SPT.Server.Linux`, then `SPTarkov - Launcher`
+3. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9` via Lutris bash console
+4. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
+5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
+6. Duplicate config, new profile `SPTarkov - Launcher`
+7. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
+8. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
+9. Add `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` environment variables in `Configure` → `System options`
+10. Run `SPT.Server.Linux`, then `SPTarkov - Launcher`
 
 </details>
 
 ***
 
-**1. Installing LIVE EFT**
+**1. Installing Escape from Tarkov**
 
 - First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
@@ -89,7 +89,7 @@ sudo pacman -S install aspnet-runtime
 - When it's done, extract the contents of the `RELEASE-SPT-x.x.x.zip` into your copied SPT game directory.
 
 
-**4. SPT Launcher config**
+**4. Configure SPT Launcher**
 
 - Back in Lutris, right-click the `Escape From Tarkov` shortcut and select `Duplicate`. We recommend renaming the duplicate to something like `"SPTarkov - Launcher"`.
   
@@ -99,15 +99,16 @@ sudo pacman -S install aspnet-runtime
 
     <img src="../../media/lutris/config.gif" width="580">
 
+- And lastly, add the keys for `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` without setting value in `System options` → `Environment variables` & save the changes.
 
 **6. Running SPT**
 
-Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
+Everything now is pretty much done. To run the game we need to run the server and the launcher.
 
-- To run the server, run the `SPT.Server.Linux` executable in a terminal.
+- To launch the server, run the `SPT.Server.Linux` executable in a terminal.
 
 > [!TIP]
-> You can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.
+> You also can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.
 
 - To run the launcher, double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
 
