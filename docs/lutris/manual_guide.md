@@ -99,7 +99,7 @@ sudo pacman -S install aspnet-runtime
 
     <img src="../../media/lutris/config.gif" width="580">
 
-- And lastly, add the keys for `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` without setting value in `System options` → `Environment variables` & save the changes.
+- And lastly, add the keys for `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` without setting a value in `System options` → `Environment variables` & save the changes.
 
 **6. Running SPT**
 
