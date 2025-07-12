@@ -42,7 +42,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - Tested wine versions:
     - **[wine-10.0-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-    - **[wine-kron4ek-10.11 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.11)** (install & play)
+    - **[wine-kron4ek-10.8 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.8)** (install & play)
     - **wine-ge-8-26** (install & play)
     - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
 
