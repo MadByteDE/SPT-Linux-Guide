@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.6-3"
+readonly VERSION="2025.8-1"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -83,7 +83,7 @@ readonly HPATCHZ_URL="https://github.com/sisong/HDiffPatch/releases/download/v4.
 readonly HPATCHZ_BIN_PATH="linux64/hpatchz"
 
 # xxd (Download)
-readonly XXD_URL="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.0.1378-2+deb12u2_amd64.deb"
+readonly XXD_URL="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.1.1230-2_amd64.deb"
 readonly XXD_BIN_PATH="usr/bin/xxd"
 
 # 7z (Lutris runtime)
