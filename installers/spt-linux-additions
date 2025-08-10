@@ -36,7 +36,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 readonly TITLE="spt-linux-additions"
-readonly VERSION="2025.8-1"
+readonly VERSION="2025.8-2"
 
 # ANSI codes
 readonly BOLD="\e[1m"; readonly UNDERLINE="\e[2m"; readonly RESET="\e[0m"
@@ -122,9 +122,9 @@ m_exit() {
             # This is a workaround for Lutris closing the installer cli immediately after
             # encountering an error & just showing the -not so useful- error code
             if [[ "$status" -ne 3 ]]; then
-                [[ "$PATH" == *"lutris"* ]] && m_sleep 10
-                # open the error log using the default text editor 
-                m_run xdg-open "${LOG_PATH}"
+                m_sleep 5
+                # # open the error log using the default text editor 
+                # m_run xdg-open "${LOG_PATH}"
             fi
         fi
         # Remove temp files before exiting
@@ -215,8 +215,8 @@ m_remove() {
 
     case "${target_path}" in
         *"${PREFIX_PATH}"* | *"${CACHE_PATH}"*)
-            if [[ -f "${target_path}" ]]; then rm -f "${target_path}"
-            elif [[ -d "${target_path}" ]]; then rm -rf "${target_path}"; fi
+            if [[ -f "${target_path}" ]]; then rm --interactive=never "${target_path}"
+            elif [[ -d "${target_path}" ]]; then rm -r --interactive=never "${target_path}"; fi
             local status=$?
             # Fail with non zero exit status
             if [[ $status -ne 0 ]]; then
@@ -816,12 +816,12 @@ opt_patcher() {
 
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && m_err "Decoded file not found!"
-                rm -f "${output}" || m_err "Failed to remove '${output}'"
+                rm --interactive=never "${output}" || m_err "Failed to remove '${output}'"
                 mv "${target}" "${output}" || m_err "Failed to move '${target##*/}' to '${output}'"
             ;;
             "del")
                 m_msg "${progress_current} (-) Deleting: ${formatted##*/}"
-                rm -f "${output}" || m_err "Failed to remove '${output}'"
+                rm --interactive=never "${output}" || m_err "Failed to remove '${output}'"
                 if [[ -z "$(ls -A "${dir_path}")" ]]; then
                     m_dbg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
                     rmdir "${dir_path}" || m_err "Failed to remove: ${dir_path}"
@@ -851,10 +851,10 @@ opt_patcher() {
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         m_msg "Cleaning up ..."
         if [[ -d "${source_path}/SPT_Patches" ]]; then
-            rm -rf "${source_path}/SPT_Patches"
+            rm -r --interactive=never "${source_path}/SPT_Patches"
         fi
         if [[ -f "${source_path}/patcher.exe" ]]; then
-            rm -rf "${source_path}/patcher.exe"
+            rm -r --interactive=never "${source_path}/patcher.exe"
         fi
     fi
     
@@ -1257,6 +1257,11 @@ set_reinstall() {
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Main entry #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# We don't want to run as root
+if [ "$(id -u)" -eq 0 ]; then
+    m_err "This script is not supposed to be run as root!"
+fi
 
 # Remove old log, otherwise we just append more lines to it
 if [[ -f "${LOG_PATH}" ]]; then
