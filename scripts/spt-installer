@@ -5,9 +5,9 @@
 # # # # # # # # # 
 
 title="spt-installer"
-author="Copyright (c) 2025 MadByte"
+author="MadByte"
 license="MIT"
-version="0.1.1"
+version="0.2.0"
 date="2025-08-17"
 
 # We don't want to run as root
@@ -34,9 +34,9 @@ msg() {
 
 err() {
     local status=${2:-1}
-    local pfx="${gray}[$title] ${bold}${red}ERROR: ${reset}"
-    printf "${pfx}$1\n"
-    printf "${pfx}See '${cache_dir}/installer.log' for more details.${reset}\n"
+    local pfx="${bold}${red}ERROR: ${reset}"
+    msg "${pfx}$1"
+    msg "${pfx}See '${cache_dir}/installer.log' for more details.${reset}"
     m_exit ${status}
 }
 
@@ -67,34 +67,33 @@ install_umu() {
     local umu_url="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
     msg "Downloading UMU Launcher..."
     cd "${tmp_dir}"
-    curl -LO "${umu_url}" || err "Failed to download UMU-Launcher"
-    tar -xf $(ls | grep "zipapp.tar") || err "Failed to extract UMU-Launcher"
-    cp -r "umu/"* "${bin_dir}"
+    curl -LO "${umu_url}" || err "Failed to download UMU from `${umu_url}`"
+    tar -xf $(ls | grep "zipapp.tar") || err "Failed to extract UMU"
+    cp -r "umu/"* "${bin_dir}" || err "Failed to copy UMU files to `${bin_dir}`"
 }
 
 
 install_tarkov() {
-    if [ -d "${prefix_dir}" ]; then
-        err "Prefix directory already exists."
-    fi
+    # Get prefix path from cache or use the default path
+    load_prefix_path
 
     # Create prefix directory
     msg "Creating prefix directory..."
-    mkdir -p "${prefix_dir}"
+    mkdir -p "${prefix_dir}"  || err "Failed to create prefix directory"
 
     # Create prefix
     msg "Initializing wine prefix..."
     umu-run wineboot -u &> "${log_path}" || err "Failed to initialize the wine prefix"
 
     # Install game dependencies
-    if [ -z $(cat "${prefix_dir}/winetricks.log" 2> "${log_path}" | grep "times") ]; then
+    if [ -z $(cat "${prefix_dir}/winetricks.log" 2>> "${log_path}" | grep "times") ]; then
         msg "Installing Fonts..."
-        umu-run winetricks -q arial times &> "${log_path}" || err "Failed to install dependency"
+        umu-run winetricks -q arial times &>> "${log_path}" || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
-        umu-run winetricks -q dotnet48 &> "${log_path}" || err "Failed to install dependency"
+        umu-run winetricks -q dotnet48 &>> "${log_path}" || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
@@ -119,7 +118,7 @@ install_tarkov() {
     # Re-initialize prefix for GE-Proton
     msg "Switching Proton version to 'GE-Proton'..."
     export PROTONPATH="GE-Proton"
-    umu-run wineboot -u &> "${log_path}" || err "Failed to initialize the wine prefix"
+    umu-run wineboot -u &>> "${log_path}" || err "Failed to initialize the wine prefix"
 
     # Copy icon to user icons directory
     if [[ ! -f "${ico_dir}/tarkov.png" ]]; then
@@ -132,7 +131,7 @@ install_tarkov() {
     local shortcut_path="${app_dir}/BSG - Launcher.desktop"
     local env_vars="PROTON_USE_XALIA=0 PROTONPATH='GE-Proton' WINEPREFIX='${prefix_dir}'"
     local launch_args="--disable-software-rasterizer"
-    echo "[Desktop Entry]" >> "${shortcut_path}"
+    echo "[Desktop Entry]" > "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${bsg_dir}/BsgLauncher" >> "${shortcut_path}"
     echo "Exec=env ${env_vars} umu-run 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args}" >> "${shortcut_path}"
@@ -146,8 +145,11 @@ install_tarkov() {
 
 
 install_spt() {
+    # Get prefix path from cache or use the default path
+    load_prefix_path
+
     if [ ! -d "${prefix_dir}" ]; then
-        msg "${yellow}Prefix directory does not exist.${reset}"
+        msg "${yellow}Prefix directory at '${prefix_dir}' does not exist.${reset}"
         msg "Make sure to install EFT first!"
         err "Wine prefix not found"
     fi
@@ -197,10 +199,10 @@ install_spt() {
     # Run SPT Installer
     if [ ! -d "${spt_dir}" ]; then mkdir -p "${spt_dir}"; fi
     cd "${spt_dir}"
-    cp "${cache_dir}/SPTInstaller.exe" "${spt_dir}/"
     msg "Launching SPT Installer..."
-    umu-run "C:/SPTarkov/SPTInstaller.exe" installpath="C:\\SPTarkov" &> "${log_path}" || err "Failed to launch SPT Installer"
+    umu-run "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" &> "${log_path}" || err "Failed to launch SPT Installer"
 
+    # Remove SPTIntaller from the 
     # Install server launch script
     msg "Installing server launch script..."
     local script_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh"
@@ -222,33 +224,225 @@ install_spt() {
 
     # SPT Launcher
     local shortcut_path="${app_dir}/SPTarkov - Launcher.desktop"
-    if [[ ! -f "${shortcut_path}" ]]; then
-        local env_vars="PROTON_USE_XALIA=0 DOTNET_BUNDLE_EXTRACT_BASE_DIR='' DOTNET_ROOT='' PROTONPATH='GE-Proton' WINEDEBUG='-all,err+all,fixme+all,debugstr+all' WINEPREFIX='${prefix_dir}'"
-        local launch_args=""
-        echo "[Desktop Entry]" >> "${shortcut_path}"
-        echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
-        echo "Path=${spt_dir}" >> "${shortcut_path}"
-        echo "Exec=env ${env_vars} umu-run 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
-        echo "Name=SPTarkov - Launcher" >> "${shortcut_path}"
-        echo "Icon=spt_launcher" >> "${shortcut_path}"
-        echo "Type=Application" >> "${shortcut_path}"
-        chmod +x "${shortcut_path}"
-    fi
+    local env_vars="PROTON_USE_XALIA=0 DOTNET_BUNDLE_EXTRACT_BASE_DIR='' DOTNET_ROOT='' PROTONPATH='GE-Proton' WINEDEBUG='-all,err+all,fixme+all,debugstr+all' WINEPREFIX='${prefix_dir}'"
+    local launch_args=""
+    echo "[Desktop Entry]" > "${shortcut_path}"
+    echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
+    echo "Path=${spt_dir}" >> "${shortcut_path}"
+    echo "Exec=env ${env_vars} umu-run 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
+    echo "Name=SPTarkov - Launcher" >> "${shortcut_path}"
+    echo "Icon=spt_launcher" >> "${shortcut_path}"
+    echo "Type=Application" >> "${shortcut_path}"
+    chmod +x "${shortcut_path}"
 
     # SPT Server
     local shortcut_path="${app_dir}/SPTarkov - Server.desktop"
-    if [[ ! -f "${shortcut_path}" ]]; then
-        echo "[Desktop Entry]" >> "${shortcut_path}"
-        echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
-        echo "Path=${spt_dir}" >> "${shortcut_path}"
-        echo "Exec='${spt_dir}/launch-server.sh'" >> "${shortcut_path}"
-        echo "Name=SPTarkov - Server" >> "${shortcut_path}"
-        echo "Icon=spt_server" >> "${shortcut_path}"
-        echo "Type=Application" >> "${shortcut_path}"
-        chmod +x "${shortcut_path}"
-    fi
+    echo "[Desktop Entry]" > "${shortcut_path}"
+    echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
+    echo "Path=${spt_dir}" >> "${shortcut_path}"
+    echo "Exec='${spt_dir}/launch-server.sh'" >> "${shortcut_path}"
+    echo "Name=SPTarkov - Server" >> "${shortcut_path}"
+    echo "Icon=spt_server" >> "${shortcut_path}"
+    echo "Type=Application" >> "${shortcut_path}"
+    chmod +x "${shortcut_path}"
 
     msg "${green}Done! ※\(^o^)/※${reset}"
+}
+
+
+load_prefix_path() {
+    local prefix_path=$(cat "${prefix_config_path}" 2> /dev/null)
+    [[ -z ${prefix_path} ]] && prefix_path="${prefix_dir}"
+    opt_setprefix "${prefix_path}"
+}
+
+
+init_paths() {
+    app_dir="${HOME}/.local/share/applications"
+    ico_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"; mkdir -p "${ico_dir}"
+    bin_dir="${XDG_CACHE_HOME:-${HOME}/.local/bin}"; mkdir -p "${bin_dir}"
+    cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
+    tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
+
+    # File path variables
+    log_path="${cache_dir}/installer.log"
+    prefix_config_path="${cache_dir}/prefix_dir.conf"
+
+    # Init prefix dir
+    prefix_dir="${prefix_dir:-"${HOME}/Games/tarkov"}"
+    
+    spt_dir="${prefix_dir}/drive_c/SPTarkov"
+    bsg_dir="${prefix_dir}/drive_c/Battlestate Games"
+    eft_dir="${bsg_dir}/Escape from Tarkov"
+}
+
+
+opt_setprefix() {
+    prefix_dir="${1}"
+
+    if [ -d "${prefix_dir}" ]; then
+        if [[ ! -f "${prefix_dir}/system.reg" ]]; then
+            err "Invalid prefix directory: '${prefix_dir}'"
+        fi
+    fi
+
+    # Update WINEPREFIX environment variable
+    export WINEPREFIX="${prefix_dir}"
+
+    # Update paths
+    init_paths
+
+    # Update prefix config file
+    echo "${prefix_dir}" > "${prefix_config_path}"
+    msg "Prefix path has been set to '${1}'"
+}
+
+
+opt_install() {
+    local mode="$1"
+    case "${mode}" in
+        eft)
+            msg "Launching Escape from Tarkov setup..."
+            install_tarkov
+        ;;
+
+        spt)
+            msg "Launching SPTarkov setup..."
+            install_spt
+        ;;
+
+        *)
+            err "Invalid argument '${mode}'. (Available options: eft, spt)"
+        ;;
+    esac
+}
+
+
+opt_uninstall() {
+    local mode="$1"
+    local force="$2"
+    case "${mode}" in
+        eft)
+            echo
+            msg "${bold}This action will uninstall 'Escape from Tarkov' from your system!${reset}"
+            msg "    > Prefix directory: ${underline}${prefix_dir}${reset}"
+            ask "Do you want to continue?"
+            msg "Uninstalling 'Escape from Tarkov'..."
+            [[ -d "${bsg_dir}" ]] && rm -r "${bsg_dir}"
+
+            msg "Removing shortcut..."
+            local app_path="${app_dir}/BSG - Launcher.desktop"
+            [[ -f "${app_path}" ]] && rm -f "${app_path}"
+
+            msg "${green}Done!${reset}"
+        ;;
+
+        spt)
+            echo
+            msg "${bold}This action will uninstall 'SPTarkov' from your system!${reset}"
+            msg "    > Prefix directory: ${underline}${prefix_dir}${reset}"
+            ask "Do you want to continue?"
+
+            msg "Uninstalling 'SPTarkov'..."
+            [[ -d "${spt_dir}" ]] && rm -r "${spt_dir}"
+
+            msg "Removing shortcut..."
+            apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
+            for app in "${apps[@]}"; do
+                app_path="${app_dir}/${app}"
+                [[ -f "${app_path}" ]] && rm -f "${app_path}"
+            done
+
+            msg "${green}Done!${reset}"
+        ;;
+
+        cache)
+            echo
+            msg "Removing Cache directory..."
+            [[ -d "${cache_dir}" ]] && rm -r "${cache_dir}"
+            msg "${green}Done!${reset}"
+        ;;
+
+        prefix)
+            # Warn user before continuing
+            echo
+            msg "${bold}This action will remove the installed wine prefix!${reset}"
+            msg "The following directory will be deleted ${bold}permanently${reset}:"
+            msg "    > ${underline}${prefix_dir}${reset}"
+            msg
+            ask "Do you want to continue?"
+
+            msg "Removing Prefix directory..."
+            [[ -d "${prefix_dir}" ]] && rm -r "${prefix_dir}"
+            msg "${green}Done!${reset}"
+        ;;
+
+        wipe)
+            opt_uninstall "eft"
+            opt_uninstall "spt"
+            opt_uninstall "prefix"
+            opt_uninstall "cache"
+        ;;
+
+        *)
+            err "Invalid argument '${OPTARG}'. (Available options: eft, spt, cache, wipe)"
+        ;;
+    esac
+}
+
+
+opt_selfupdate() {
+    local script_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> "${log_path}" && pwd )"
+    local update_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-installer"
+    msg "${yellow}Not fully implemented yet${reset}"
+    msg
+    msg "> The script will attempt to download the latest version available from here:"
+    msg "> ${underline}${update_url}${reset}"
+    msg
+    msg "> This feature is ${bold}NOT${reset} fully implemented yet & won't validate the new script file!"
+    msg
+    ask "Do you want to continue?"
+    
+    if [[ $(curl --write-out '%{http_code}' --silent --output /dev/null "${update_url}") -eq "404" ]]; then
+        err "The remote file does not exist!"
+    fi
+
+    (cd "${script_path}" && curl -LO "${update_url}") || err "Failed to update script"
+    chmod +x "${script_path}"
+
+    msg "${green}Done! ※\(^o^)/※${reset}"
+}
+
+
+opt_help() {
+    msg "${bold}Syntax:${reset} ${title} [OPTION][ARGS]"
+    msg
+    msg "Standalone EFT/SPT installer script that uses UMU and Proton."
+    msg "${bold}Example usage: ${yellow}spt-installer -p ~/Games/tarkov -i eft${reset}"
+    msg
+    msg "${bold}OPTIONS:${reset}"
+    msg "   ${bold}-i${reset} (Install)         - Available arguments: eft|spt"
+    msg "   ${bold}-u${reset} (Uninstall)       - Available arguments: eft|spt|prefix|cache|wipe"                                       
+    msg "   ${bold}-p${reset} (Prefix)          - Set a custom path for the wine prefix"
+    msg "   ${bold}--self-update${reset}        - Updates this installer script"
+    msg "   ${bold}-h | --help${reset}          - Print this help message"
+    msg "   ${bold}-v | --version${reset}       - Print the version info message"
+    msg
+    msg "For more details and help, visit the 'Linux-Guide' repository or join the SPT Discord server:"
+    msg "${bold}  -> https://discord.com/invite/Xn9msqQZan${reset}"
+    msg
+}
+
+
+opt_version() {
+    msg "${bold}Version: ${reset}${version} (${date})"
+    msg "${bold}Author: ${reset}${author}"
+    msg "${bold}License: ${reset}${license}"
+    msg
+    msg "${yellow}[!] This script is made by the SPT community & is NOT offically supported by the mod developers!${reset}"
+    msg
+    msg "Report bugs over at:"
+    msg "${bold}> https://github.com/MadByteDE/SPT-Linux-Guide ${reset}"
 }
 
 
@@ -258,25 +452,13 @@ main() {
     red="\e[31m"; green="\e[32m"; blue="\e[36m"
     yellow="\e[33m"; gray="\e[90m"
 
-    # # Directory variables
-    # TODO: prefix_dir needs to be changable with a launch argument
-    prefix_dir="${HOME}/Games/spt"
-    app_dir="${HOME}/.local/share/applications"
-    ico_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"; mkdir -p "${ico_dir}"
-    bin_dir="${XDG_CACHE_HOME:-${HOME}/.local/bin}"; mkdir -p "${bin_dir}"
-    cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
-    tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
-    spt_dir="${prefix_dir}/drive_c/SPTarkov"
-    bsg_dir="${prefix_dir}/drive_c/Battlestate Games"
-    eft_dir="${bsg_dir}/Escape from Tarkov"
+    # Initalize directory paths
+    init_paths
 
-    # # File path variables
-    log_path="${cache_dir}/installer.log"
-
-    # # Add bin dir to PATH variable
+    # Add bin dir to PATH variable
     export PATH=${bin_dir}:$PATH
 
-    # # Remove old log files
+    # Remove old log files
     if [[ -f "${cache_dir}/installer.log" ]]; then
         rm -f "${cache_dir}/installer.log"
     fi
@@ -290,145 +472,94 @@ main() {
 
     # Execute commands
     # TODO: Add support for per option arguments
-    while getopts ":-:" opt; do
-        case $opt in
+    while getopts ":p:u:i:hv-:" opt; do
+        case ${opt} in
+
+            # Set prefix option
+            p)
+                case "${OPTARG}" in
+                    -*)
+                        msg "Invalid option: -${opt} requires an argument"
+                    ;;
+
+                    *)
+                        opt_setprefix "${OPTARG}"
+                    ;;
+                esac
+            ;;
+
+            # Install option
+            i)
+                case "${OPTARG}" in
+                    eft | spt)
+                        opt_install "${OPTARG}"
+                    ;;
+
+                    -*)
+                        msg "Invalid option: -${opt} requires an argument"
+                    ;;
+
+                    *)
+                        err "Invalid argument '${OPTARG}'. (Available options: eft, spt)"
+                    ;;
+                esac
+            ;;
+
+            # Uninstall option
+            u)
+                # either 'eft', 'spt'
+                case "${OPTARG}" in
+                    eft | spt | cache | prefix | wipe)
+                        opt_uninstall "${OPTARG}"
+                    ;;
+
+                    -*)
+                        msg "Invalid option: -${opt} requires an argument"
+                    ;;
+
+                    *)
+                        err "Invalid argument '${OPTARG}'. (Available options: eft | spt | cache | prefix | wipe)"
+                    ;;
+                esac
+            ;;
+
+            h | help)
+                opt_help
+            ;;
+
+            v | version)
+                opt_version
+            ;;
+
             -)
                 case "${OPTARG}" in
-                    install-tarkov)
-                        msg "Launching Escape from Tarkov setup..."
-                        install_tarkov
-                    ;;
-
-                    install-spt)
-                        msg "Launching SPTarkov setup..."
-                        install_spt
-                    ;;
-
-                    uninstall-spt)
-                        msg "${bold}This action will uninstall 'SPTarkov' from your system!${reset}"
-                        ask "Do you want to continue?"
-                        msg "Uninstalling 'SPTarkov'..."
-                        [[ -d "${spt_dir}" ]] && rm -r "${spt_dir}"
-
-                        msg "Removing shortcut..."
-                        apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
-                        for app in "${apps[@]}"; do
-                            app_path="${app_dir}/${app}"
-                            [[ -f "${app_path}" ]] && rm -f "${app_path}"
-                        done
-
-                        msg "${green}Done! ※\(^o^)/※${reset}"
-                    ;;
-
-                    uninstall-tarkov)
-                        msg "${bold}This action will uninstall 'Escape from Tarkov' from your system!${reset}"
-                        ask "Do you want to continue?"
-                        msg "Uninstalling 'Escape from Tarkov'..."
-                        [[ -d "${eft_dir}" ]] && rm -r "${eft_dir}"
-
-                        msg "Removing shortcut..."
-                        app_path="${app_dir}/${"BSG - Launcher.desktop"}"
-                        [[ -f "${app_path}" ]] && rm -f "${app_path}"
-
-                        msg "${green}Done! ※\(^o^)/※${reset}"
-                    ;;
-
-                    cleanup)
-                        # Warn user before continuing
-                        msg "${bold}This action will remove the SPT/EFT wine prefix, all cached files & all game shortcuts!${reset}"
-                        msg "The following directories will be deleted ${bold}permanently${reset}:"
-                        msg "    > ${underline}${prefix_dir}${reset}"
-                        msg "    > ${underline}${cache_dir}${reset}"
-                        msg
-                        ask "Do you want to continue?"
-
-                        msg "Removing Cache directory..."
-                        [[ -d "${cache_dir}" ]] && rm -r "${cache_dir}"
-
-                        msg "Removing Prefix directory..."
-                        [[ -d "${prefix_dir}" ]] && rm -r "${prefix_dir}"
-
-                        apps=("BSG - Launcher.desktop" "SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
-                        for app in "${apps[@]}"; do
-                            msg "Removing '${app}' shortcut..."
-                            app_path="${app_dir}/${app}"
-                            [[ -f "${app_path}" ]] && rm -f "${app_path}"
-                        done
-
-                        msg "${green}Done! ※\(^o^)/※${reset}"
-                    ;;
-
-
                     self-update)
-                        local script_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> "${log_path}" && pwd )"
-                        local update_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-installer"
-                        msg "${yellow}Not fully implemented yet${reset}"
-                        msg
-                        msg "> The script will attempt to download the latest version available from here:"
-                        msg "> ${underline}${update_url}${reset}"
-                        msg
-                        msg "> This feature is ${bold}NOT${reset} fully implemented yet & won't validate the new script file!"
-                        msg
-                        ask "Do you want to continue?"
-                        
-                        if [[ $(curl --write-out '%{http_code}' --silent --output /dev/null "${update_url}") -eq "404" ]]; then
-                            err "The remote file does not exist!"
-                        fi
-
-                        (cd "${script_path}" && curl -LO "${update_url}") || err "Failed to update script"
-                        chmod +x "${script_path}"
-
-                        msg "${green}Done! ※\(^o^)/※${reset}"
+                        opt_selfupdate
                     ;;
 
 
                     help)
-                        msg "${bold}Syntax:${reset} spt-installer [OPTION][ARGS]"
-                        msg "${bold}Example usage: ${yellow}spt-installer install-tarkov -d ~/Games/tarkov${reset}"
-                        msg
-                        msg "${bold}OPTIONS:${reset}"
-                        msg "  ${bold}help${reset} | --help                                  Print this help message"
-                        msg
-                        msg "  ${bold}version${reset} | --version                            Print the version info message"
-                        msg
-                        msg "  ${bold}install${reset} [ARGS][PREFIX_PATH][INSTALL_PATH]      Automated installation of SPT into a given prefix"
-                        msg "      ${bold}PREFIX_PATH${reset}                                Full path to the root directory of a given prefix"
-                        msg "            ${gray}Example: '~/Games/tarkov'${reset}            Defaults to '~/Games/escape-from-tarkov'"
-                        msg
-                        msg "  ${bold}cleanup${reset}                                        Remove ALL related files (cache, prefix, shortcuts)"
-                        msg
-                        msg "  ${bold}self-update${reset}|--self-update                      Fetch the latest installer script version from the repo"
-                        msg
-                        msg "${bold}ARGUMENTS:${reset}"
-                        msg "      ${bold}-d${reset}                                         Enable debug mode"
-                        msg
-                        msg "For more details and help, visit the 'Linux-Guide' repository or join the SPT Discord server:"
-                        msg "${bold}  -> https://discord.com/invite/Xn9msqQZan${reset}"
-                        msg
+                        opt_help
                     ;;
 
                     version)
-                        msg "${bold}Version: ${reset}${version} (${date})"
-                        msg "${bold}Author: ${reset}${author}"
-                        msg "${bold}License: ${reset}${license}"
-                        msg
-                        msg "${yellow}[!] This script is made by the SPT community & is NOT offically supported by the mod developers!${reset}"
-                        msg
-                        msg "Report bugs over at:"
-                        msg "${bold}> https://github.com/MadByteDE/SPT-Linux-Guide ${reset}"
-                        msg
+                        opt_version
                     ;;
 
                     *)
-                        echo "Invalid option: --$OPTARG"
+                        echo "Invalid option: --${OPTARG}"
                         m_exit 1
                     ;;
                 esac
             ;;
 
             \?)
-                msg "Invalid option: -$OPTARG"
+                msg "Invalid option: -${OPTARG}"
                 m_exit 1
+            ;;
+
+            : )
+                msg "Invalid option: -${OPTARG} requires an argument"
             ;;
         esac
     done
