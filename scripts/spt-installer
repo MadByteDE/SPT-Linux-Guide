@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.2"
+version="0.2.3"
 date="2025-08-17"
 
 # We don't want to run as root
@@ -117,17 +117,17 @@ install_tarkov() {
     m_exec umu-run wineboot -u || err "Failed to initialize the wine prefix"
 
     # Install game dependencies
-    if [ -z $(m_exec cat "${prefix_dir}/winetricks.log" | grep "times") ]; then
+    if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "times") ]; then
         msg "Installing Fonts..."
         m_exec umu-run winetricks -q arial times || err "Failed to install dependency"
     fi
 
-    if [ -z $(m_exec cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
+    if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
         m_exec umu-run winetricks -q dotnet48 || err "Failed to install dependency"
     fi
 
-    if [ -z $(m_exec cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
+    if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
         msg "Installing Microsoft Visual C++ 2015-2022 Redistributable..."
         m_exec umu-run winetricks -q vcrun2022 || err "Failed to install dependency"
     fi
