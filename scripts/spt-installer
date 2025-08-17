@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.0"
+version="0.2.1"
 date="2025-08-17"
 
 # We don't want to run as root
@@ -107,8 +107,9 @@ install_tarkov() {
     
     # Download BSG Launcher if needed
     if [[ ! -f "${cache_dir}/BsgLauncher.exe" ]]; then
+        local installer_url="https://prod.escapefromtarkov.com/launcher/download"
         msg "Downloading BSG Launcher..."
-        (cd "${cache_dir}" && curl -L "https://prod.escapefromtarkov.com/launcher/download" -o "BsgLauncher.exe")
+        (cd "${cache_dir}" && curl -L "${installer_url}" -o "BsgLauncher.exe") || err "Failed to download file from '${installer_url}'."
     fi
 
     # Install BSG Launcher
@@ -174,7 +175,7 @@ install_spt() {
     if [[ ! -f "${cache_dir}/SPTInstaller.exe" ]]; then
         local installer_url="https://ligma.waffle-lord.net/SPTInstaller.exe"
         msg "Downloading SPTInstaller..."
-        (cd "${cache_dir}" && curl -LO "${installer_url}") || err "Failed to download SPTInstaller"
+        (cd "${cache_dir}" && curl -LO "${installer_url}") || err "Failed to download file from '${installer_url}'"
     fi
 
     # Install dependencies
@@ -323,7 +324,6 @@ opt_uninstall() {
     local force="$2"
     case "${mode}" in
         eft)
-            echo
             msg "${bold}This action will uninstall 'Escape from Tarkov' from your system!${reset}"
             msg "    > Prefix directory: ${underline}${prefix_dir}${reset}"
             ask "Do you want to continue?"
@@ -338,7 +338,6 @@ opt_uninstall() {
         ;;
 
         spt)
-            echo
             msg "${bold}This action will uninstall 'SPTarkov' from your system!${reset}"
             msg "    > Prefix directory: ${underline}${prefix_dir}${reset}"
             ask "Do you want to continue?"
@@ -357,7 +356,6 @@ opt_uninstall() {
         ;;
 
         cache)
-            echo
             msg "Removing Cache directory..."
             [[ -d "${cache_dir}" ]] && rm -r "${cache_dir}"
             msg "${green}Done!${reset}"
@@ -365,7 +363,6 @@ opt_uninstall() {
 
         prefix)
             # Warn user before continuing
-            echo
             msg "${bold}This action will remove the installed wine prefix!${reset}"
             msg "The following directory will be deleted ${bold}permanently${reset}:"
             msg "    > ${underline}${prefix_dir}${reset}"
@@ -379,8 +376,11 @@ opt_uninstall() {
 
         wipe)
             opt_uninstall "eft"
+            echo
             opt_uninstall "spt"
+            echo
             opt_uninstall "prefix"
+            echo
             opt_uninstall "cache"
         ;;
 
