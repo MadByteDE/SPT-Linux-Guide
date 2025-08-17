@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.3"
+version="0.2.4"
 date="2025-08-17"
 
 # We don't want to run as root
@@ -239,7 +239,7 @@ install_spt() {
     # Install server launch script
     msg "Installing server launch script..."
     local script_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh"
-    if [[ $(m_exec curl --write-out '%{http_code}' --silent --output /dev/null "${script_url}") -eq "404" ]]; then
+    if [[ $(curl --write-out '%{http_code}' --silent --output /dev/null "${script_url}") -eq "404" ]]; then
         err "The remote file does not exist!"
     fi
     (cd "${spt_dir}" && m_exec curl -LO "${script_url}") || err "Failed to install launch script"
