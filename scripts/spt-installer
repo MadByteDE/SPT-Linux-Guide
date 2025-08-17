@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.1"
+version="0.2.2"
 date="2025-08-17"
 
 # We don't want to run as root
@@ -33,7 +33,7 @@ msg() {
 
 
 err() {
-    local status=${2:-1}
+    local status=$?
     local pfx="${bold}${red}ERROR: ${reset}"
     msg "${pfx}$1"
     msg "${pfx}See '${cache_dir}/installer.log' for more details.${reset}"
@@ -54,22 +54,53 @@ ask() {
 }
 
 
+m_exec() {
+    "$@" &>> "${log_path}"
+}
+
+
 m_exit() {
     local status=${1:-$?}
     # Remove temp files
-    [[ -d "${tmp_dir}" ]] && rm -r "${tmp_dir}/"
+    [[ -d "${tmp_dir}" ]] && m_exec rm -r "${tmp_dir}/"
     # Exit with passed status code
     exit ${status}
 }
 
 
+init_paths() {
+    app_dir="${HOME}/.local/share/applications"
+    ico_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"; mkdir -p "${ico_dir}"
+    bin_dir="${XDG_CACHE_HOME:-${HOME}/.local/bin}"; mkdir -p "${bin_dir}"
+    cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
+    tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
+
+    # File path variables
+    log_path="${cache_dir}/installer.log"
+    prefix_config_path="${cache_dir}/prefix_dir.conf"
+
+    # Init prefix dir
+    prefix_dir="${prefix_dir:-"${HOME}/Games/tarkov"}"
+    
+    spt_dir="${prefix_dir}/drive_c/SPTarkov"
+    bsg_dir="${prefix_dir}/drive_c/Battlestate Games"
+    eft_dir="${bsg_dir}/Escape from Tarkov"
+}
+
+
+load_prefix_path() {
+    local prefix_path=$(cat "${prefix_config_path}" 2> /dev/null)
+    [[ -z ${prefix_path} ]] && prefix_path="${prefix_dir}"
+    opt_setprefix "${prefix_path}"
+}
+
+
 install_umu() {
-    local umu_url="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
     msg "Downloading UMU Launcher..."
     cd "${tmp_dir}"
-    curl -LO "${umu_url}" || err "Failed to download UMU from `${umu_url}`"
-    tar -xf $(ls | grep "zipapp.tar") || err "Failed to extract UMU"
-    cp -r "umu/"* "${bin_dir}" || err "Failed to copy UMU files to `${bin_dir}`"
+    m_exec curl -LO "${umu_launcher_url}" || err "Failed to download UMU from `${umu_launcher_url}`"
+    m_exec tar -xf $(ls | grep "zipapp.tar") || err "Failed to extract UMU"
+    m_exec cp -r "umu/"* "${bin_dir}" || err "Failed to copy UMU files to `${bin_dir}`"
 }
 
 
@@ -79,52 +110,54 @@ install_tarkov() {
 
     # Create prefix directory
     msg "Creating prefix directory..."
-    mkdir -p "${prefix_dir}"  || err "Failed to create prefix directory"
+    m_exec mkdir -p "${prefix_dir}" || err "Failed to create prefix directory"
 
     # Create prefix
     msg "Initializing wine prefix..."
-    umu-run wineboot -u &> "${log_path}" || err "Failed to initialize the wine prefix"
+    m_exec umu-run wineboot -u || err "Failed to initialize the wine prefix"
 
     # Install game dependencies
-    if [ -z $(cat "${prefix_dir}/winetricks.log" 2>> "${log_path}" | grep "times") ]; then
+    if [ -z $(m_exec cat "${prefix_dir}/winetricks.log" | grep "times") ]; then
         msg "Installing Fonts..."
-        umu-run winetricks -q arial times &>> "${log_path}" || err "Failed to install dependency"
+        m_exec umu-run winetricks -q arial times || err "Failed to install dependency"
     fi
 
-    if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
+    if [ -z $(m_exec cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
-        umu-run winetricks -q dotnet48 &>> "${log_path}" || err "Failed to install dependency"
+        m_exec umu-run winetricks -q dotnet48 || err "Failed to install dependency"
     fi
 
-    if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
+    if [ -z $(m_exec cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
         msg "Installing Microsoft Visual C++ 2015-2022 Redistributable..."
-        umu-run winetricks -q vcrun2022 &>> "${log_path}" || err "Failed to install dependency"
+        m_exec umu-run winetricks -q vcrun2022 || err "Failed to install dependency"
     fi
+
+    # Add prefix update pop-up workaround
+    m_exec umu-run reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v OnlyUseLatestCLR /t REG_DWORD /d 0001 /f
 
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
-    umu-run reg add "HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 2> /dev/null >> "${log_path}"
+    m_exec umu-run reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
     # Download BSG Launcher if needed
     if [[ ! -f "${cache_dir}/BsgLauncher.exe" ]]; then
-        local installer_url="https://prod.escapefromtarkov.com/launcher/download"
         msg "Downloading BSG Launcher..."
-        (cd "${cache_dir}" && curl -L "${installer_url}" -o "BsgLauncher.exe") || err "Failed to download file from '${installer_url}'."
+        (cd "${cache_dir}" && m_exec curl -L "${bsg_installer_url}" -o "BsgLauncher.exe") || err "Failed to download file from '${bsg_installer_url}'."
     fi
 
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
-    umu-run "${cache_dir}/BsgLauncher.exe" /VERYSILENT &>> "${log_path}"  || err "Failed to install BSG Launcher"
+    m_exec umu-run "${cache_dir}/BsgLauncher.exe" /VERYSILENT || err "Failed to install BSG Launcher"
 
     # Re-initialize prefix for GE-Proton
     msg "Switching Proton version to 'GE-Proton'..."
     export PROTONPATH="GE-Proton"
-    umu-run wineboot -u &>> "${log_path}" || err "Failed to initialize the wine prefix"
+    m_exec umu-run wineboot -u || err "Failed to initialize the wine prefix"
 
     # Copy icon to user icons directory
     if [[ ! -f "${ico_dir}/tarkov.png" ]]; then
         msg "Downloading & installing app icon from SteamGridDB..."
-        (cd "${ico_dir}" && curl -L "https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png" -o "tarkov.png")
+        (cd "${ico_dir}" && m_exec curl -L "https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png" -o "tarkov.png")
     fi
 
     # Create application shortcut
@@ -132,14 +165,15 @@ install_tarkov() {
     local shortcut_path="${app_dir}/BSG - Launcher.desktop"
     local env_vars="PROTON_USE_XALIA=0 PROTONPATH='GE-Proton' WINEPREFIX='${prefix_dir}'"
     local launch_args="--disable-software-rasterizer"
-    echo "[Desktop Entry]" > "${shortcut_path}"
+    [[ -f "${shortcut_path}" ]] && m_exec rm -f "${shortcut_path}"
+    echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${bsg_dir}/BsgLauncher" >> "${shortcut_path}"
     echo "Exec=env ${env_vars} umu-run 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args}" >> "${shortcut_path}"
     echo "Name=BSG - Launcher" >> "${shortcut_path}"
     echo "Icon=tarkov" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
-    chmod +x "${shortcut_path}"
+    m_exec chmod +x "${shortcut_path}"
 
     msg "${green}Done! ※\(^o^)/※${reset}"
 }
@@ -173,51 +207,49 @@ install_spt() {
 
     # Download SPT Installer
     if [[ ! -f "${cache_dir}/SPTInstaller.exe" ]]; then
-        local installer_url="https://ligma.waffle-lord.net/SPTInstaller.exe"
         msg "Downloading SPTInstaller..."
-        (cd "${cache_dir}" && curl -LO "${installer_url}") || err "Failed to download file from '${installer_url}'"
+        (cd "${cache_dir}" && m_exec curl -LO "${spt_installer_url}") || err "Failed to download file from '${spt_installer_url}'"
     fi
 
     # Install dependencies
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnetdesktop8") ]; then
         msg "Installing .NET Desktop 8 Runtime..."
-        umu-run winetricks -q dotnetdesktop8 &> "${log_path}" || err "Failed to install dependency"
+        m_exec umu-run winetricks -q dotnetdesktop8 || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnetdesktop9") ]; then
         msg "Installing .NET Desktop 9 Runtime..."
-        umu-run winetricks -q dotnetdesktop9 &> "${log_path}" || err "Failed to install dependency"
+        m_exec umu-run winetricks -q dotnetdesktop9 || err "Failed to install dependency"
     fi
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
-    umu-run reg add "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f &> "${log_path}"
-    # umu-run reg add "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides" /v "icu" /t "REG_SZ" /d "disabled" /f &> "${log_path}"
+    m_exec umu-run reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
+    # m_exec umu-run reg add "HKCU\\Software\\Wine\\DllOverrides" /v "icu" /t "REG_SZ" /d "disabled" /f
 
     # HACK: UMU-Proton fails to run the SPTInstaller, so we have to switch to GE-Proton instead
     export PROTONPATH="GE-Proton"
 
     # Run SPT Installer
-    if [ ! -d "${spt_dir}" ]; then mkdir -p "${spt_dir}"; fi
+    if [ ! -d "${spt_dir}" ]; then m_exec mkdir -p "${spt_dir}"; fi
     cd "${spt_dir}"
     msg "Launching SPT Installer..."
-    umu-run "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" &> "${log_path}" || err "Failed to launch SPT Installer"
+    m_exec umu-run "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
 
-    # Remove SPTIntaller from the 
     # Install server launch script
     msg "Installing server launch script..."
     local script_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh"
-    if [[ $(curl --write-out '%{http_code}' --silent --output /dev/null "${script_url}") -eq "404" ]]; then
+    if [[ $(m_exec curl --write-out '%{http_code}' --silent --output /dev/null "${script_url}") -eq "404" ]]; then
         err "The remote file does not exist!"
     fi
-    (cd "${spt_dir}" && curl -LO "${script_url}") || err "Failed to install launch script"
-    chmod +x "${spt_dir}/launch-server.sh"
+    (cd "${spt_dir}" && m_exec curl -LO "${script_url}") || err "Failed to install launch script"
+    m_exec chmod +x "${spt_dir}/launch-server.sh"
 
     # Copy icon to user icons directory
     if [[ ! -f "${ico_dir}/spt_launcher.png" || ! -f "${ico_dir}/spt_server.png" ]]; then
         msg "Downloading & installing app icons..."
-        (cd "${ico_dir}" && curl -L "https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png" -o "spt_launcher.png")
-        (cd "${ico_dir}" && curl -L "https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png" -o "spt_server.png")
+        (cd "${ico_dir}" && m_exec curl -L "https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png" -o "spt_launcher.png")
+        (cd "${ico_dir}" && m_exec curl -L "https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png" -o "spt_server.png")
     fi
 
     # Create application shortcuts
@@ -227,54 +259,29 @@ install_spt() {
     local shortcut_path="${app_dir}/SPTarkov - Launcher.desktop"
     local env_vars="PROTON_USE_XALIA=0 DOTNET_BUNDLE_EXTRACT_BASE_DIR='' DOTNET_ROOT='' PROTONPATH='GE-Proton' WINEDEBUG='-all,err+all,fixme+all,debugstr+all' WINEPREFIX='${prefix_dir}'"
     local launch_args=""
-    echo "[Desktop Entry]" > "${shortcut_path}"
+    [[ -f "${shortcut_path}" ]] && m_exec rm -f "${shortcut_path}"
+    echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${spt_dir}" >> "${shortcut_path}"
     echo "Exec=env ${env_vars} umu-run 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
     echo "Name=SPTarkov - Launcher" >> "${shortcut_path}"
     echo "Icon=spt_launcher" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
-    chmod +x "${shortcut_path}"
+    m_exec chmod +x "${shortcut_path}"
 
     # SPT Server
     local shortcut_path="${app_dir}/SPTarkov - Server.desktop"
-    echo "[Desktop Entry]" > "${shortcut_path}"
+    [[ -f "${shortcut_path}" ]] && m_exec rm -f "${shortcut_path}"
+    echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${spt_dir}" >> "${shortcut_path}"
     echo "Exec='${spt_dir}/launch-server.sh'" >> "${shortcut_path}"
     echo "Name=SPTarkov - Server" >> "${shortcut_path}"
     echo "Icon=spt_server" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
-    chmod +x "${shortcut_path}"
+    m_exec chmod +x "${shortcut_path}"
 
     msg "${green}Done! ※\(^o^)/※${reset}"
-}
-
-
-load_prefix_path() {
-    local prefix_path=$(cat "${prefix_config_path}" 2> /dev/null)
-    [[ -z ${prefix_path} ]] && prefix_path="${prefix_dir}"
-    opt_setprefix "${prefix_path}"
-}
-
-
-init_paths() {
-    app_dir="${HOME}/.local/share/applications"
-    ico_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"; mkdir -p "${ico_dir}"
-    bin_dir="${XDG_CACHE_HOME:-${HOME}/.local/bin}"; mkdir -p "${bin_dir}"
-    cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
-    tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
-
-    # File path variables
-    log_path="${cache_dir}/installer.log"
-    prefix_config_path="${cache_dir}/prefix_dir.conf"
-
-    # Init prefix dir
-    prefix_dir="${prefix_dir:-"${HOME}/Games/tarkov"}"
-    
-    spt_dir="${prefix_dir}/drive_c/SPTarkov"
-    bsg_dir="${prefix_dir}/drive_c/Battlestate Games"
-    eft_dir="${bsg_dir}/Escape from Tarkov"
 }
 
 
@@ -322,17 +329,18 @@ opt_install() {
 opt_uninstall() {
     local mode="$1"
     local force="$2"
+
     case "${mode}" in
         eft)
             msg "${bold}This action will uninstall 'Escape from Tarkov' from your system!${reset}"
             msg "    > Prefix directory: ${underline}${prefix_dir}${reset}"
             ask "Do you want to continue?"
             msg "Uninstalling 'Escape from Tarkov'..."
-            [[ -d "${bsg_dir}" ]] && rm -r "${bsg_dir}"
+            [[ -d "${bsg_dir}" ]] && m_exec rm -r "${bsg_dir}"
 
             msg "Removing shortcut..."
             local app_path="${app_dir}/BSG - Launcher.desktop"
-            [[ -f "${app_path}" ]] && rm -f "${app_path}"
+            [[ -f "${app_path}" ]] && m_exec rm -f "${app_path}"
 
             msg "${green}Done!${reset}"
         ;;
@@ -343,13 +351,13 @@ opt_uninstall() {
             ask "Do you want to continue?"
 
             msg "Uninstalling 'SPTarkov'..."
-            [[ -d "${spt_dir}" ]] && rm -r "${spt_dir}"
+            [[ -d "${spt_dir}" ]] && m_exec rm -r "${spt_dir}"
 
             msg "Removing shortcut..."
             apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
             for app in "${apps[@]}"; do
                 app_path="${app_dir}/${app}"
-                [[ -f "${app_path}" ]] && rm -f "${app_path}"
+                [[ -f "${app_path}" ]] && m_exec rm -f "${app_path}"
             done
 
             msg "${green}Done!${reset}"
@@ -357,7 +365,7 @@ opt_uninstall() {
 
         cache)
             msg "Removing Cache directory..."
-            [[ -d "${cache_dir}" ]] && rm -r "${cache_dir}"
+            [[ -d "${cache_dir}" ]] && m_exec rm -r "${cache_dir}"
             msg "${green}Done!${reset}"
         ;;
 
@@ -370,7 +378,7 @@ opt_uninstall() {
             ask "Do you want to continue?"
 
             msg "Removing Prefix directory..."
-            [[ -d "${prefix_dir}" ]] && rm -r "${prefix_dir}"
+            [[ -d "${prefix_dir}" ]] && m_exec rm -r "${prefix_dir}"
             msg "${green}Done!${reset}"
         ;;
 
@@ -396,7 +404,7 @@ opt_selfupdate() {
     local update_url="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-installer"
     msg "${yellow}Not fully implemented yet${reset}"
     msg
-    msg "> The script will attempt to download the latest version available from here:"
+    msg "> The script will attempt to download the latest version available here:"
     msg "> ${underline}${update_url}${reset}"
     msg
     msg "> This feature is ${bold}NOT${reset} fully implemented yet & won't validate the new script file!"
@@ -407,8 +415,8 @@ opt_selfupdate() {
         err "The remote file does not exist!"
     fi
 
-    (cd "${script_path}" && curl -LO "${update_url}") || err "Failed to update script"
-    chmod +x "${script_path}"
+    (cd "${script_path}" && m_exec curl -LO "${update_url}") || err "Failed to update script"
+    m_exec chmod +x "${script_path}"
 
     msg "${green}Done! ※\(^o^)/※${reset}"
 }
@@ -446,106 +454,47 @@ opt_version() {
 }
 
 
-main() {
-    # ANSI codes
-    bold="\e[1m"; underline="\e[2m"; reset="\e[0m"
-    red="\e[31m"; green="\e[32m"; blue="\e[36m"
-    yellow="\e[33m"; gray="\e[90m"
-
-    # Initalize directory paths
-    init_paths
-
-    # Add bin dir to PATH variable
-    export PATH=${bin_dir}:$PATH
-
-    # Remove old log files
-    if [[ -f "${cache_dir}/installer.log" ]]; then
-        rm -f "${cache_dir}/installer.log"
-    fi
-
-    # Environment variable
-    export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
-    export WINEPREFIX="${prefix_dir}"
-
-    # Install UMU-Launcher if needed
-    [[ ! -f "${bin_dir}/umu-run" ]] && install_umu
-
+handle_opts() {
     # Execute commands
-    # TODO: Add support for per option arguments
-    while getopts ":p:u:i:hv-:" opt; do
+    while getopts ":p:i:u:dhv-:" opt; do
         case ${opt} in
 
-            # Set prefix option
+            # Prefix option
             p)
                 case "${OPTARG}" in
-                    -*)
-                        msg "Invalid option: -${opt} requires an argument"
-                    ;;
-
-                    *)
-                        opt_setprefix "${OPTARG}"
-                    ;;
+                    -*) msg "Invalid option: -${opt} requires an argument" ;;
+                    *) opt_setprefix "${OPTARG}" ;;
                 esac
             ;;
 
             # Install option
             i)
                 case "${OPTARG}" in
-                    eft | spt)
-                        opt_install "${OPTARG}"
-                    ;;
-
-                    -*)
-                        msg "Invalid option: -${opt} requires an argument"
-                    ;;
-
-                    *)
-                        err "Invalid argument '${OPTARG}'. (Available options: eft, spt)"
-                    ;;
+                    eft|spt) opt_install "${OPTARG}" ;;
+                    -*) msg "Invalid option: -${opt} requires an argument" ;;
+                    *) err "Invalid argument '${OPTARG}'. (Available options: eft, spt)" ;;
                 esac
             ;;
 
             # Uninstall option
             u)
-                # either 'eft', 'spt'
                 case "${OPTARG}" in
-                    eft | spt | cache | prefix | wipe)
-                        opt_uninstall "${OPTARG}"
-                    ;;
-
-                    -*)
-                        msg "Invalid option: -${opt} requires an argument"
-                    ;;
-
-                    *)
-                        err "Invalid argument '${OPTARG}'. (Available options: eft | spt | cache | prefix | wipe)"
-                    ;;
+                    eft|spt|cache|prefix|wipe) opt_uninstall "${OPTARG}" ;;
+                    -*) msg "Invalid option: -${opt} requires an argument" ;;
+                    *) err "Invalid argument '${OPTARG}'. (Available options: eft|spt|cache|prefix|wipe)" ;;
                 esac
             ;;
 
-            h | help)
-                opt_help
-            ;;
-
-            v | version)
-                opt_version
-            ;;
+            d | debug) debug=1 ;;
+            h | help) opt_help ;;
+            v | version) opt_version ;;
 
             -)
                 case "${OPTARG}" in
-                    self-update)
-                        opt_selfupdate
-                    ;;
-
-
-                    help)
-                        opt_help
-                    ;;
-
-                    version)
-                        opt_version
-                    ;;
-
+                    self-update) opt_selfupdate ;;
+                    debug) debug=1 ;;
+                    help) opt_help ;;
+                    version) opt_version ;;
                     *)
                         echo "Invalid option: --${OPTARG}"
                         m_exit 1
@@ -563,6 +512,42 @@ main() {
             ;;
         esac
     done
+}
+
+
+main() {
+    
+    # ANSI codes
+    bold="\e[1m"; underline="\e[2m"; reset="\e[0m"
+    red="\e[31m"; green="\e[32m"; blue="\e[36m"
+    yellow="\e[33m"; gray="\e[90m"
+
+    # Dependency download URLs
+    umu_launcher_url="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
+    bsg_installer_url="https://prod.escapefromtarkov.com/launcher/download"
+    spt_installer_url="https://ligma.waffle-lord.net/SPTInstaller.exe"
+
+    # Initalize directory paths
+    init_paths
+
+    # Add bin dir to PATH variable
+    export PATH=${bin_dir}:$PATH
+
+    # Remove previous log file
+    if [[ -f "${cache_dir}/installer.log" ]]; then
+        m_exec rm -f "${cache_dir}/installer.log"
+    fi
+
+    # Environment variable
+    # TODO: Add `[[ "${debug}" -eq 1 ]] &&` to WINEDEBUG to not always log everything
+    export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
+    export WINEPREFIX="${prefix_dir}"
+
+    # Install UMU-Launcher if needed
+    [[ ! -f "${bin_dir}/umu-run" ]] && install_umu
+
+    # Handle command line arguments
+    handle_opts "$@"
 }
 
 # Main entry
