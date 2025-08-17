@@ -7,7 +7,7 @@
 title="spt-installer"
 author="Copyright (c) 2025 MadByte"
 license="MIT"
-version="0.1.0"
+version="0.1.1"
 date="2025-08-17"
 
 # We don't want to run as root
@@ -122,10 +122,9 @@ install_tarkov() {
     umu-run wineboot -u &> "${log_path}" || err "Failed to initialize the wine prefix"
 
     # Copy icon to user icons directory
-    local target_path="${HOME}/.local/share/icons/hicolor/256x256/apps"
-    if [[ ! -f "${target_path}/tarkov.png" ]]; then
+    if [[ ! -f "${ico_dir}/tarkov.png" ]]; then
         msg "Downloading & installing app icon from SteamGridDB..."
-        (cd "${target_path}" && curl -L "https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png" -o "tarkov.png")
+        (cd "${ico_dir}" && curl -L "https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png" -o "tarkov.png")
     fi
 
     # Create application shortcut
@@ -212,11 +211,10 @@ install_spt() {
     chmod +x "${spt_dir}/launch-server.sh"
 
     # Copy icon to user icons directory
-    local target_path="${HOME}/.local/share/icons/hicolor/256x256/apps"
-    if [[ ! -f "${target_path}/spt_launcher.png" || ! -f "${target_path}/spt_server.png" ]]; then
+    if [[ ! -f "${ico_dir}/spt_launcher.png" || ! -f "${ico_dir}/spt_server.png" ]]; then
         msg "Downloading & installing app icons..."
-        (cd "${target_path}" && curl -L "https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png" -o "spt_launcher.png")
-        (cd "${target_path}" && curl -L "https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png" -o "spt_server.png")
+        (cd "${ico_dir}" && curl -L "https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png" -o "spt_launcher.png")
+        (cd "${ico_dir}" && curl -L "https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png" -o "spt_server.png")
     fi
 
     # Create application shortcuts
@@ -263,13 +261,14 @@ main() {
     # # Directory variables
     # TODO: prefix_dir needs to be changable with a launch argument
     prefix_dir="${HOME}/Games/spt"
-    cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
+    app_dir="${HOME}/.local/share/applications"
+    ico_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"; mkdir -p "${ico_dir}"
     bin_dir="${XDG_CACHE_HOME:-${HOME}/.local/bin}"; mkdir -p "${bin_dir}"
+    cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
     tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
     spt_dir="${prefix_dir}/drive_c/SPTarkov"
     bsg_dir="${prefix_dir}/drive_c/Battlestate Games"
     eft_dir="${bsg_dir}/Escape from Tarkov"
-    app_dir="${HOME}/.local/share/applications"
 
     # # File path variables
     log_path="${cache_dir}/installer.log"
