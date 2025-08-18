@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.5"
+version="0.2.6"
 date="2025-08-18"
 
 # We don't want to run as root
@@ -177,7 +177,7 @@ install_tarkov() {
     echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${bsg_dir}/BsgLauncher" >> "${shortcut_path}"
-    echo "Exec=env ${env_vars} m_umu 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args}" >> "${shortcut_path}"
+    echo "Exec=env ${env_vars} ${umu_path} 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args}" >> "${shortcut_path}"
     echo "Name=BSG - Launcher" >> "${shortcut_path}"
     echo "Icon=tarkov" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
@@ -271,7 +271,7 @@ install_spt() {
     echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${spt_dir}" >> "${shortcut_path}"
-    echo "Exec=env ${env_vars} m_umu 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
+    echo "Exec=env ${env_vars} ${umu_path} 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
     echo "Name=SPTarkov - Launcher" >> "${shortcut_path}"
     echo "Icon=spt_launcher" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
