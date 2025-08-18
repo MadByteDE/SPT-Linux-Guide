@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.6"
+version="0.2.7"
 date="2025-08-18"
 
 # We don't want to run as root
@@ -49,15 +49,6 @@ ask() {
 }
 
 
-m_umu() {
-    if command -v umu-run; then
-        umu-run "$@"
-    else
-        "${umu_path}" "$@"
-    fi
-}
-
-
 m_exec() {
     "$@" &>> "${log_path}"
 }
@@ -79,8 +70,13 @@ init_paths() {
     tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
 
     # File path variables
+    if command -v umu-run; then
+        umu_path="umu-run"
+    else
+        umu_path="${cache_dir}/umu/umu-run"
+    fi
+    
     log_path="${cache_dir}/installer.log"
-    umu_path="${cache_dir}/umu/umu-run"
     prefix_config_path="${cache_dir}/prefix_dir.conf"
 
     # Init prefix dir
@@ -122,30 +118,30 @@ install_tarkov() {
 
     # Create prefix
     msg "Initializing wine prefix..."
-    m_exec m_umu wineboot -u || err "Failed to initialize the wine prefix"
+    m_exec "${umu_path}" wineboot -u || err "Failed to initialize the wine prefix"
 
     # Install game dependencies
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "times") ]; then
         msg "Installing Fonts..."
-        m_exec m_umu winetricks -q arial times || err "Failed to install dependency"
+        m_exec "${umu_path}" winetricks -q arial times || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
-        m_exec m_umu winetricks -q dotnet48 || err "Failed to install dependency"
+        m_exec "${umu_path}" winetricks -q dotnet48 || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
         msg "Installing Microsoft Visual C++ 2015-2022 Redistributable..."
-        m_exec m_umu winetricks -q vcrun2022 || err "Failed to install dependency"
+        m_exec "${umu_path}" winetricks -q vcrun2022 || err "Failed to install dependency"
     fi
 
     # Add prefix update pop-up workaround
-    m_exec m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v OnlyUseLatestCLR /t REG_DWORD /d 0001 /f
+    m_exec "${umu_path}" reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v OnlyUseLatestCLR /t REG_DWORD /d 0001 /f
 
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
-    m_exec m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
+    m_exec "${umu_path}" reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
     # Download BSG Launcher if needed
     if [[ ! -f "${cache_dir}/BsgLauncher.exe" ]]; then
@@ -155,12 +151,12 @@ install_tarkov() {
 
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
-    m_exec m_umu "${cache_dir}/BsgLauncher.exe" /VERYSILENT || err "Failed to install BSG Launcher"
+    m_exec "${umu_path}" "${cache_dir}/BsgLauncher.exe" /VERYSILENT || err "Failed to install BSG Launcher"
 
     # Re-initialize prefix for GE-Proton
     msg "Switching Proton version to 'GE-Proton'..."
     export PROTONPATH="GE-Proton"
-    m_exec m_umu wineboot -u || err "Failed to initialize the wine prefix"
+    m_exec "${umu_path}" wineboot -u || err "Failed to initialize the wine prefix"
 
     # Copy icon to user icons directory
     if [[ ! -f "${ico_dir}/tarkov.png" ]]; then
@@ -222,18 +218,18 @@ install_spt() {
     # Install dependencies
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnetdesktop8") ]; then
         msg "Installing .NET Desktop 8 Runtime..."
-        m_exec m_umu winetricks -q dotnetdesktop8 || err "Failed to install dependency"
+        m_exec "${umu_path}" winetricks -q dotnetdesktop8 || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnetdesktop9") ]; then
         msg "Installing .NET Desktop 9 Runtime..."
-        m_exec m_umu winetricks -q dotnetdesktop9 || err "Failed to install dependency"
+        m_exec "${umu_path}" winetricks -q dotnetdesktop9 || err "Failed to install dependency"
     fi
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
-    m_exec m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
-    # m_exec m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "icu" /t "REG_SZ" /d "disabled" /f
+    m_exec "${umu_path}" reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
+    # m_exec "${umu_path}" reg add "HKCU\\Software\\Wine\\DllOverrides" /v "icu" /t "REG_SZ" /d "disabled" /f
 
     # HACK: UMU-Proton fails to run the SPTInstaller, so we have to switch to GE-Proton instead
     export PROTONPATH="GE-Proton"
@@ -242,7 +238,7 @@ install_spt() {
     if [ ! -d "${spt_dir}" ]; then m_exec mkdir -p "${spt_dir}"; fi
     cd "${spt_dir}"
     msg "Launching SPT Installer..."
-    m_exec m_umu "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+    m_exec "${umu_path}" "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
 
     # Install server launch script
     msg "Installing server launch script..."
