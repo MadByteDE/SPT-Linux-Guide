@@ -11,6 +11,7 @@ Since there are many different Linux distributions out there, you might encounte
 2. In-Game
     - [2.1 Random crashes while in-raid or hideout](#21-random-crashes-while-in-raid-or-hideout)
     - [2.2 Audio crackling/distortion issues](#22-audio-cracklingdistortion-issues)
+    - [2.3 Long stutter/hang in-raid](#23-long-stutterhang-in-raid)
 
 3. Lutris / Installer scripts
     - [3.1 Error code 256/512/1280/...](#31-error-code-2565121280)
@@ -104,6 +105,24 @@ That should fix the issue.
 [Back](#table-of-content)
 
 ***
+
+### 2.3 Long stutter/hang in-raid
+
+**Description**
+
+The game randomly hangs for ~3-5 seconds without RAM or VRAM being maxed out.
+
+**Solution**
+
+In Lutris on the game shortcut, enable:
+- `Configure` → `system options` → `Disable Lutris Runtime`
+
+That should reduce the stuttering significantly.
+
+[Back](#table-of-content)
+
+***
+
 
 ## 3. Lutris installer script
 
