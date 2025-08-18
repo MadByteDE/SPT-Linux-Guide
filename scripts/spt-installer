@@ -7,7 +7,7 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.7"
+version="0.2.8"
 date="2025-08-18"
 
 # We don't want to run as root
@@ -121,7 +121,7 @@ install_tarkov() {
     m_exec "${umu_path}" wineboot -u || err "Failed to initialize the wine prefix"
 
     # Install game dependencies
-    if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "times") ]; then
+    if [ -z $(cat "${prefix_dir}/winetricks.log" 2>/dev/null | grep "times") ]; then
         msg "Installing Fonts..."
         m_exec "${umu_path}" winetricks -q arial times || err "Failed to install dependency"
     fi
@@ -537,15 +537,13 @@ main() {
         m_exec rm -f "${cache_dir}/installer.log"
     fi
 
+    # Install umu-launcher if needed
+    if [[ ! -f "${umu_path}" ]]; then install_umu; fi
+
     # Environment variable
     # TODO: Add `[[ "${debug}" -eq 1 ]] &&` to WINEDEBUG to not always log everything
     export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
     export WINEPREFIX="${prefix_dir}"
-
-    # Install UMU if needed
-    if ! command -v umu-run && [[ ! -f "${umu_path}" ]]; then
-        install_umu
-    fi
 
     # Handle command line arguments
     handle_opts "$@"
