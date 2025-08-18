@@ -11,7 +11,7 @@ Since there are many different Linux distributions out there, you might encounte
 2. In-Game
     - [2.1 Random crashes while in-raid or hideout](#21-random-crashes-while-in-raid-or-hideout)
     - [2.2 Audio crackling/distortion issues](#22-audio-cracklingdistortion-issues)
-    - [2.3 NVIDIA / Wayland: Frozen screen / Black screen](#23-nvidia--wayland-frozen-screen--black-screen)
+    - [2.3 Long stutter/hang in-raid](#23-long-stutterhang-in-raid)
 
 3. Lutris / Installer scripts
     - [3.1 Error code 256/512/1280/...](#31-error-code-2565121280)
@@ -108,27 +108,22 @@ That should fix the issue.
 
 ***
 
-### 2.3 NVIDIA / Wayland: Frozen screen / Black screen
-
-(Updated 2025/02/10)
+### 2.3 Long stutter/hang in-raid
 
 **Description**
 
-With NVIDIA proprietary drivers on Wayland at Raid-Start, Raid-End or when tabbing out of the game, the screen freezes. The game is still running in the background (e.g. sounds still play when the mouse hovers UI elements).
-
-If you check your kernel log with `journalctl -b -r` shortly after it occurs, you'd probably see the following error:
-
-```
-Jun 11 19:28:15 kernel: [drm:nv_drm_gem_alloc_nvkms_memory_ioctl [nvidia_drm]] *ERROR* [nvidia-drm] [GPU ID 0x00002600] Failed to allocate NVKMS memory for GEM object
-```
+The game randomly hangs for ~3-5 seconds without RAM or VRAM being maxed out.
 
 **Solution**
 
-This is an ongoing issue with NVIDIA drivers on Linux with no known fix / workaround available.
+In Lutris on the game shortcut, enable:
+- `Configure` → `system options` → `Disable Lutris Runtime`
 
-For more informations, go [here](https://forums.developer.nvidia.com/t/non-existent-shared-vram-on-nvidia-linux-drivers/260304).
+That should reduce the stuttering significantly.
 
 [Back](#table-of-content)
+
+***
 
 
 ## 3. Lutris installer script
