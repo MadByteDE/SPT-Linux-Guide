@@ -7,8 +7,8 @@
 title="spt-installer"
 author="MadByte"
 license="MIT"
-version="0.2.4"
-date="2025-08-17"
+version="0.2.5"
+date="2025-08-18"
 
 # We don't want to run as root
 if [ "$(id -u)" -eq 0 ]; then
@@ -18,17 +18,12 @@ fi
 
 
 msg() {
-    # Filter ANSI sequences
-    local pfx="$gray[$title]$reset "
-    local filtered_str=$(echo -e "${pfx}${@}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
-    
-    case ${NO_ANSI} in
-        1) echo "${filtered_str}" ;;
-        *) echo -e "${pfx}${@}" ;;
-    esac
+    local output="${gray}[$title]${reset} ${@}"
+    local filtered_str=$(echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
 
-    # Echo to log file
-    echo "${filtered_str}" 2>/dev/null >> "${log_path}"
+    # Show in terminal & write to log
+    echo -e "${output}"
+    echo "${filtered_str}" &>/dev/null >> "${log_path}"
 }
 
 
@@ -54,6 +49,15 @@ ask() {
 }
 
 
+m_umu() {
+    if command -v umu-run; then
+        umu-run "$@"
+    else
+        "${umu_path}" "$@"
+    fi
+}
+
+
 m_exec() {
     "$@" &>> "${log_path}"
 }
@@ -71,12 +75,12 @@ m_exit() {
 init_paths() {
     app_dir="${HOME}/.local/share/applications"
     ico_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"; mkdir -p "${ico_dir}"
-    bin_dir="${XDG_CACHE_HOME:-${HOME}/.local/bin}"; mkdir -p "${bin_dir}"
     cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${title}"; mkdir -p "${cache_dir}"
     tmp_dir="${cache_dir}/tmp"; mkdir -p "${tmp_dir}"
 
     # File path variables
     log_path="${cache_dir}/installer.log"
+    umu_path="${cache_dir}/umu/umu-run"
     prefix_config_path="${cache_dir}/prefix_dir.conf"
 
     # Init prefix dir
@@ -97,10 +101,14 @@ load_prefix_path() {
 
 install_umu() {
     msg "Downloading UMU Launcher..."
+    
+    # Download zipapp archive
     cd "${tmp_dir}"
     m_exec curl -LO "${umu_launcher_url}" || err "Failed to download UMU from `${umu_launcher_url}`"
-    m_exec tar -xf $(ls | grep "zipapp.tar") || err "Failed to extract UMU"
-    m_exec cp -r "umu/"* "${bin_dir}" || err "Failed to copy UMU files to `${bin_dir}`"
+
+    # Extract & remove when done
+    local archive_path=$(ls | grep "zipapp.tar")
+    m_exec tar -xf "${archive_path}" -C "../" || err "Failed to extract UMU"
 }
 
 
@@ -114,30 +122,30 @@ install_tarkov() {
 
     # Create prefix
     msg "Initializing wine prefix..."
-    m_exec umu-run wineboot -u || err "Failed to initialize the wine prefix"
+    m_exec m_umu wineboot -u || err "Failed to initialize the wine prefix"
 
     # Install game dependencies
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "times") ]; then
         msg "Installing Fonts..."
-        m_exec umu-run winetricks -q arial times || err "Failed to install dependency"
+        m_exec m_umu winetricks -q arial times || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnet48") ]; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
-        m_exec umu-run winetricks -q dotnet48 || err "Failed to install dependency"
+        m_exec m_umu winetricks -q dotnet48 || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "vcrun2022") ]; then
         msg "Installing Microsoft Visual C++ 2015-2022 Redistributable..."
-        m_exec umu-run winetricks -q vcrun2022 || err "Failed to install dependency"
+        m_exec m_umu winetricks -q vcrun2022 || err "Failed to install dependency"
     fi
 
     # Add prefix update pop-up workaround
-    m_exec umu-run reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v OnlyUseLatestCLR /t REG_DWORD /d 0001 /f
+    m_exec m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v OnlyUseLatestCLR /t REG_DWORD /d 0001 /f
 
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
-    m_exec umu-run reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
+    m_exec m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
     # Download BSG Launcher if needed
     if [[ ! -f "${cache_dir}/BsgLauncher.exe" ]]; then
@@ -147,12 +155,12 @@ install_tarkov() {
 
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
-    m_exec umu-run "${cache_dir}/BsgLauncher.exe" /VERYSILENT || err "Failed to install BSG Launcher"
+    m_exec m_umu "${cache_dir}/BsgLauncher.exe" /VERYSILENT || err "Failed to install BSG Launcher"
 
     # Re-initialize prefix for GE-Proton
     msg "Switching Proton version to 'GE-Proton'..."
     export PROTONPATH="GE-Proton"
-    m_exec umu-run wineboot -u || err "Failed to initialize the wine prefix"
+    m_exec m_umu wineboot -u || err "Failed to initialize the wine prefix"
 
     # Copy icon to user icons directory
     if [[ ! -f "${ico_dir}/tarkov.png" ]]; then
@@ -169,7 +177,7 @@ install_tarkov() {
     echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${bsg_dir}/BsgLauncher" >> "${shortcut_path}"
-    echo "Exec=env ${env_vars} umu-run 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args}" >> "${shortcut_path}"
+    echo "Exec=env ${env_vars} m_umu 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args}" >> "${shortcut_path}"
     echo "Name=BSG - Launcher" >> "${shortcut_path}"
     echo "Icon=tarkov" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
@@ -214,18 +222,18 @@ install_spt() {
     # Install dependencies
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnetdesktop8") ]; then
         msg "Installing .NET Desktop 8 Runtime..."
-        m_exec umu-run winetricks -q dotnetdesktop8 || err "Failed to install dependency"
+        m_exec m_umu winetricks -q dotnetdesktop8 || err "Failed to install dependency"
     fi
 
     if [ -z $(cat "${prefix_dir}/winetricks.log" | grep "dotnetdesktop9") ]; then
         msg "Installing .NET Desktop 9 Runtime..."
-        m_exec umu-run winetricks -q dotnetdesktop9 || err "Failed to install dependency"
+        m_exec m_umu winetricks -q dotnetdesktop9 || err "Failed to install dependency"
     fi
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
-    m_exec umu-run reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
-    # m_exec umu-run reg add "HKCU\\Software\\Wine\\DllOverrides" /v "icu" /t "REG_SZ" /d "disabled" /f
+    m_exec m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
+    # m_exec m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "icu" /t "REG_SZ" /d "disabled" /f
 
     # HACK: UMU-Proton fails to run the SPTInstaller, so we have to switch to GE-Proton instead
     export PROTONPATH="GE-Proton"
@@ -234,7 +242,7 @@ install_spt() {
     if [ ! -d "${spt_dir}" ]; then m_exec mkdir -p "${spt_dir}"; fi
     cd "${spt_dir}"
     msg "Launching SPT Installer..."
-    m_exec umu-run "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+    m_exec m_umu "${cache_dir}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
 
     # Install server launch script
     msg "Installing server launch script..."
@@ -263,7 +271,7 @@ install_spt() {
     echo "[Desktop Entry]" >> "${shortcut_path}"
     echo "Categories=Game;ActionGame;Simulation" >> "${shortcut_path}"
     echo "Path=${spt_dir}" >> "${shortcut_path}"
-    echo "Exec=env ${env_vars} umu-run 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
+    echo "Exec=env ${env_vars} m_umu 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args}" >> "${shortcut_path}"
     echo "Name=SPTarkov - Launcher" >> "${shortcut_path}"
     echo "Icon=spt_launcher" >> "${shortcut_path}"
     echo "Type=Application" >> "${shortcut_path}"
@@ -328,7 +336,6 @@ opt_install() {
 
 opt_uninstall() {
     local mode="$1"
-    local force="$2"
 
     case "${mode}" in
         eft)
@@ -516,7 +523,6 @@ handle_opts() {
 
 
 main() {
-    
     # ANSI codes
     bold="\e[1m"; underline="\e[2m"; reset="\e[0m"
     red="\e[31m"; green="\e[32m"; blue="\e[36m"
@@ -530,9 +536,6 @@ main() {
     # Initalize directory paths
     init_paths
 
-    # Add bin dir to PATH variable
-    export PATH=${bin_dir}:$PATH
-
     # Remove previous log file
     if [[ -f "${cache_dir}/installer.log" ]]; then
         m_exec rm -f "${cache_dir}/installer.log"
@@ -543,8 +546,10 @@ main() {
     export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
     export WINEPREFIX="${prefix_dir}"
 
-    # Install UMU-Launcher if needed
-    [[ ! -f "${bin_dir}/umu-run" ]] && install_umu
+    # Install UMU if needed
+    if ! command -v umu-run && [[ ! -f "${umu_path}" ]]; then
+        install_umu
+    fi
 
     # Handle command line arguments
     handle_opts "$@"
