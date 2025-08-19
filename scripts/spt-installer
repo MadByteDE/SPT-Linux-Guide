@@ -109,11 +109,13 @@ ask() {
 
 init_paths() {
     # System directories
+    DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+    DATA_DIR="${DATA_HOME}/${TITLE}" && mkdir -p "${DATA_DIR}"
     CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/${TITLE}" && mkdir -p "${CACHE_DIR}"
     CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/${TITLE}" && mkdir -p "${CONFIG_DIR}"
     TMP_DIR="${CACHE_DIR}/tmp" && mkdir -p "${TMP_DIR}"
-    ICO_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps" && mkdir -p "${ICO_DIR}"
-    APP_DIR="${HOME}/.local/share/applications"
+    ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps" && mkdir -p "${ICO_DIR}"
+    APP_DIR="${DATA_HOME}/applications"
 
     # Prefix directories
     PFX_DIR="${PFX_DIR:-"${HOME}/Games/tarkov"}"
@@ -124,7 +126,7 @@ init_paths() {
     # File path variables
     LOG_PATH="${CACHE_DIR}/installer.log"
     SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
-    UMU_PATH=$(command -v umu-run || echo "${CACHE_DIR}/umu/umu-run")
+    UMU_PATH=$(command -v umu-run || echo "${DATA_DIR}/umu/umu-run")
     PFX_CONF_PATH="${CONFIG_DIR}/prefix.conf"
 }
 
@@ -179,14 +181,14 @@ install_tarkov() {
     m_umu-run reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
     # Download BSG Launcher if needed
-    if [[ ! -f "${CACHE_DIR}/BsgLauncher.exe" ]]; then
+    if [[ ! -f "${DATA_DIR}/BsgLauncher.exe" ]]; then
         msg "Downloading BSG Launcher..."
-        cd "${CACHE_DIR}" && m_curl -L "${URL[bsg-launcher]}" -o "BsgLauncher.exe"
+        cd "${DATA_DIR}" && m_curl -L "${URL[bsg-launcher]}" -o "BsgLauncher.exe"
     fi
 
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
-    m_umu-run "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
+    m_umu-run "${DATA_DIR}/BsgLauncher.exe" /VERYSILENT
 
     # Re-initialize prefix for GE-Proton
     msg "Switching Proton version to 'GE-Proton'..."
@@ -255,9 +257,9 @@ install_spt() {
     fi
 
     # Download SPT Installer
-    if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
+    if ! [[ -f "${DATA_DIR}/SPTInstaller.exe" ]]; then
         msg "Downloading SPTInstaller.exe..."
-        cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
+        cd "${DATA_DIR}" && m_curl -LO "${URL[spt-installer]}"
     fi
 
     # Install dependencies
@@ -280,7 +282,7 @@ install_spt() {
 
     # Run SPT Installer
     msg "Launching SPT Installer..."
-    m_umu-run "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+    m_umu-run "${DATA_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
 
     # Install server launch script
     cd "${SPT_DIR}" && m_curl -LO "${URL[server-script]}"
@@ -438,6 +440,12 @@ opt_uninstall() {
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
+        data)
+            msg "Removing data directory..."
+            [[ -d "${DATA_DIR}" ]] && m_rm -r "${DATA_DIR}"
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
+        ;;
+
         prefix)
             if ! [ "${no_prompt}" = 1 ]; then
                 # Warn user before continuing
@@ -459,6 +467,7 @@ opt_uninstall() {
                 msg "${BOLD}This action will remove the SPT/EFT wine prefix, all cached files & all game shortcuts!${RESET}"
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
                 msg "    > ${UNDERLINE}${PFX_DIR}${RESET}"
+                msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
                 ask "Do you want to continue?"
             fi
@@ -466,6 +475,7 @@ opt_uninstall() {
             opt_uninstall "eft" 1
             opt_uninstall "spt" 1
             opt_uninstall "prefix" 1
+            opt_uninstall "data" 1
             opt_uninstall "cache" 1
         ;;
 
@@ -504,7 +514,7 @@ opt_help() {
     msg
     msg "${BOLD}OPTIONS:${RESET}"
     msg "   ${BOLD}-i${RESET} (Install)         - Available arguments: eft|spt"
-    msg "   ${BOLD}-u${RESET} (Uninstall)       - Available arguments: eft|spt|prefix|cache|wipe"                                       
+    msg "   ${BOLD}-u${RESET} (Uninstall)       - Available arguments: eft|spt|prefix|data|cache|wipe"                                       
     msg "   ${BOLD}-p${RESET} (Prefix)          - Set a custom path for the wine prefix"
     msg "   ${BOLD}--self-update${RESET}        - Updates this installer script"
     msg "   ${BOLD}--no-prompt${RESET}          - Disable interactive prompt messages"
@@ -553,7 +563,7 @@ handle_opts() {
             # Uninstall option
             u)
                 case "${OPTARG}" in
-                    eft|spt|cache|prefix|wipe) opt_uninstall "${OPTARG}" ;;
+                    eft|spt|data|cache|prefix|wipe) opt_uninstall "${OPTARG}" ;;
                     -*) msg "Invalid option: -${opt} requires an argument" ;;
                     *) err "Invalid argument '${OPTARG}'. (Available options: eft|spt|cache|prefix|wipe)" ;;
                 esac
