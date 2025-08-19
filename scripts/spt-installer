@@ -519,7 +519,7 @@ opt_version() {
 
 handle_opts() {
     # Execute commands
-    while getopts ":p:i:u:dhv-:" opt; do
+    while getopts ":p:i:u:hv-:" opt; do
         case ${opt} in
 
             # Prefix option
