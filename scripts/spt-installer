@@ -42,6 +42,38 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 
+m_exit() {
+    local status
+    status=${1:-$?}
+
+    # Remove temp files
+    [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
+
+    # Exit with passed status code
+    exit "${status}"
+}
+
+
+m_chmod() {
+    chmod "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+}
+
+
+m_rm() {
+    rm "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+}
+
+
+m_curl() {
+    curl --connect-timeout 30 -f "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+}
+
+
+m_umu-run() {
+    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+}
+
+
 msg() {
     local filtered_str output
     output="${GRAY}[$TITLE]${RESET} ${*}"
@@ -49,7 +81,7 @@ msg() {
 
     # Show in terminal & write to log
     echo -e "${output}"
-    echo "${filtered_str}" | tee -a "${LOG_PATH}" &>/dev/null
+    echo "${filtered_str}" &>> "${LOG_PATH}"
 }
 
 
@@ -75,41 +107,13 @@ ask() {
 }
 
 
-m_exec() {
-    # Only used to log everything
-    "$@" &>> "${LOG_PATH}"
-}
-
-
-m_mkdir() {
-    mkdir -p "$1" || err "Failed to create directory: '$1'"
-}
-
-
-m_exit() {
-    local status
-    status=${1:-$?}
-
-    # Remove temp files
-    [[ -d "${TMP_DIR}" ]] && m_exec rm -r "${TMP_DIR}"
-
-    # Exit with passed status code
-    exit "${status}"
-}
-
-
-m_curl() {
-    curl --connect-timeout 30 "$@" || err "Command failed (error code $?): '$*'"
-}
-
-
 init_paths() {
     # System directories
+    CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/${TITLE}" && mkdir -p "${CACHE_DIR}"
+    CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/${TITLE}" && mkdir -p "${CONFIG_DIR}"
+    TMP_DIR="${CACHE_DIR}/tmp" && mkdir -p "${TMP_DIR}"
+    ICO_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps" && mkdir -p "${ICO_DIR}"
     APP_DIR="${HOME}/.local/share/applications"
-    ICO_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps" && m_mkdir "${ICO_DIR}" 
-    CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/${TITLE}" && m_mkdir "${CACHE_DIR}"
-    CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/${TITLE}" && m_mkdir "${CONFIG_DIR}"
-    TMP_DIR="${CACHE_DIR}/tmp" && m_mkdir "${TMP_DIR}"
 
     # Prefix directories
     PFX_DIR="${PFX_DIR:-"${HOME}/Games/tarkov"}"
@@ -119,7 +123,7 @@ init_paths() {
 
     # File path variables
     LOG_PATH="${CACHE_DIR}/installer.log"
-    SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> "${LOG_PATH}" && pwd )"
+    SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
     UMU_PATH=$(command -v umu-run || echo "${CACHE_DIR}/umu/umu-run")
     PFX_CONF_PATH="${CONFIG_DIR}/prefix.conf"
 }
@@ -138,10 +142,10 @@ install_umu() {
     
     # Download zipapp archive
     cd "${TMP_DIR}" || exit
-    m_exec m_curl -LO "${URL[umu-launcher]}" || err "Download failed: ${URL[umu-launcher]}"
+    m_curl -LO "${URL[umu-launcher]}"
 
     # Extract & remove when done
-    m_exec tar -xf "$(ls -- !("zipapp.tar"))" -C "../" || err "Failed to extract UMU"
+    tar -xf "$(ls -- !("zipapp.tar"))" -C "../" || err "Failed to extract umu-launcher archive"
 }
 
 
@@ -152,52 +156,47 @@ install_tarkov() {
     if [[ ! -d "${PFX_DIR}" ]]; then
         # Initialize prefix
         msg "Initializing wine prefix..."
-        m_exec "${UMU_PATH}" wineboot -u || err "Failed to initialize the wine prefix"
+        m_umu-run wineboot -u || err "Failed to initialize wine prefix"
     fi
 
     # Install game dependencies
-    if ! cat "${PFX_DIR}/winetricks.log" 2>/dev/null | grep -q "times"; then
-        msg "Installing Fonts..."
-        m_exec "${UMU_PATH}" winetricks -q arial times || err "Failed to install dependency"
-    fi
-
-    if ! cat "${PFX_DIR}/winetricks.log" | grep -q "dotnet48"; then
+    if ! cat "${PFX_DIR}/winetricks.log" 2>/dev/null | grep -q "dotnet48"; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
-        m_exec "${UMU_PATH}" winetricks -q dotnet48 || err "Failed to install dependency"
+        m_umu-run winetricks -q dotnet48
     fi
 
     if ! cat "${PFX_DIR}/winetricks.log" | grep -q "vcrun2022"; then
         msg "Installing Microsoft Visual C++ 2015-2022 Redistributable..."
-        m_exec "${UMU_PATH}" winetricks -q vcrun2022 || err "Failed to install dependency"
+        m_umu-run winetricks -q vcrun2022
     fi
 
     # Add prefix update pop-up workaround
     msg "Adding window pop-up workaround..."
-    m_exec "${UMU_PATH}" reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
+    m_umu-run reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
 
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
-    m_exec "${UMU_PATH}" reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
+    m_umu-run reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
     # Download BSG Launcher if needed
     if [[ ! -f "${CACHE_DIR}/BsgLauncher.exe" ]]; then
         msg "Downloading BSG Launcher..."
-        (cd "${CACHE_DIR}" && m_exec m_curl -L "${URL[bsg-launcher]}" -o "BsgLauncher.exe") || err "Download failed: ${URL[bsg-launcher]}"
+        cd "${CACHE_DIR}" && m_curl -L "${URL[bsg-launcher]}" -o "BsgLauncher.exe"
     fi
 
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
-    m_exec "${UMU_PATH}" "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT || err "Failed to install BSG Launcher"
+    m_umu-run "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
 
     # Re-initialize prefix for GE-Proton
     msg "Switching Proton version to 'GE-Proton'..."
     export PROTONPATH="GE-Proton"
-    m_exec "${UMU_PATH}" wineboot -u || err "Failed to initialize the wine prefix"
+    m_umu-run wineboot -u
 
     # Copy icon to user icons directory
     if [[ ! -f "${ICO_DIR}/tarkov.png" ]]; then
         msg "Downloading & installing app icon from SteamGridDB..."
-        (cd "${ICO_DIR}" && m_exec m_curl -L "${URL[bsg-launcher-ico]}" -o "tarkov.png") || err "Download failed: ${URL[bsg-launcher-ico]}"
+        cd "${ICO_DIR}" && m_curl -L "${URL[bsg-launcher-ico]}" -o "tarkov.png"
     fi
 
     # Create application shortcut
@@ -214,7 +213,7 @@ install_tarkov() {
     launch_args+=("--disable-software-rasterizer")
 
     # Remove existing shortcut
-    [[ -f "${shortcut_path}" ]] && m_exec rm -f "${shortcut_path}"
+    [[ -f "${shortcut_path}" ]] && m_rm -f "${shortcut_path}"
 
     # Write desktop file
     {   echo "[Desktop Entry]"
@@ -227,7 +226,7 @@ install_tarkov() {
     } >> "${shortcut_path}"
 
     # Make executable
-    m_exec chmod +x "${shortcut_path}"
+    m_chmod +x "${shortcut_path}"
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
@@ -258,45 +257,40 @@ install_spt() {
     # Download SPT Installer
     if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
         msg "Downloading SPTInstaller.exe..."
-        (cd "${CACHE_DIR}" && m_exec m_curl -LO "${URL[spt-installer]}") || err "Download failed: ${URL[spt-installer]}"
+        cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
     fi
 
     # Install dependencies
     if ! cat "${PFX_DIR}/winetricks.log" 2>/dev/null | grep -q "dotnetdesktop8"; then
         msg "Installing .NET Desktop 8 Runtime..."
-        m_exec "${UMU_PATH}" winetricks -q dotnetdesktop8 || err "Failed to install dependency"
+        m_umu-run winetricks -q dotnetdesktop8
     fi
 
     if ! cat "${PFX_DIR}/winetricks.log" | grep -q "dotnetdesktop9"; then
         msg "Installing .NET Desktop 9 Runtime..."
-        m_exec "${UMU_PATH}" winetricks -q dotnetdesktop9 || err "Failed to install dependency"
+        m_umu-run winetricks -q dotnetdesktop9
     fi
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
-    m_exec "${UMU_PATH}" reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
+    m_umu-run reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
 
     # HACK: UMU-Proton fails to run the SPTInstaller, so we have to switch to GE-Proton instead
     export PROTONPATH="GE-Proton"
 
     # Run SPT Installer
     msg "Launching SPT Installer..."
-    m_exec "${UMU_PATH}" "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+    m_umu-run "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
 
     # Install server launch script
-    msg "Installing server launch script..."
-    if [[ "$(m_curl -w '%{http_code}' -s -o /dev/null "${URL[server-script]}")" == "404" ]]; then
-        err "The remote file does not exist!"
-    fi
-
-    (cd "${SPT_DIR}" && m_exec m_curl -LO "${URL[server-script]}") || err "Download failed: ${URL[server-script]}"
-    m_exec chmod +x "${SPT_DIR}/launch-server.sh"
+    cd "${SPT_DIR}" && m_curl -LO "${URL[server-script]}"
+    m_chmod +x "${SPT_DIR}/launch-server.sh"
 
     # Copy icon to user icons directory
     if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
         msg "Downloading & installing app icons..."
-        (cd "${ICO_DIR}" && m_exec m_curl -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png")
-        (cd "${ICO_DIR}" && m_exec m_curl -L "${URL[spt-server-ico]}" -o "spt_server.png")
+        cd "${ICO_DIR}" && m_curl -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
+        cd "${ICO_DIR}" && m_curl -L "${URL[spt-server-ico]}" -o "spt_server.png"
     fi
 
     # Create application shortcuts
@@ -317,7 +311,7 @@ install_spt() {
     shortcut_path="${APP_DIR}/SPTarkov - Launcher.desktop"
 
     # Remove existing shortcut
-    [[ -f "${shortcut_path}" ]] && m_exec rm -f "${shortcut_path}"
+    [[ -f "${shortcut_path}" ]] && m_rm -f "${shortcut_path}"
 
     # Write desktop file
     {   echo "[Desktop Entry]"
@@ -327,13 +321,13 @@ install_spt() {
         echo "Name=SPTarkov - Launcher"
         echo "Icon=spt_launcher"
         echo "Type=Application"
-    } >> "${shortcut_path}" && m_exec chmod +x "${shortcut_path}"
+    } >> "${shortcut_path}" && m_chmod +x "${shortcut_path}"
     
     # SPT Server
     shortcut_path="${APP_DIR}/SPTarkov - Server.desktop"
 
     # Remove existing shortcut
-    [[ -f "${shortcut_path}" ]] && m_exec rm -f "${shortcut_path}"
+    [[ -f "${shortcut_path}" ]] && m_rm -f "${shortcut_path}"
 
     # Write desktop file
     {   echo "[Desktop Entry]"
@@ -343,7 +337,7 @@ install_spt() {
         echo "Name=SPTarkov - Server"
         echo "Icon=spt_server"
         echo "Type=Application"
-    } >> "${shortcut_path}" && m_exec chmod +x "${shortcut_path}"
+    } >> "${shortcut_path}" && m_chmod +x "${shortcut_path}"
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
@@ -407,11 +401,11 @@ opt_uninstall() {
             fi
 
             msg "Uninstalling 'Escape from Tarkov'..."
-            [[ -d "${BSG_DIR}" ]] && m_exec rm -r "${BSG_DIR}"
+            [[ -d "${BSG_DIR}" ]] && m_rm -r "${BSG_DIR}"
 
             msg "Removing shortcut..."
             app_path="${APP_DIR}/BSG - Launcher.desktop"
-            [[ -f "${app_path}" ]] && m_exec rm -f "${app_path}"
+            [[ -f "${app_path}" ]] && m_rm -f "${app_path}"
 
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
@@ -424,7 +418,7 @@ opt_uninstall() {
             fi
 
             msg "Uninstalling 'SPTarkov'..."
-            [[ -d "${SPT_DIR}" ]] && m_exec rm -r "${SPT_DIR}"
+            [[ -d "${SPT_DIR}" ]] && m_rm -r "${SPT_DIR}"
 
             msg "Removing shortcuts..."
             local apps app_path
@@ -432,7 +426,7 @@ opt_uninstall() {
             
             for app in "${apps[@]}"; do
                 app_path="${APP_DIR}/${app}"
-                [[ -f "${app_path}" ]] && m_exec rm -f "${app_path}"
+                [[ -f "${app_path}" ]] && m_rm -f "${app_path}"
             done
 
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
@@ -440,7 +434,7 @@ opt_uninstall() {
 
         cache)
             msg "Removing Cache directory..."
-            [[ -d "${CACHE_DIR}" ]] && m_exec rm -r "${CACHE_DIR}"
+            [[ -d "${CACHE_DIR}" ]] && m_rm -r "${CACHE_DIR}"
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
@@ -454,7 +448,7 @@ opt_uninstall() {
             fi
 
             msg "Removing Prefix directory..."
-            [[ -d "${PFX_DIR}" ]] && m_exec rm -r "${PFX_DIR}"
+            [[ -d "${PFX_DIR}" ]] && m_rm -r "${PFX_DIR}"
 
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
@@ -473,8 +467,6 @@ opt_uninstall() {
             opt_uninstall "spt" 1
             opt_uninstall "prefix" 1
             opt_uninstall "cache" 1
-    
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
         *)
@@ -498,12 +490,9 @@ opt_selfupdate() {
 
     msg "Updating script..."
 
-    local http_code
-    http_code="$(m_curl -w '%{http_code}' -s -o /dev/null "${URL[installer-script]}")" || err "Failed to get http code"
-    [[ "${http_code}" == "404" ]] && err "The remote file does not exist!"
-
-    (cd "${SCRIPT_PATH}" && m_exec m_curl -LO "${URL[installer-script]}") || err "Download failed: ${URL[installer-script]}"
-    m_exec chmod +x "${SCRIPT_PATH}" || err "Failed to change file permissions"
+    
+    cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
+    m_chmod +x "${SCRIPT_PATH}"
 
     ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
@@ -608,7 +597,7 @@ main() {
     init_paths || err "Failed to initialize script paths"
 
     # Remove old log file
-    [[ -f "${CACHE_DIR}/installer.log" ]] && m_exec rm -f "${CACHE_DIR}/installer.log"
+    [[ -f "${CACHE_DIR}/installer.log" ]] && m_rm -f "${CACHE_DIR}/installer.log"
 
     # Handle command line arguments
     handle_opts "$@"
