@@ -393,14 +393,18 @@ opt_install() {
 
 
 opt_uninstall() {
-    local mode
+    local mode no_prompt
     mode="$1"
+    no_prompt="${2:-$NO_PROMPT}"
 
     case "${mode}" in
         eft)
-            msg "${BOLD}This action will uninstall 'Escape from Tarkov' from your system!${RESET}"
-            msg "Prefix directory: ${UNDERLINE}${PFX_DIR}${RESET}"
-            ask "Do you want to continue?"
+            if ! [ "${no_prompt}" = 1 ]; then
+                # Warn user before continuing
+                msg "${BOLD}This action will uninstall 'Escape from Tarkov' from your system!${RESET}"
+                msg "Prefix directory: ${UNDERLINE}${PFX_DIR}${RESET}"
+                ask "Do you want to continue?"
+            fi
 
             msg "Uninstalling 'Escape from Tarkov'..."
             [[ -d "${BSG_DIR}" ]] && m_exec rm -r "${BSG_DIR}"
@@ -409,56 +413,68 @@ opt_uninstall() {
             app_path="${APP_DIR}/BSG - Launcher.desktop"
             [[ -f "${app_path}" ]] && m_exec rm -f "${app_path}"
 
-            msg "${GREEN}Done!${RESET}"
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
         spt)
-            msg "${BOLD}This action will uninstall 'SPTarkov' from your system!${RESET}"
-            msg "Prefix directory: ${UNDERLINE}${PFX_DIR}${RESET}"
-            ask "Do you want to continue?"
+            if ! [ "${no_prompt}" = 1 ]; then
+                msg "${BOLD}This action will uninstall 'SPTarkov' from your system!${RESET}"
+                msg "Prefix directory: ${UNDERLINE}${PFX_DIR}${RESET}"
+                ask "Do you want to continue?"
+            fi
 
             msg "Uninstalling 'SPTarkov'..."
             [[ -d "${SPT_DIR}" ]] && m_exec rm -r "${SPT_DIR}"
 
-            local apps, app_path
-            msg "Removing shortcut..."
-            apps=()
-            apps+=("SPTarkov - Launcher.desktop")
-            apps+=("SPTarkov - Server.desktop")
-
+            msg "Removing shortcuts..."
+            local apps app_path
+            apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
+            
             for app in "${apps[@]}"; do
                 app_path="${APP_DIR}/${app}"
                 [[ -f "${app_path}" ]] && m_exec rm -f "${app_path}"
             done
 
-            msg "${GREEN}Done!${RESET}"
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
         cache)
             msg "Removing Cache directory..."
             [[ -d "${CACHE_DIR}" ]] && m_exec rm -r "${CACHE_DIR}"
-            msg "${GREEN}Done!${RESET}"
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
         prefix)
-            # Warn user before continuing
-            msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
-            msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
-            msg "${UNDERLINE}${PFX_DIR}${RESET}"
-            msg
-            ask "Do you want to continue?"
+            if ! [ "${no_prompt}" = 1 ]; then
+                # Warn user before continuing
+                msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
+                msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
+                msg "${UNDERLINE}${PFX_DIR}${RESET}"
+                ask "Do you want to continue?"
+            fi
 
             msg "Removing Prefix directory..."
             [[ -d "${PFX_DIR}" ]] && m_exec rm -r "${PFX_DIR}"
 
-            msg "${GREEN}Done!${RESET}"
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
         wipe)
-            opt_uninstall "eft"
-            opt_uninstall "spt"
-            opt_uninstall "prefix"
-            opt_uninstall "cache"
+            if ! [ "${no_prompt}" = 1 ]; then
+                # Warn user before continuing
+                msg "${BOLD}This action will remove the SPT/EFT wine prefix, all cached files & all game shortcuts!${RESET}"
+                msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
+                msg "    > ${UNDERLINE}${PFX_DIR}${RESET}"
+                msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
+                ask "Do you want to continue?"
+            fi
+
+            opt_uninstall "eft" 1
+            opt_uninstall "spt" 1
+            opt_uninstall "prefix" 1
+            opt_uninstall "cache" 1
+    
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
         *)
@@ -469,15 +485,19 @@ opt_uninstall() {
 
 
 opt_selfupdate() {
-    msg "${YELLOW}Not fully implemented yet${RESET}"
-    msg
-    msg "> The script will attempt to download the latest VERSION available here:"
-    msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
-    msg
-    msg "> This feature is ${BOLD}NOT${RESET} fully implemented yet & won't validate the new script file!"
-    msg
-    ask "Do you want to continue?"
-    
+    if ! [ "${NO_PROMPT}" = 1 ]; then
+        msg "${YELLOW}Not fully implemented yet${RESET}"
+        msg
+        msg "> The script will attempt to download the latest VERSION available here:"
+        msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
+        msg
+        msg "> This feature is ${BOLD}NOT${RESET} fully implemented yet & won't validate the new script file!"
+        msg
+        ask "Do you want to continue?"
+    fi
+
+    msg "Updating script..."
+
     local http_code
     http_code="$(m_curl -w '%{http_code}' -s -o /dev/null "${URL[installer-script]}")" || err "Failed to get http code"
     [[ "${http_code}" == "404" ]] && err "The remote file does not exist!"
@@ -485,7 +505,7 @@ opt_selfupdate() {
     (cd "${SCRIPT_PATH}" && m_exec m_curl -LO "${URL[installer-script]}") || err "Download failed: ${URL[installer-script]}"
     m_exec chmod +x "${SCRIPT_PATH}" || err "Failed to change file permissions"
 
-    msg "${GREEN}Done! ※\(^o^)/※${RESET}"
+    ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
 
 
@@ -498,6 +518,7 @@ opt_help() {
     msg "   ${BOLD}-u${RESET} (Uninstall)       - Available arguments: eft|spt|prefix|cache|wipe"                                       
     msg "   ${BOLD}-p${RESET} (Prefix)          - Set a custom path for the wine prefix"
     msg "   ${BOLD}--self-update${RESET}        - Updates this installer script"
+    msg "   ${BOLD}--no-prompt${RESET}          - Disable interactive prompt messages"
     msg "   ${BOLD}-h | --help${RESET}          - Print this help message"
     msg "   ${BOLD}-v | --VERSION${RESET}       - Print the VERSION info message"
     msg
@@ -555,6 +576,7 @@ handle_opts() {
             -)
                 case "${OPTARG}" in
                     self-update) opt_selfupdate ;;
+                    no-prompt) export NO_PROMPT=1; msg "'NO_PROMPT' option set" ;;
                     help) opt_help ;;
                     version) opt_version ;;
                     *)
