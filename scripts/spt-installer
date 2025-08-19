@@ -108,6 +108,7 @@ init_paths() {
     APP_DIR="${HOME}/.local/share/applications"
     ICO_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps" && m_mkdir "${ICO_DIR}" 
     CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/${TITLE}" && m_mkdir "${CACHE_DIR}"
+    CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/${TITLE}" && m_mkdir "${CONFIG_DIR}"
     TMP_DIR="${CACHE_DIR}/tmp" && m_mkdir "${TMP_DIR}"
 
     # Prefix directories
@@ -120,14 +121,14 @@ init_paths() {
     LOG_PATH="${CACHE_DIR}/installer.log"
     SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> "${LOG_PATH}" && pwd )"
     UMU_PATH=$(command -v umu-run || echo "${CACHE_DIR}/umu/umu-run")
-    PFX_CONF_DIR="${CACHE_DIR}/prefix.conf"
+    PFX_CONF_PATH="${CONFIG_DIR}/prefix.conf"
 }
 
 
 load_prefix_path() {
     # Load prefix path from prefix.conf file or fallback to default path
     local prefix_path
-    prefix_path="$(cat "${PFX_CONF_DIR}" 2>/dev/null || echo "${PFX_DIR}")"
+    prefix_path="$(cat "${PFX_CONF_PATH}" 2>/dev/null || echo "${PFX_DIR}")"
     opt_setprefix "${prefix_path}"
 }
 
@@ -362,7 +363,7 @@ opt_setprefix() {
     init_paths || err "Failed to initialize script paths"
 
     # Update prefix config file
-    echo "${PFX_DIR}" > "${PFX_CONF_DIR}"
+    echo "${PFX_DIR}" > "${PFX_CONF_PATH}"
     msg "Prefix path has been set to '${1}'"
 }
 
