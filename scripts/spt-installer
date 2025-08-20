@@ -27,13 +27,13 @@ declare -A URL
 URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
 URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
-URL[server-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh"
 URL[bsg-launcher-ico]="https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png"
 URL[spt-launcher-ico]="https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png"
 URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png"
+URL[server-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh"
 URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-installer"
-URL[discord]="https://discord.com/invite/Xn9msqQZan"
 URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
+URL[discord]="https://discord.com/invite/Xn9msqQZan"
 readonly -A URL
 
 # We don't want to run as root
@@ -100,7 +100,7 @@ err() {
     status=$?
     pfx="${BOLD}${RED}ERROR: ${RESET}"
     msg "${pfx}$1"
-    msg "${pfx}See \"${CACHE_DIR}/installer.log\" for more details.${RESET}"
+    msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}"
     m_exit ${status}
 }
 
@@ -176,7 +176,8 @@ install_umu() {
 }
 
 
-install_tarkov() {
+install_eft() {
+    msg "Started \"Escape from Tarkov\" setup..."
     # Get prefix path (cached/default) and validate it
     opt_setprefix "${CONFIG[pfx_dir]}"
 
@@ -222,7 +223,7 @@ install_tarkov() {
 
     # Copy icon to user icons directory
     if [[ ! -f "${ICO_DIR}/tarkov.png" ]]; then
-        msg "Downloading & installing app icon from SteamGridDB..."
+        msg "Getting app icon from SteamGridDB..."
         cd "${ICO_DIR}" && m_curl -L "${URL[bsg-launcher-ico]}" -o "tarkov.png"
     fi
 
@@ -256,6 +257,7 @@ install_tarkov() {
 
 
 install_spt() {
+    msg "Started \"SPTarkov\" setup..."
     # HACK: Needed to run the SPTInstaller.exe
     export DOTNET_BUNDLE_EXTRACT_BASE_DIR=""
     export DOTNET_ROOT=""
@@ -273,7 +275,7 @@ install_spt() {
     elif [[ -d "${SPT_DIR}" ]]; then
         msg "${YELLOW}SPTarkov directory already exists.${RESET}"
         msg "${YELLOW}If you want to reinstall, make sure to remove the old installation first!${RESET}"
-        err "SPTarkov directoy already exists."
+        err "SPTarkov directory already exists."
     fi
 
     # Download SPT Installer
@@ -310,7 +312,7 @@ install_spt() {
 
     # Copy icon to user icons directory
     if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
-        msg "Downloading & installing app icons..."
+        msg "Getting app icons from SteamGridDB..."
         cd "${ICO_DIR}" && m_curl -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
         cd "${ICO_DIR}" && m_curl -L "${URL[spt-server-ico]}" -o "spt_server.png"
     fi
@@ -365,6 +367,51 @@ install_spt() {
 }
 
 
+uninstall_eft() {
+    local no_prompt
+    no_prompt="${1:-$NO_PROMPT}"
+    if [[ "${no_prompt}" != 1 ]]; then
+        # Warn user before continuing
+        msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
+        msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
+        ask "Do you want to continue?"
+    fi
+
+    msg "Uninstalling \"Escape from Tarkov\"..."
+    [[ -d "${BSG_DIR}" ]] && m_rm -r "${BSG_DIR}"
+
+    msg "Removing shortcut..."
+    app_path="${APP_DIR}/BSG - Launcher.desktop"
+    [[ -f "${app_path}" ]] && m_rm -f "${app_path}"
+
+    [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+}
+
+
+uninstall_spt() {
+    local no_prompt
+    no_prompt="${1:-$NO_PROMPT}"
+    if [[ "${no_prompt}" != 1 ]]; then
+        msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
+        msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
+        ask "Do you want to continue?"
+    fi
+
+    msg "Uninstalling \"SPTarkov\"..."
+    [[ -d "${SPT_DIR}" ]] && m_rm -r "${SPT_DIR}"
+
+    msg "Removing shortcuts..."
+    local apps app_path
+    apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
+    for app in "${apps[@]}"; do
+        app_path="${APP_DIR}/${app}"
+        [[ -f "${app_path}" ]] && m_rm -f "${app_path}"
+    done
+
+    [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+}
+
+
 opt_setprefix() {
     local path
     path="${1}"
@@ -387,95 +434,65 @@ opt_setprefix() {
 
 
 opt_install() {
-    local mode="$1"
+    # SYNTAX: spt-additions install spt -p ~/Games/sptarkov
+    local option="$1" && shift
 
-    # Install umu-launcher if needed
-    [[ ! -f "${UMU_PATH}" ]] && install_umu
-
-    case "${mode}" in
+    while getopts ":p:e:a:h:-" subopt; do
+        case ${subopt} in
+            p) CONFIG[pfx_dir]="${OPTARG}";;
+            e) opt_setenv "${OPTARG}";;
+            a) opt_setargs "${OPTARG}";;
+            h) opt_help "install" ;;
+            -*)
+                case "${OPTARG}" in
+                    help) opt_help "install";;
+                    *) err "Invalid option: --${OPTARG}" ;;
+                esac
+            ;;
+        esac
+    done
+    
+    case "${option}" in
         eft)
-            msg "Launching Escape from Tarkov setup..."
-            install_tarkov
+            # Install umu-launcher if needed
+            [[ ! -f "${UMU_PATH}" ]] && install_umu
+            # Launch setup
+            install_eft
         ;;
-
         spt)
-            msg "Launching SPTarkov setup..."
+            # Install umu-launcher if needed
+            [[ ! -f "${UMU_PATH}" ]] && install_umu
+            # Launch setup
             install_spt
         ;;
-
-        *)
-            err "Invalid argument \"${mode}\". (Available options: eft, spt)"
-        ;;
+        *) err "Invalid argument \"${option}\". (Available options: eft|spt)" ;;
     esac
 }
 
 
 opt_uninstall() {
-    local mode no_prompt
-    mode="$1"
-    no_prompt="${2:-$NO_PROMPT}"
+    # SYNTAX: spt-additions uninstall spt -p ~/Games/sptarkov
+    local option="$1" && shift
 
-    case "${mode}" in
-        eft)
-            if ! [ "${no_prompt}" = 1 ]; then
-                # Warn user before continuing
-                msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
-                msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
-                ask "Do you want to continue?"
-            fi
-
-            msg "Uninstalling \"Escape from Tarkov\"..."
-            [[ -d "${BSG_DIR}" ]] && m_rm -r "${BSG_DIR}"
-
-            msg "Removing shortcut..."
-            app_path="${APP_DIR}/BSG - Launcher.desktop"
-            [[ -f "${app_path}" ]] && m_rm -f "${app_path}"
-
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
-        ;;
-
-        spt)
-            if ! [ "${no_prompt}" = 1 ]; then
-                msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
-                msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
-                ask "Do you want to continue?"
-            fi
-
-            msg "Uninstalling \"SPTarkov\"..."
-            [[ -d "${SPT_DIR}" ]] && m_rm -r "${SPT_DIR}"
-
-            msg "Removing shortcuts..."
-            local apps app_path
-            apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
-            
-            for app in "${apps[@]}"; do
-                app_path="${APP_DIR}/${app}"
-                [[ -f "${app_path}" ]] && m_rm -f "${app_path}"
-            done
-
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
-        ;;
-
-        cache)
-            msg "Removing Cache directory..."
-            [[ -d "${CACHE_DIR}" ]] && m_rm -r "${CACHE_DIR}"
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
-        ;;
-
-        config)
-            msg "Removing config directory..."
-            [[ -d "${CONFIG_DIR}" ]] && m_rm -r "${CONFIG_DIR}"
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
-        ;;
-
-        data)
-            msg "Removing data directory..."
-            [[ -d "${DATA_DIR}" ]] && m_rm -r "${DATA_DIR}"
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
-        ;;
-
-        prefix)
-            if ! [ "${no_prompt}" = 1 ]; then
+    while getopts ":p:h:-:" subopt; do
+        case ${subopt} in
+            p) opt_setprefix "${OPTARG}";;
+            h) opt_help "uninstall" ;;
+            -)
+                case "${OPTARG}" in
+                    help) opt_help "uninstall";;
+                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
+                    *) err "Invalid option: --${OPTARG}" ;;
+                esac
+            ;;
+        esac
+    done
+    
+    case "${option}" in
+        eft) uninstall_eft ;;
+        spt) uninstall_spt ;;
+        all)
+            if ! [ "${NO_PROMPT}" = 1 ]; then
                 # Warn user before continuing
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
@@ -483,14 +500,76 @@ opt_uninstall() {
                 ask "Do you want to continue?"
             fi
 
+            uninstall_eft 1
+            uninstall_spt 1
+
             msg "Removing Prefix directory..."
             [[ -d "${CONFIG[pfx_dir]}" ]] && m_rm -r "${CONFIG[pfx_dir]}"
-
-            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
+        *) err "Invalid option \"${option}\". (Available options: eft|spt|all)" ;;
+    esac
+}
 
-        wipe)
-            if ! [ "${no_prompt}" = 1 ]; then
+
+opt_run() {
+    # spt-additions run spt --launcher -e "" -a ""
+    # spt-additions run spt --server -e "" -a ""
+    # spt-additions run eft -a "--disable-software-rasterizer"
+    msg "run option is not implemented yet"
+}
+
+
+opt_patch() {
+    # spt-additions patch -d ~/Games/sptarkov/drive_c/SPTarkov
+    # spt-additions patch (saved pfx + default spt directory)
+    msg "patch option is not implemented yet"
+}
+
+
+opt_shortcut() {
+    # spt-additions shortcut spt --launcher -e "" -a ""
+    # spt-additions shortcut spt --server -e "" -a ""
+    msg "shortcut option is not implemented yet"
+}
+
+
+opt_clean() {
+    # SYNTAX: spt-additions clean --config
+    local option="$1" && shift
+
+    while getopts ":p:h:-" subopt; do
+        case ${subopt} in
+            p) opt_setprefix "${OPTARG}";;
+            h) opt_help "clean" ;;
+            -)
+                case "${OPTARG}" in
+                    help) opt_help "clean";;
+                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
+                    *) err "Invalid option: --${OPTARG}" ;;
+                esac
+            ;;
+        esac
+    done
+
+    case "${option}" in
+        cache)
+            msg "Removing Cache directory..."
+            [[ -d "${CACHE_DIR}" ]] && m_rm -r "${CACHE_DIR}"
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+        ;;
+        config)
+            msg "Removing config directory..."
+            [[ -d "${CONFIG_DIR}" ]] && m_rm -r "${CONFIG_DIR}"
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+        ;;
+        data)
+            msg "Removing data directory..."
+            [[ -d "${DATA_DIR}" ]] && m_rm -r "${DATA_DIR}"
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+        ;;
+        all)
+            if [[ "${NO_PROMPT}" != 1 ]]; then
                 # Warn user before continuing
                 msg "${BOLD}This action will remove the SPT/EFT wine prefix, all cached files & all game shortcuts!${RESET}"
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
@@ -499,24 +578,20 @@ opt_uninstall() {
                 msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
                 ask "Do you want to continue?"
             fi
-
-            opt_uninstall "eft" 1
-            opt_uninstall "spt" 1
-            opt_uninstall "prefix" 1
-            opt_uninstall "data" 1
-            opt_uninstall "cache" 1
-            opt_uninstall "config" 1
+            opt_clean "data" 1
+            opt_clean "cache" 1
+            opt_clean "config" 1
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
-
         *)
-            err "Invalid argument \"${OPTARG}\". (Available options: eft, spt, cache, wipe)"
+            err "Invalid option \"${option}\". (Available options: cache|config|data|all)"
         ;;
     esac
 }
 
 
 opt_selfupdate() {
-    if ! [ "${NO_PROMPT}" = 1 ]; then
+    if [[ "${NO_PROMPT}" != 1 ]]; then
         msg "${YELLOW}Not fully implemented yet${RESET}"
         msg
         msg "> The script will attempt to download the latest VERSION available here:"
@@ -526,38 +601,50 @@ opt_selfupdate() {
         msg
         ask "Do you want to continue?"
     fi
-
     msg "Updating script..."
-
-    
     cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
     m_chmod +x "${SCRIPT_PATH}"
-
-    ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
+    [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
 
 
 opt_help() {
-    msg "Standalone EFT/SPT installer script using UMU-Launcher and Proton."
-    msg "${BOLD}Example usage: ${YELLOW}spt-installer -p ~/Games/tarkov -i eft${RESET}"
-    msg
-    msg "${BOLD}OPTIONS:${RESET}"
-    msg "   ${BOLD}-i${RESET} (Install)         - Available arguments: eft|spt"
-    msg "   ${BOLD}-u${RESET} (Uninstall)       - Available arguments: eft|spt|prefix|data|cache|wipe"                                       
-    msg "   ${BOLD}-r${RESET} (Run)             - Available arguments: [eft|spt] [ARGS]"                                       
-    msg "   ${BOLD}-p${RESET} (Prefix)          - Set a custom path for the wine prefix"
-    msg "   ${BOLD}--self-update${RESET}        - Updates this installer script"
-    msg "   ${BOLD}--no-prompt${RESET}          - Disable interactive prompt messages"
-    msg "   ${BOLD}-h | --help${RESET}          - Print this help message"
-    msg "   ${BOLD}-v | --VERSION${RESET}       - Print the VERSION info message"
-    msg
-    msg "${YELLOW}[!] This script is made by the SPT community & is NOT offically supported by the mod developers!${RESET}"
-    msg
-    msg "For more details and help, visit:"
-    msg "  > ${BOLD}${URL[guide-repo]}${RESET}"
-    msg
-    msg "Join the SPT Discord server:"
-    msg "  > ${BOLD}${URL[discord]}${RESET}"
+    # spt-additions help uninstall
+    local option="${1}"
+    case "${option}" in
+        install) ;;
+        uninstall) ;;
+        shortcut) ;;
+        run) ;;
+        patch) ;;
+        clean) ;;
+        "")
+            msg "Standalone EFT/SPT installer script using UMU-Launcher and Proton."
+            msg "${BOLD}Example usage: ${YELLOW}spt-installer -p ~/Games/tarkov -i eft${RESET}"
+            msg
+            msg "${BOLD}OPTIONS:${RESET}"
+            msg "   ${BOLD}install${RESET}              - Available arguments: eft|spt"
+            msg "   ${BOLD}uninstall${RESET}            - Available arguments: eft|spt|all"
+            msg "   ${BOLD}shortcut${RESET}             - "
+            msg "   ${BOLD}run${RESET}                  - "
+            msg "   ${BOLD}patch${RESET}                - "
+            msg "   ${BOLD}clean${RESET}                - Available arguments: data|cache|config|all"
+            msg "   ${BOLD}-p${RESET} (Prefix)          - Set a custom path for the wine prefix"
+            msg "   ${BOLD}--self-update${RESET}        - Updates this installer script"
+            msg "   ${BOLD}--no-prompt${RESET}          - Disable interactive prompt messages"
+            msg "   ${BOLD}-h | --help${RESET}          - Print this help message"
+            msg "   ${BOLD}-v | --VERSION${RESET}       - Print the VERSION info message"
+            msg
+            msg "${YELLOW}[!] This script is made by the SPT community & is NOT offically supported by the mod developers!${RESET}"
+            msg
+            msg "For more details and help, visit:"
+            msg "  > ${BOLD}${URL[guide-repo]}${RESET}"
+            msg
+            msg "Join the SPT Discord server:"
+            msg "  > ${BOLD}${URL[discord]}${RESET}"
+        ;;
+        *) msg "Invalid argument: ${option}. Available arguments: install|uninstall|shortcut|run|patch|clean" ;;
+    esac
 }
 
 
@@ -569,62 +656,37 @@ opt_version() {
 
 
 handle_opts() {
-    # Execute commands
-    while getopts ":p:i:u:hv-:" opt; do
-        case ${opt} in
+    local option
+    option="${1}" && shift
 
-            # Prefix option
-            p)
-                case "${OPTARG}" in
-                    -*) msg "Invalid option: -${opt} requires an argument" ;;
-                    *) CONFIG[pfx_dir]="${OPTARG}" ;;
-                esac
-            ;;
-
-            # Install option
-            i)
-                case "${OPTARG}" in
-                    eft|spt) opt_install "${OPTARG}" ;;
-                    -*) msg "Invalid option: -${opt} requires an argument" ;;
-                    *) err "Invalid argument \"${OPTARG}\". (Available options: eft, spt)" ;;
-                esac
-            ;;
-
-            # Uninstall option
-            u)
-                case "${OPTARG}" in
-                    eft|spt|data|cache|prefix|wipe) opt_uninstall "${OPTARG}" ;;
-                    -*) msg "Invalid option: -${opt} requires an argument" ;;
-                    *) err "Invalid argument \"${OPTARG}\". (Available options: eft|spt|cache|prefix|wipe)" ;;
-                esac
-            ;;
-
-            h) opt_help ;;
-            v) opt_version ;;
-
-            -)
-                case "${OPTARG}" in
-                    self-update) opt_selfupdate ;;
-                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
-                    help) opt_help ;;
-                    version) opt_version ;;
-                    *)
-                        echo "Invalid option: --${OPTARG}"
-                        m_exit 1
-                    ;;
-                esac
-            ;;
-
-            \?)
-                msg "Invalid option: -${OPTARG}"
-                m_exit 1
-            ;;
-
-            : )
-                msg "Invalid option: -${OPTARG} requires an argument"
-            ;;
-        esac
-    done
+    case "$option" in
+        install) opt_install "$@" ;;
+        uninstall) opt_uninstall "$@" ;;
+        run) opt_run "$@" ;;
+        patch) opt_patch "$@" ;;
+        shortcut) opt_shortcut "$@" ;;
+        clean) opt_clean "$@" ;;
+        self-update) opt_selfupdate ;;
+        version) opt_version ;;
+        help) opt_help "$@";;
+        --*)
+            case "$option" in
+                --self-update) opt_selfupdate ;;
+                --version) opt_version ;;
+                --help) opt_help ;;
+                *) err "Invalid option: ${option}" ;;
+            esac
+        ;;
+        -*)
+            case "$option" in
+                -v) opt_version ;;
+                -h) opt_help ;;
+                *) err "Invalid option: ${option}" ;;
+            esac
+        ;;
+        "") opt_help ;;
+        *) err "Invalid option: ${option}" ;;
+    esac
 }
 
 
@@ -633,9 +695,8 @@ main() {
     init_paths || err "Failed to initialize script paths"
 
     # Remove old log file
-    [[ -f "${CACHE_DIR}/installer.log" ]] && m_rm -f "${CACHE_DIR}/installer.log"
+    [[ -f "${LOG_PATH}" ]] && m_rm -f "${LOG_PATH}"
 
-    # Load config
     load_config
 
     # Environment variable
