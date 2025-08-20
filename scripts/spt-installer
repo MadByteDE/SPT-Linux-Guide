@@ -15,7 +15,14 @@ BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
 RED="\e[31m"; GREEN="\e[32m"; BLUE="\e[36m"
 YELLOW="\e[33m"; GRAY="\e[90m"
 
-# Dependency download URLs
+# Default config
+declare -A CONFIG
+CONFIG[pfx_dir]="${HOME}/Games/tarkov"
+CONFIG[spt_dir]="drive_c/SPTarkov"
+CONFIG[bsg_dir]="drive_c/Battlestate Games"
+CONFIG[eft_dir]="${CONFIG[bsg_dir]}/Escape from Tarkov"
+CONFIG[winedebug]="-all,err+all,fixme+all,debugstr+all"
+
 declare -A URL
 URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
@@ -46,6 +53,9 @@ m_exit() {
     local status
     status=${1:-$?}
 
+    # Save config
+    save_config
+
     # Remove temp files
     [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
 
@@ -55,22 +65,22 @@ m_exit() {
 
 
 m_chmod() {
-    chmod "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+    chmod "$@" &>> "${LOG_PATH}" || err "Command \"$*\" failed (status code $?)"
 }
 
 
 m_rm() {
-    rm "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+    rm "$@" &>> "${LOG_PATH}" || err "Command \"$*\" failed (status code $?)"
 }
 
 
 m_curl() {
-    curl --connect-timeout 30 -f "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+    curl --connect-timeout 30 -f "$@" &>> "${LOG_PATH}" || err "Command \"$*\" failed (status code $?)"
 }
 
 
 m_umu-run() {
-    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command '$*' failed (status code $?)"
+    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"$*\" failed (status code $?)"
 }
 
 
@@ -90,7 +100,7 @@ err() {
     status=$?
     pfx="${BOLD}${RED}ERROR: ${RESET}"
     msg "${pfx}$1"
-    msg "${pfx}See '${CACHE_DIR}/installer.log' for more details.${RESET}"
+    msg "${pfx}See \"${CACHE_DIR}/installer.log\" for more details.${RESET}"
     m_exit ${status}
 }
 
@@ -107,6 +117,30 @@ ask() {
 }
 
 
+load_config() {
+    local varname
+    # Skip if no config exists
+    [[ ! -f "${CONFIG_PATH}" ]] && return 0
+    # Read lines & load values
+    while read line; do
+        if echo $line | grep -F = &>/dev/null; then
+            varname=$(echo "$line" | cut -d '=' -f 1)
+            CONFIG[$varname]="$(echo "${line//["\""]}" | cut -d '=' -f 2-)"
+        fi
+    done < "${CONFIG_PATH}"
+}
+
+
+save_config() {
+    # Remove old config
+    [[ -f "${CONFIG_PATH}" ]] && rm -f "${CONFIG_PATH}" || exit 1
+    # Add new values
+    for key in ${!CONFIG[@]}; do
+        echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}" || exit 1
+    done
+}
+
+
 init_paths() {
     # System directories
     DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
@@ -118,24 +152,15 @@ init_paths() {
     APP_DIR="${DATA_HOME}/applications"
 
     # Prefix directories
-    PFX_DIR="${PFX_DIR:-"${HOME}/Games/tarkov"}"
-    SPT_DIR="${PFX_DIR}/drive_c/SPTarkov"
-    BSG_DIR="${PFX_DIR}/drive_c/Battlestate Games"
-    EFT_DIR="${BSG_DIR}/Escape from Tarkov"
+    SPT_DIR="${CONFIG[pfx_dir]}/${CONFIG[spt_dir]}"
+    BSG_DIR="${CONFIG[pfx_dir]}/${CONFIG[bsg_dir]}"
+    EFT_DIR="${CONFIG[pfx_dir]}/${CONFIG[eft_dir]}"
 
     # File path variables
     LOG_PATH="${CACHE_DIR}/installer.log"
     SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
     UMU_PATH=$(command -v umu-run || echo "${DATA_DIR}/umu/umu-run")
-    PFX_CONF_PATH="${CONFIG_DIR}/prefix.conf"
-}
-
-
-load_prefix_path() {
-    # Load prefix path from prefix.conf file or fallback to default path
-    local prefix_path
-    prefix_path="$(cat "${PFX_CONF_PATH}" 2>/dev/null || echo "${PFX_DIR}")"
-    opt_setprefix "${prefix_path}"
+    CONFIG_PATH="${CONFIG_DIR}/prefix.conf"
 }
 
 
@@ -153,21 +178,21 @@ install_umu() {
 
 install_tarkov() {
     # Get prefix path (cached/default) and validate it
-    load_prefix_path
+    opt_setprefix "${CONFIG[pfx_dir]}"
 
-    if [[ ! -d "${PFX_DIR}" ]]; then
+    if [[ ! -d "${CONFIG[pfx_dir]}" ]]; then
         # Initialize prefix
         msg "Initializing wine prefix..."
         m_umu-run wineboot -u || err "Failed to initialize wine prefix"
     fi
 
     # Install game dependencies
-    if ! cat "${PFX_DIR}/winetricks.log" 2>/dev/null | grep -q "dotnet48"; then
+    if ! cat "${CONFIG[pfx_dir]}/winetricks.log" 2>/dev/null | grep -q "dotnet48"; then
         msg "Installing .NET 4.8 Runtime (this might take a while)..."
         m_umu-run winetricks -q dotnet48
     fi
 
-    if ! cat "${PFX_DIR}/winetricks.log" | grep -q "vcrun2022"; then
+    if ! cat "${CONFIG[pfx_dir]}/winetricks.log" | grep -q "vcrun2022"; then
         msg "Installing Microsoft Visual C++ 2015-2022 Redistributable..."
         m_umu-run winetricks -q vcrun2022
     fi
@@ -191,7 +216,7 @@ install_tarkov() {
     m_umu-run "${DATA_DIR}/BsgLauncher.exe" /VERYSILENT
 
     # Re-initialize prefix for GE-Proton
-    msg "Switching Proton version to 'GE-Proton'..."
+    msg "Switching Proton version to \"GE-Proton\"..."
     export PROTONPATH="GE-Proton"
     m_umu-run wineboot -u
 
@@ -207,9 +232,8 @@ install_tarkov() {
     msg "Creating application shortcut..."
     shortcut_path="${APP_DIR}/BSG - Launcher.desktop"
     env_vars=()
-    env_vars+=("PROTON_USE_XALIA=0")
-    env_vars+=("PROTONPATH='GE-Proton'")
-    env_vars+=("WINEPREFIX='${PFX_DIR}'")
+    env_vars+=("PROTONPATH=\"GE-Proton\"")
+    env_vars+=("WINEPREFIX=\"${CONFIG[pfx_dir]}\"")
 
     launch_args=()
     launch_args+=("--disable-software-rasterizer")
@@ -221,7 +245,7 @@ install_tarkov() {
     {   echo "[Desktop Entry]"
         echo "Categories=Game;ActionGame;Simulation"
         echo "Path=${BSG_DIR}/BsgLauncher"
-        echo "Exec=env ${env_vars[*]} ${UMU_PATH} 'C:/Battlestate Games/BsgLauncher/BsgLauncher.exe' ${launch_args[*]}"
+        echo "Exec=env ${env_vars[*]} ${UMU_PATH} \"BsgLauncher.exe\" ${launch_args[*]}"
         echo "Name=BSG - Launcher"
         echo "Icon=tarkov"
         echo "Type=Application"
@@ -236,11 +260,10 @@ install_spt() {
     export DOTNET_BUNDLE_EXTRACT_BASE_DIR=""
     export DOTNET_ROOT=""
 
-    # Get prefix path (cached/default) and validate it
-    load_prefix_path
+    opt_setprefix "${CONFIG[pfx_dir]}"
 
-    if  [[ ! -d "${PFX_DIR}" ]]; then
-        msg "${YELLOW}Prefix directory at '${PFX_DIR}' does not exist.${RESET}"
+    if  [[ ! -d "${CONFIG[pfx_dir]}" ]]; then
+        msg "${YELLOW}Prefix directory at \"${CONFIG[pfx_dir]}\" does not exist.${RESET}"
         msg "Make sure to install EFT first!"
         err "Wine prefix not found"
     elif [[ ! -d "${EFT_DIR}" ]]; then
@@ -260,12 +283,12 @@ install_spt() {
     fi
 
     # Install dependencies
-    if ! cat "${PFX_DIR}/winetricks.log" 2>/dev/null | grep -q "dotnetdesktop8"; then
+    if ! cat "${CONFIG[pfx_dir]}/winetricks.log" 2>/dev/null | grep -q "dotnetdesktop8"; then
         msg "Installing .NET Desktop 8 Runtime..."
         m_umu-run winetricks -q dotnetdesktop8
     fi
 
-    if ! cat "${PFX_DIR}/winetricks.log" | grep -q "dotnetdesktop9"; then
+    if ! cat "${CONFIG[pfx_dir]}/winetricks.log" | grep -q "dotnetdesktop9"; then
         msg "Installing .NET Desktop 9 Runtime..."
         m_umu-run winetricks -q dotnetdesktop9
     fi
@@ -298,12 +321,12 @@ install_spt() {
 
     # SPT Launcher
     env_vars=()
-    env_vars+=("PROTONPATH='GE-Proton'")
+    env_vars+=("PROTONPATH=\"GE-Proton\"")
     env_vars+=("PROTON_USE_XALIA=0")
     env_vars+=("DOTNET_BUNDLE_EXTRACT_BASE_DIR=")
     env_vars+=("DOTNET_ROOT=")
-    env_vars+=("WINEDEBUG='-all,err+all,fixme+all,debugstr+all'")
-    env_vars+=("WINEPREFIX='${PFX_DIR}'")
+    env_vars+=("WINEDEBUG=\"${CONFIG[winedebug]}\"")
+    env_vars+=("WINEPREFIX=\"${CONFIG[pfx_dir]}\"")
 
     launch_args=()
 
@@ -316,7 +339,7 @@ install_spt() {
     {   echo "[Desktop Entry]"
         echo "Categories=Game;ActionGame;Simulation"
         echo "Path=${SPT_DIR}"
-        echo "Exec=env ${env_vars[*]} ${UMU_PATH} 'C:/SPTarkov/SPT.Launcher.exe' ${launch_args[*]}"
+        echo "Exec=env ${env_vars[*]} ${UMU_PATH} \"SPT.Launcher.exe\" ${launch_args[*]}"
         echo "Name=SPTarkov - Launcher"
         echo "Icon=spt_launcher"
         echo "Type=Application"
@@ -332,7 +355,7 @@ install_spt() {
     {   echo "[Desktop Entry]"
         echo "Categories=Game;ActionGame;Simulation"
         echo "Path=${SPT_DIR}"
-        echo "Exec='${SPT_DIR}/launch-server.sh'"
+        echo "Exec=\"${SPT_DIR}/launch-server.sh\""
         echo "Name=SPTarkov - Server"
         echo "Icon=spt_server"
         echo "Type=Application"
@@ -343,21 +366,23 @@ install_spt() {
 
 
 opt_setprefix() {
-    PFX_DIR="${1}"
+    local path
+    path="${1}"
 
-    if [[ -d "${PFX_DIR}" ]]; then
-        [[ ! -f "${PFX_DIR}/system.reg" ]] && err "Invalid prefix directory: '${PFX_DIR}'"
+    if [[ -d "${path}" ]]; then
+        [[ ! -f "${path}/system.reg" ]] && err "Invalid prefix directory: \"${path}\""
     fi
-
+        
     # Update WINEPREFIX environment variable
-    export WINEPREFIX="${PFX_DIR}"
+    export WINEPREFIX="${path}"
+
+    # Update prefix config
+    CONFIG[pfx_dir]="${path}"
 
     # Update paths
     init_paths || err "Failed to initialize script paths"
 
-    # Update prefix config file
-    echo "${PFX_DIR}" > "${PFX_CONF_PATH}"
-    msg "Prefix path has been set to '${1}'"
+    msg "Prefix path has been set to \"${CONFIG[pfx_dir]}\""
 }
 
 
@@ -379,7 +404,7 @@ opt_install() {
         ;;
 
         *)
-            err "Invalid argument '${mode}'. (Available options: eft, spt)"
+            err "Invalid argument \"${mode}\". (Available options: eft, spt)"
         ;;
     esac
 }
@@ -394,12 +419,12 @@ opt_uninstall() {
         eft)
             if ! [ "${no_prompt}" = 1 ]; then
                 # Warn user before continuing
-                msg "${BOLD}This action will uninstall 'Escape from Tarkov' from your system!${RESET}"
-                msg "Prefix directory: ${UNDERLINE}${PFX_DIR}${RESET}"
+                msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
+                msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
                 ask "Do you want to continue?"
             fi
 
-            msg "Uninstalling 'Escape from Tarkov'..."
+            msg "Uninstalling \"Escape from Tarkov\"..."
             [[ -d "${BSG_DIR}" ]] && m_rm -r "${BSG_DIR}"
 
             msg "Removing shortcut..."
@@ -411,12 +436,12 @@ opt_uninstall() {
 
         spt)
             if ! [ "${no_prompt}" = 1 ]; then
-                msg "${BOLD}This action will uninstall 'SPTarkov' from your system!${RESET}"
-                msg "Prefix directory: ${UNDERLINE}${PFX_DIR}${RESET}"
+                msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
+                msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
                 ask "Do you want to continue?"
             fi
 
-            msg "Uninstalling 'SPTarkov'..."
+            msg "Uninstalling \"SPTarkov\"..."
             [[ -d "${SPT_DIR}" ]] && m_rm -r "${SPT_DIR}"
 
             msg "Removing shortcuts..."
@@ -437,6 +462,12 @@ opt_uninstall() {
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
 
+        config)
+            msg "Removing config directory..."
+            [[ -d "${CONFIG_DIR}" ]] && m_rm -r "${CONFIG_DIR}"
+            ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
+        ;;
+
         data)
             msg "Removing data directory..."
             [[ -d "${DATA_DIR}" ]] && m_rm -r "${DATA_DIR}"
@@ -448,12 +479,12 @@ opt_uninstall() {
                 # Warn user before continuing
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
-                msg "${UNDERLINE}${PFX_DIR}${RESET}"
+                msg "${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
                 ask "Do you want to continue?"
             fi
 
             msg "Removing Prefix directory..."
-            [[ -d "${PFX_DIR}" ]] && m_rm -r "${PFX_DIR}"
+            [[ -d "${CONFIG[pfx_dir]}" ]] && m_rm -r "${CONFIG[pfx_dir]}"
 
             ! [ "${no_prompt}" = 1 ] && msg "${GREEN}Done!${RESET}"
         ;;
@@ -463,7 +494,7 @@ opt_uninstall() {
                 # Warn user before continuing
                 msg "${BOLD}This action will remove the SPT/EFT wine prefix, all cached files & all game shortcuts!${RESET}"
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "    > ${UNDERLINE}${PFX_DIR}${RESET}"
+                msg "    > ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
                 msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
                 ask "Do you want to continue?"
@@ -474,10 +505,11 @@ opt_uninstall() {
             opt_uninstall "prefix" 1
             opt_uninstall "data" 1
             opt_uninstall "cache" 1
+            opt_uninstall "config" 1
         ;;
 
         *)
-            err "Invalid argument '${OPTARG}'. (Available options: eft, spt, cache, wipe)"
+            err "Invalid argument \"${OPTARG}\". (Available options: eft, spt, cache, wipe)"
         ;;
     esac
 }
@@ -512,6 +544,7 @@ opt_help() {
     msg "${BOLD}OPTIONS:${RESET}"
     msg "   ${BOLD}-i${RESET} (Install)         - Available arguments: eft|spt"
     msg "   ${BOLD}-u${RESET} (Uninstall)       - Available arguments: eft|spt|prefix|data|cache|wipe"                                       
+    msg "   ${BOLD}-r${RESET} (Run)             - Available arguments: [eft|spt] [ARGS]"                                       
     msg "   ${BOLD}-p${RESET} (Prefix)          - Set a custom path for the wine prefix"
     msg "   ${BOLD}--self-update${RESET}        - Updates this installer script"
     msg "   ${BOLD}--no-prompt${RESET}          - Disable interactive prompt messages"
@@ -544,7 +577,7 @@ handle_opts() {
             p)
                 case "${OPTARG}" in
                     -*) msg "Invalid option: -${opt} requires an argument" ;;
-                    *) opt_setprefix "${OPTARG}" ;;
+                    *) CONFIG[pfx_dir]="${OPTARG}" ;;
                 esac
             ;;
 
@@ -553,7 +586,7 @@ handle_opts() {
                 case "${OPTARG}" in
                     eft|spt) opt_install "${OPTARG}" ;;
                     -*) msg "Invalid option: -${opt} requires an argument" ;;
-                    *) err "Invalid argument '${OPTARG}'. (Available options: eft, spt)" ;;
+                    *) err "Invalid argument \"${OPTARG}\". (Available options: eft, spt)" ;;
                 esac
             ;;
 
@@ -562,7 +595,7 @@ handle_opts() {
                 case "${OPTARG}" in
                     eft|spt|data|cache|prefix|wipe) opt_uninstall "${OPTARG}" ;;
                     -*) msg "Invalid option: -${opt} requires an argument" ;;
-                    *) err "Invalid argument '${OPTARG}'. (Available options: eft|spt|cache|prefix|wipe)" ;;
+                    *) err "Invalid argument \"${OPTARG}\". (Available options: eft|spt|cache|prefix|wipe)" ;;
                 esac
             ;;
 
@@ -572,7 +605,7 @@ handle_opts() {
             -)
                 case "${OPTARG}" in
                     self-update) opt_selfupdate ;;
-                    no-prompt) export NO_PROMPT=1; msg "'NO_PROMPT' option set" ;;
+                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
                     help) opt_help ;;
                     version) opt_version ;;
                     *)
@@ -596,15 +629,17 @@ handle_opts() {
 
 
 main() {
-    # Environment variable
-    export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
-    export WINEPREFIX="${PFX_DIR}"
-
     # Initalize directory paths
     init_paths || err "Failed to initialize script paths"
 
     # Remove old log file
     [[ -f "${CACHE_DIR}/installer.log" ]] && m_rm -f "${CACHE_DIR}/installer.log"
+
+    # Load config
+    load_config
+
+    # Environment variable
+    export WINEDEBUG="${CONFIG[winedebug]}"
 
     # Handle command line arguments
     handle_opts "$@"
