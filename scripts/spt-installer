@@ -225,10 +225,7 @@ install_tarkov() {
         echo "Name=BSG - Launcher"
         echo "Icon=tarkov"
         echo "Type=Application"
-    } >> "${shortcut_path}"
-
-    # Make executable
-    m_chmod +x "${shortcut_path}"
+    } > "${shortcut_path}" && m_chmod +x "${shortcut_path}"
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
@@ -323,7 +320,7 @@ install_spt() {
         echo "Name=SPTarkov - Launcher"
         echo "Icon=spt_launcher"
         echo "Type=Application"
-    } >> "${shortcut_path}" && m_chmod +x "${shortcut_path}"
+    } > "${shortcut_path}" && m_chmod +x "${shortcut_path}"
     
     # SPT Server
     shortcut_path="${APP_DIR}/SPTarkov - Server.desktop"
@@ -339,7 +336,7 @@ install_spt() {
         echo "Name=SPTarkov - Server"
         echo "Icon=spt_server"
         echo "Type=Application"
-    } >> "${shortcut_path}" && m_chmod +x "${shortcut_path}"
+    } > "${shortcut_path}" && m_chmod +x "${shortcut_path}"
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
