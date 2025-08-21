@@ -9,7 +9,7 @@
 TITLE="spt-installer"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.4.0"
+VERSION="0.4.1"
 DATE="2025-08-21"
 
 # ANSI codes
@@ -478,6 +478,7 @@ opt_setenv() {
     string="$1"
     key=$(echo "$string" | cut -d "=" -f1)
     value=$(echo "$string" | cut -d "=" -f 2-)
+    msg "Adding environment variable: \"$string\""
     set_value env "$key=$value"
     # Export to use in current session
     export_env
@@ -491,7 +492,7 @@ opt_setarg() {
     case "$args_string" in
      *"$arg"*) ;;
      *)
-        msg "Adding arg \"$arg\""
+        msg "Adding launch argument: \"$arg\""
         ARGS+=("$arg")
      ;;
     esac
@@ -502,18 +503,18 @@ opt_install() {
     # SYNTAX: spt-additions install spt -p ~/Games/sptarkov
     local option="$1" && shift
 
-    while getopts ":p:e:a:h:-" subopt; do
+    while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
             p) set_value config "pfx_dir=${OPTARG}";;
             e) opt_setenv "${OPTARG}";;
             a) opt_setarg "${OPTARG}";;
-            h) opt_help "install";;
             -*)
                 case "${OPTARG}" in
-                    help) opt_help "install";;
                     *) err "Invalid option: --${OPTARG}" ;;
+                    "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
+            *) err "Invalid option \"${subopt}\"" ;;
         esac
     done
     
@@ -526,7 +527,9 @@ opt_install() {
             # Launch setup
             install_spt
         ;;
-        *) err "Invalid argument \"${option}\". (Available options: eft|spt)" ;;
+        help|-h|--help) opt_help "install";;
+        "") err "Option \"install\" requires an argument" ;;
+        *) err "Invalid option \"${option}\"" ;;
     esac
 }
 
@@ -535,17 +538,16 @@ opt_uninstall() {
     # SYNTAX: spt-additions uninstall spt -p ~/Games/sptarkov
     local option="$1" && shift
 
-    while getopts ":p:h:-:" subopt; do
+    while getopts ":p:-:" subopt; do
         case ${subopt} in
             p) opt_setprefix "${OPTARG}";;
-            h) opt_help "uninstall" ;;
             -)
                 case "${OPTARG}" in
-                    help) opt_help "uninstall";;
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
                 esac
             ;;
+            *) err "Invalid option \"${subopt}\"" ;;
         esac
     done
     
@@ -568,6 +570,8 @@ opt_uninstall() {
             [[ -d "${CONFIG[pfx_dir]}" ]] && m_rmdir "${CONFIG[pfx_dir]}"
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
+        help|-h|--help) opt_help "uninstall";;
+        "") err "Option \"uninstall\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 }
@@ -575,19 +579,16 @@ opt_uninstall() {
 
 opt_run() {
     # SYNTAX: spt-additions run spt --launcher -e "" -a ""
-    local option path spt_mode
+    local option path
     option="$1" && shift
 
-    while getopts ":p:e:a:h:-:" subopt; do
+    while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
             p) set_value config "pfx_dir=${OPTARG}";;
             e) opt_setenv "${OPTARG}";;
             a) opt_setarg "${OPTARG}";;
-            h) opt_help "run" ;;
             -*)
                 case "${OPTARG}" in
-                    help) opt_help "run";;
-                    launcher|server) spt_mode="${OPTARG}" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
                     "") err "Option \"${option}\" requires an argument" ;;
                 esac
@@ -613,6 +614,7 @@ opt_run() {
             opt_setprefix "${CONFIG[pfx_dir]}"
             "./launch-server.sh" "${ARGS[*]}" &
         ;;
+        help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -620,8 +622,7 @@ opt_run() {
 
 
 opt_patch() {
-    # spt-additions patch -d ~/Games/sptarkov/drive_c/SPTarkov
-    # spt-additions patch (saved pfx + default spt directory)
+    # spt-additions patch -p ~/Games/sptarkov/drive_c/SPTarkov
     msg "Option \"patch\" is not implemented yet"
 }
 
@@ -632,7 +633,7 @@ opt_shortcut() {
     local name executable working_dir path icon
     option="$1" && shift
 
-    while getopts ":p:e:a:h:-:" subopt; do
+    while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
             p) opt_setprefix "${OPTARG}";;
             e) opt_setenv "${OPTARG}";;
@@ -640,9 +641,8 @@ opt_shortcut() {
             h) opt_help "shortcut" ;;
             -*)
                 case "${OPTARG}" in
-                    help) opt_help "shortcut";;
-                    launcher|server) spt_mode="${OPTARG}" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
+                    "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
             *) err "Invalid option \"${subopt}\"" ;;
@@ -684,6 +684,8 @@ opt_shortcut() {
             opt_shortcut spt-server
             return
         ;;
+        help|-h|--help) opt_help "shortcut";;
+        "") err "Option \"shortcut\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 
@@ -716,17 +718,17 @@ opt_clean() {
     # SYNTAX: spt-installer clean all --no-prompt
     local option="$1" && shift
 
-    while getopts ":p:h:-" subopt; do
+    while getopts ":p:-:" subopt; do
         case ${subopt} in
             p) opt_setprefix "${OPTARG}";;
-            h) opt_help "clean" ;;
-            -)
+            -*)
                 case "${OPTARG}" in
-                    help) opt_help "clean";;
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
+                    "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
+            *) err "Invalid option: --${subopt}" ;;
         esac
     done
 
@@ -749,31 +751,29 @@ opt_clean() {
         all)
             if [[ "${NO_PROMPT}" != 1 ]]; then
                 # Warn user before continuing
-                msg "${BOLD}This action will remove the SPT/EFT wine prefix, all cached files & all game shortcuts!${RESET}"
+                msg "${BOLD}This action will remove all configs, cached files & all game shortcuts!${RESET}"
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "    > ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
                 msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
                 ask "Do you want to continue?"
             fi
             export NO_PROMPT=1
-            opt_uninstall all 1
             opt_clean data
             opt_clean config
             opt_clean cache
             msg "${GREEN}Done!${RESET}"
         ;;
-        *)
-            err "Invalid option \"${option}\". (Available options: cache|config|data|all)"
-        ;;
+        help|-h|--help) opt_help "clean";;
+        "") err "Option \"clean\" requires an argument" ;;
+        *) err "Invalid option \"${option}\"" ;;
     esac
 }
 
 
 opt_selfupdate() {
     if [[ "${NO_PROMPT}" != 1 ]]; then
-        msg "> The script will attempt to download the latest VERSION available here:"
+        msg "> The script will attempt to install the latest script from:"
         msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
         msg
         msg "> This feature is ${BOLD}NOT${RESET} fully implemented yet & won't validate the new script file!"
@@ -783,7 +783,7 @@ opt_selfupdate() {
     msg "Updating script..."
     cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
     m_chmod +x "${SCRIPT_PATH}"
-    [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
+    [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
 
 
@@ -791,36 +791,75 @@ opt_help() {
     # spt-additions help uninstall
     local option="${1}"
     case "${option}" in
-        install) ;;
-        uninstall) ;;
-        shortcut) ;;
-        run) ;;
+        install)
+            msg "${BOLD}Available options:${RESET}"
+            msg "eft|spt"
+            msg
+            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
+            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+        ;;
+        uninstall)
+            msg "${BOLD}Available options:${RESET}"
+            msg "eft|spt|all"
+            msg
+            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
+            msg "${BOLD}--no-prompt${RESET} - Disable interactive prompt messages"
+            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+        ;;
+        shortcut)
+            msg "${BOLD}Available options:"
+            msg "[eft|bsg|bsg-launcher]"    - Update BSG-Launcher shortcut
+            msg "[spt|sptarkov]"            - Update SPT.Server and SPT.Launcher shortcut
+            msg "spt-launcher|spt-server"   - Update SPT.Server or SPT.Launcher shortcut
+            msg "all"                       - Update all shortcuts
+            msg
+            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
+            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+        ;;
+        run)
+            msg "${BOLD}Available options:${RESET}"
+            msg "[eft|bsg|bsg-launcher]"
+            msg "${BOLD}spt-launcher|spt-server${RESET}"
+            msg
+            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
+            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+        ;;
         # patch) ;;
-        clean) ;;
+        clean)
+            msg "${BOLD}Available options:${RESET}"
+            msg "cache|config|data|all"
+            msg
+            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}-p${RESET}           - Set a custom path for the wine prefix"
+            msg "${BOLD}-h|--help${RESET}    - Print the help message"
+        ;;
         "")
-            msg "Standalone EFT/SPT installer script using UMU-Launcher and Proton."
-            msg "${BOLD}Example usage: ${YELLOW}spt-installer install eft -p ~/Games/tarkov${RESET}"
+            msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
+            msg
+            msg "${BOLD}Example usage:  ${YELLOW}spt-installer install eft -p ~/Games/tarkov${RESET}"
+            msg "${BOLD}                ${YELLOW}spt-installer shortcut spt-launcher -e MANGOHUD=1${RESET}"
             msg
             msg "${BOLD}OPTIONS:${RESET}"
-            msg "   ${BOLD}install${RESET}          - Available arguments: eft|spt"
-            msg "   ${BOLD}uninstall${RESET}        - Available arguments: eft|spt|all"
-            msg "   ${BOLD}shortcut${RESET}         - Available arguments: eft|spt|all"
-            msg "   ${BOLD}run${RESET}              - Run EFT/SPT directly from a prefix"
-            # msg "   ${BOLD}patch${RESET}                - "
-            msg "   ${BOLD}clean${RESET}            - Available arguments: data|cache|config|all"
-            msg "   ${BOLD}-p${RESET} (Prefix)      - Set a custom path for the wine prefix"
-            msg "   ${BOLD}--self-update${RESET}    - Updates this installer script"
-            msg "   ${BOLD}--no-prompt${RESET}      - Disable interactive prompt messages"
-            msg "   ${BOLD}-h | --help${RESET}      - Print this help message"
-            msg "   ${BOLD}-v | --VERSION${RESET}   - Print the VERSION info message"
-            msg
-            msg "${YELLOW}[!] This script is made by the SPT community & is NOT offically supported by the mod developers!${RESET}"
-            msg
-            msg "For more details and help, visit:"
-            msg "  > ${BOLD}${URL[guide-repo]}${RESET}"
-            msg
-            msg "Join the SPT Discord server:"
-            msg "  > ${BOLD}${URL[discord]}${RESET}"
+            msg "${BOLD}install${RESET}          - Install EFT/SPT into a prefix"
+            msg "${BOLD}uninstall${RESET}        - Uninstall EFT/SPT from a prefix"
+            # msg "${BOLD}patch${RESET}          - "
+            msg "${BOLD}shortcut${RESET}         - Create/update EFT/SPT shortcuts"
+            msg "${BOLD}run${RESET}              - Run EFT/SPT from the terminal"
+            msg "${BOLD}clean${RESET}            - Clean installer and prefix files"
+            msg "${BOLD}--self-update${RESET}    - Updates this installer script"
+            msg "${BOLD}--no-prompt${RESET}      - Disable interactive prompt messages"
+            msg "${BOLD}-h | --help${RESET}      - Print the help message"
+            msg "${BOLD}-v | --VERSION${RESET}   - Print the VERSION info message"
         ;;
         *) msg "Invalid argument: ${option}. Available arguments: install|uninstall|shortcut|run|patch|clean" ;;
     esac
@@ -879,8 +918,6 @@ main() {
     set_value env "PROTON_USE_XALIA=0"
     set_value env "DOTNET_ROOT="
     set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
-    set_value env "MANGOHUD_CONFIG=preset=3"
-    # set_value env "WINEDEBUG=-all,err+all,fixme+all,debugstr+all"
 
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
