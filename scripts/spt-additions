@@ -13,8 +13,8 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.1"
-DATE="2025-08-22"
+VERSION="0.5.2"
+DATE="2025-08-23"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -130,7 +130,7 @@ m_rm() {
     if [[ -d "${path}" ]]; then
         err "Cannot remove directories. Use \"m_rmdir\" instead."
     fi
-    rm --interactive=never "$1" || err "Command \"$*\" failed (status code $?)"
+    rm "$1" || err "Command \"$*\" failed (status code $?)"
 }
 
 
@@ -146,7 +146,7 @@ m_rmdir() {
             warn "Directory \"$path\" cannot be removed"
             exit 1
         ;;
-        *) rm -r --interactive=never "$1" || exit 1 ;;
+        *) rm -r "$1" || exit 1 ;;
     esac
 }
 
@@ -627,6 +627,7 @@ install_spt() {
     install_mode="${1:-"proton"}"
 
     msg "Started \"SPTarkov\" setup..."
+    msg "Install mode is '$install_mode'..."
 
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
     # check_dotnet
@@ -873,7 +874,8 @@ opt_setprefix() {
 
     # Update prefix paths
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
-    BSG_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[bsg_dir]%/}"
+    BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
+    EFT_DIR="$(get_eft_path)"
 
     msg "Prefix path has been set to \"${CONFIG[pfx_dir]}\""
 }
@@ -911,31 +913,37 @@ opt_install() {
     option="$1" && shift
     spt_install_mode="proton"
 
-    while getopts ":p:e:a:-:" subopt; do
+    while getopts ":p:e:a:m:-:" subopt; do
         case ${subopt} in
             p) set_value config "pfx_dir=${OPTARG}";;
             e) opt_setenv "${OPTARG}";;
             a) opt_setarg "${OPTARG}";;
-            -*)
+            m)
                 case "${OPTARG}" in
                     native) spt_install_mode="native" ;;
                     proton) spt_install_mode="proton" ;;
                     lutris) spt_install_mode="lutris" ;;
+                    *) err "Invalid option: ${OPTARG}" ;;
                     # faugus) spt_install_mode="faugus" ;;
-                    *) err "Invalid option: --${OPTARG}" ;;
-                    "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
-            *) err "Invalid option \"${subopt}\"" ;;
+            -*)
+                case "${OPTARG}" in
+                    *) err "Invalid option: --${OPTARG}" ;;
+                    :) err "Option \"-${OPTARG}\" requires an argument" ;;
+                esac
+            ;;
+            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
     
     case "${option}" in
-        eft)
+        eft|tarkov|bsg)
             # Launch setup
             install_eft
         ;;
-        spt)
+        spt|sptarkov)
             # Launch setup
             install_spt "$spt_install_mode"
         ;;
@@ -959,7 +967,8 @@ opt_uninstall() {
                     *) err "Invalid option: --${OPTARG}" ;;
                 esac
             ;;
-            *) err "Invalid option \"${subopt}\"" ;;
+            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
     
@@ -1005,10 +1014,10 @@ opt_run() {
             -*)
                 case "${OPTARG}" in
                     *) err "Invalid option: --${OPTARG}" ;;
-                    "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
-            *) err "Invalid option \"${subopt}\"" ;;
+            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
     
@@ -1146,7 +1155,8 @@ opt_shortcut() {
                     "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
-            *) err "Invalid option \"${subopt}\"" ;;
+            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
     
@@ -1226,10 +1236,10 @@ opt_clean() {
                 case "${OPTARG}" in
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
-                    "") err "Option \"${option}\" requires an argument" ;;
                 esac
             ;;
-            *) err "Invalid option: --${subopt}" ;;
+            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
 
@@ -1284,7 +1294,6 @@ opt_selfupdate() {
     msg "Updating script..."
     cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
     m_chmod +x "${SCRIPT_PATH}"
-    [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done! ※\(^o^)/※${RESET}"
 }
 
 
@@ -1293,20 +1302,24 @@ opt_help() {
     case "${option}" in
         install)
             msg "${BOLD}Available options:${RESET}"
-            msg "eft|spt"
+            msg "[eft|bsg|tarkov]"
+            msg "[spt|sptarkov]"
             msg
-            msg "${BOLD}Available arguments:${RESET}"
-            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
-            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
-            msg "${BOLD}--native|--wine${RESET} - Choose SPT install method"
-            msg "${BOLD}-h|--help${RESET}       - Print the help message"
+            msg "${BOLD}SPT Install modes:${RESET}"
+            msg "native|proton|lutris"
+            msg
+            msg "${BOLD}Available switches:${RESET}"
+            msg "${BOLD}-m${RESET}          - Change SPT install mode (Default is 'proton')"
+            msg "${BOLD}-p${RESET}          - Set a custom prefix path (Default is '~/Games/tarkov')"
+            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}   - Print the help message"
         ;;
         uninstall)
             msg "${BOLD}Available options:${RESET}"
             msg "eft|spt|all"
             msg
-            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
             msg "${BOLD}--no-prompt${RESET} - Disable interactive prompt messages"
             msg "${BOLD}-h|--help${RESET}   - Print the help message"
@@ -1318,7 +1331,7 @@ opt_help() {
             msg "spt-launcher|spt-server"   - Update SPT.Server or SPT.Launcher shortcut
             msg "all"                       - Update all shortcuts
             msg
-            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
             msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
             msg "${BOLD}-a${RESET}          - Add a custom launch argument"
@@ -1329,7 +1342,7 @@ opt_help() {
             msg "[eft|bsg|bsg-launcher]"
             msg "${BOLD}spt-launcher|spt-server${RESET}"
             msg
-            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
             msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
             msg "${BOLD}-a${RESET}          - Add a custom launch argument"
@@ -1340,7 +1353,7 @@ opt_help() {
             msg "${BOLD}Available options:${RESET}"
             msg "cache|config|data|all"
             msg
-            msg "${BOLD}Available arguments:${RESET}"
+            msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-p${RESET}           - Set a custom path for the wine prefix"
             msg "${BOLD}-h|--help${RESET}    - Print the help message"
         ;;
@@ -1362,7 +1375,7 @@ opt_help() {
             msg "${BOLD}-h | --help${RESET}      - Print the help message"
             msg "${BOLD}-v | --VERSION${RESET}   - Print the VERSION info message"
         ;;
-        *) msg "Invalid argument: ${option}. Available arguments: install|uninstall|shortcut|run|patch|clean" ;;
+        *) msg "Invalid option: ${option}. Available options: install|uninstall|shortcut|run|patch|clean" ;;
     esac
 }
 
@@ -1381,6 +1394,11 @@ opt_version() {
 handle_opts() {
     local option
     option="${1}" && shift
+
+    # Install umu if needed
+    case "$option" in
+        install|run|patch) [[ ! -f "${UMU_PATH}" ]] && install_umu ;;
+    esac
 
     case "$option" in
         install) opt_install "$@" ;;
@@ -1420,7 +1438,6 @@ main() {
     # Set default config variables
     set_value config "pfx_dir=${HOME}/Games/tarkov"
     set_value config "spt_dir=drive_c/SPTarkov"
-    set_value config "bsg_dir=drive_c/Battlestate Games"
 
     # Set default environment variables
     set_value env "PROTON_USE_XALIA=0"
@@ -1436,7 +1453,7 @@ main() {
 
     # Set prefix paths
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
-    BSG_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[bsg_dir]%/}"
+    BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
     EFT_DIR="$(get_eft_path)"
 
     # Export paths
@@ -1447,9 +1464,6 @@ main() {
 
     # HACK: Just for debugging purposes rn
     export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
-
-    # Install umu-launcher if needed
-    [[ ! -f "${UMU_PATH}" ]] && install_umu 
 
     # Handle command line arguments
     handle_opts "$@"
