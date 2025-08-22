@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.0"
+VERSION="0.5.1"
 DATE="2025-08-22"
 
 # ANSI codes
@@ -49,19 +49,18 @@ declare -A ENV
 declare -a ARGS
 
 declare -A URL
-        URL[mod-json]="https://spt-releases.modd.in/release.json"
-    URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
-    URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
-         URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
-    URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
-   URL[spt-additions]="https://ligma.waffle-lord.net/SPTInstaller.exe"
+URL[mod-json]="https://spt-releases.modd.in/release.json"
+URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
+URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
+URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
+URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
+URL[spt-additions]="https://ligma.waffle-lord.net/SPTInstaller.exe"
 URL[bsg-launcher-ico]="https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png"
 URL[spt-launcher-ico]="https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png"
-  URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png"
-   URL[server-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh"
+URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png"
 URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions"
-      URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
-         URL[discord]="https://discord.com/invite/Xn9msqQZan"
+URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
+URL[discord]="https://discord.com/invite/Xn9msqQZan"
 readonly -A URL
 
 # We don't want to run as root
@@ -390,7 +389,8 @@ download_patcher() {
     local urls
     urls=$(get_patcher_urls) || err "Failed to get patcher mirrors"
     # Try to download from first to last
-    echo "${PATCHER_MIRROR_URLS}" | while read -r url; do
+    echo "${urls}" | while read -r url; do
+        msg "Downloading \"$url\"..."
         m_curl -L "${url}" -o "${PATCHER_PATH}" && break
     done
 }
@@ -436,10 +436,12 @@ check_native_deps() {
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             case ${cmd} in
-                7z) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
                 hpatchz) install_hpatchz || err "Failed to install \"$cmd\" into the runtime directory" ;;
+                7z) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
                 jq) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
                 xxd) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
+                mangohud) warn "HINT: \"$cmd\" is not installed on your system." ;;
+                gamemode) warn "HINT: \"$cmd\" is not installed on your system." ;;
             esac
         fi
     done
@@ -622,21 +624,17 @@ install_eft() {
 
 install_spt() {
     local install_mode
-    install_mode="${1:-"wine"}"
+    install_mode="${1:-"proton"}"
 
     msg "Started \"SPTarkov\" setup..."
 
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
     # check_dotnet
-    
-    # Prepare prefix / environment
+
+    # Define used prefix
     opt_setprefix "${CONFIG[pfx_dir]}"
 
-    if  [[ ! -d "${CONFIG[pfx_dir]}" ]]; then
-        msg "> ${YELLOW}Prefix directory at \"${CONFIG[pfx_dir]}\" does not exist.${RESET}"
-        msg "> ${YELLOW}Make sure to install EFT first!${RESET}"
-        err "Wine prefix not found"
-    elif [[ ! -d "${EFT_DIR}" ]]; then
+    if [[ ! -d "${EFT_DIR}" ]]; then
         msg "> ${YELLOW}Escape from Tarkov is not installed.${RESET}"
         msg "> ${YELLOW}make sure to install the game inside the BSG Launcher & try again!${RESET}"
         err "Escape from Tarkov not found."
@@ -645,7 +643,7 @@ install_spt() {
         msg "> ${YELLOW}If you want to reinstall, make sure to remove the old installation first!${RESET}"
         err "SPTarkov directory already exists."
     fi
-
+    
     # Install dependencies
     winetricks_install "dotnetdesktop8" ".NET Desktop 8 Runtime"
     winetricks_install "dotnetdesktop9" ".NET Desktop 9 Runtime"
@@ -654,135 +652,159 @@ install_spt() {
     msg "Adding DLL overrides to registry..."
     m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
 
-    # # # # # # # # # # # # #
-    # Linux installer mode  #
-    # # # # # # # # # # # # #
-
-    if [[ "$install_mode" == "native" ]]; then
-        # Pre-Checks
-        check_eft_running
-        check_native_deps
-        check_disk_space
-
-        # Get required metadata for mod and patcher releases
-        check_ttl "${MOD_JSON_PATH}" || m_curl -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-        check_ttl "${PATCHER_JSON_PATH}" || m_curl -L "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
-
-        # Fetch some juicy data
-        local installed_eft patcher_eft mod_eft mod_version
-        local mod_url mod_hash patcher_expected_hash
-        installed_eft=$(get_eft_version) || m_exit 1
-        mod_eft=$(echo $(jq -r '.ClientVersion' "${MOD_JSON_PATH}")) || m_exit 1
-        mod_version=$(echo $(jq -r '.AkiVersion' "${MOD_JSON_PATH}")) || m_exit 1
-        mod_url=$(echo $(jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}")) || m_exit 1
-        mod_hash=$(echo $(jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}")) || m_exit 1
-        patcher_hash=$(echo $(jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1)) || m_exit 1
-        patcher_eft=$(get_patcher_eft_version) || m_exit 1
-        
-        # Check for cached mod archive
-        if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
-            msg "Downloading mod archive..."
-            m_curl -L "${mod_url}" -o "${MOD_PATH}"
-
-            # Make sure the file is good to use
-            check_hash "${MOD_PATH}" "${mod_hash}" \
-            || err "Downloaded mod archive is corrupted"
-        fi
-
-        msg "Latest SPT release is '${mod_version}'"
-
-        # Check if we need to patch the game files
-        msg "Comparing installed EFT <--> required EFT versions"
-        if [[ "${installed_eft}" -ne "${mod_eft}" ]]; then
-            msg "Incompatible EFT version found - Checking latest downpatcher"
-            # Check if target EFT version is lower, greater or equal to required EFT version
-            if [[ "${patcher_eft}" -lt "${installed_eft}" ]]; then
-                # No patcher available yet!
-                warn "Looks like there's no patcher available for your EFT version"
-                msg
-                msg "    > This usually happens when EFT has been updated recently."
-                msg "    > Please wait for the SPT team to generate a new patcher."
-                msg "    > Usually, this will take less then 24 hours."
-                msg
-                err "No patcher available"
-                
-            elif [[ "${patcher_eft}" -gt "${installed_eft}" ]]; then
-                # EFT is outdated!
-                warn "Looks like your installed EFT version is out-of-date"
-                msg
-                msg "    > Please update your live EFT installation & try again"
-                msg
-                err "EFT is out-of-date"
-
-            elif [[ "${patcher_eft}" -eq "${installed_eft}" ]]; then
-                # Downpatcher is compatible!
-                msg "Patcher is compatible"
-
-                # Check for cached patcher archive
-                if ! check_cached "${PATCHER_PATH}" "${patcher_hash}"; then
-                    msg "Downloading patcher archive..."
-                    download_patcher
-                    check_hash "${PATCHER_PATH}" "${patcher_hash}" \
-                    || err "Downloaded patcher archive is corrupted"
-                fi
-
-                # Extract downpatcher to temp directory
-                m_7z "${PATCHER_PATH}" "${TMP_DIR}/patcher"
-
-                # Copy EFT files
-                msg "Copying EFT game files..."
-                m_cp "${EFT_DIR}/" "${SPT_DIR}"
-
-                # Move patcher files to install directory
-                msg "Moving patcher files to '${SPT_DIR}'"
-                find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*' | xargs mv -t "${SPT_DIR}" \
-                || err "Failed to move patcher files to SPT install directory" 
-
-                # Patch game using downloaded patcher files
-                opt_patch "${SPT_DIR}" || err "Something went wrong while patching game files"
-            fi
-        else
-            msg "Installed EFT version is compatible with 'SPT ${mod_version}'"
-            msg "Copying EFT game files..."
-            m_cp "${EFT_DIR}" "${SPT_DIR}"
-        fi
-
-        # Extract mod archive to install directory
-        m_7z "${MOD_PATH}" "${SPT_DIR}"
-        
-    # # # # # # # # # # # # # #
-    # Windows installer mode  #
-    # # # # # # # # # # # # # #
-
-    elif [[ "$install_mode" == "wine" ]]; then
-        # Download SPT Installer
-        if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
-            msg "Downloading SPTInstaller.exe..."
-            cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-additions]}"
-        fi
-
-        # Run SPT Installer
-        msg "Launching SPT Installer..."
-        m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
-    else
-        err "Missing SPT install mode argument"
-    fi
+    # Install SPT
+    case "$install_mode" in
+        native) install_spt_native ;;
+        lutris|proton) install_spt_wine ;;
+        ""|*) err "Invalid install mode \"$install_mode\""
+    esac
 
     # Install server launch script
-    cd "${SPT_DIR}" && m_curl -LO "${URL[server-script]}"
-    m_chmod +x "${SPT_DIR}/launch-server.sh"
+    install_launch_script
 
-    # Copy icon to user icons directory
-    if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
-        msg "Getting app icons from SteamGridDB..."
-        cd "${ICO_DIR}" && m_curl -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
-        cd "${ICO_DIR}" && m_curl -L "${URL[spt-server-ico]}" -o "spt_server.png"
-    fi
-
-    # Create application shortcuts
-    opt_shortcut spt
+    case "$install_mode" in
+        native|proton)
+            # Copy icon to user icons directory
+            if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
+                msg "Getting app icons from SteamGridDB..."
+                cd "${ICO_DIR}" && m_curl -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
+                cd "${ICO_DIR}" && m_curl -L "${URL[spt-server-ico]}" -o "spt_server.png"
+            fi
+            # Create application shortcuts
+            opt_shortcut spt
+        ;;
+        ""|*) err "Invalid install mode \"$install_mode\""
+    esac
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
+}
+
+
+# Server launch script
+install_launch_script() {
+    local path="${SPT_DIR}/launch-server.sh"
+    cat <<'EOF' > "${path}"
+#!/bin/bash
+local root_path terms
+root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+terms=("foot" "alacritty" "ptyxis" "kgx" "konsole"
+    "gnome-terminal" "xfce4-terminal" "kitty" "xterm")
+[[ $(pidof "SPT.Server.Linux") != "" ]] && exit 0
+for term in "${terms[@]}"; do
+    if command -v $term; then
+        cd "${root_path}"
+        $term -e "./SPT.Server.Linux"
+        break
+    fi
+done
+EOF
+    m_chmod +x "${path}"
+}
+
+
+install_spt_native() {
+    # Pre-Checks
+    check_eft_running
+    check_native_deps
+    check_disk_space
+
+    # Get required metadata for mod and patcher releases
+    check_ttl "${MOD_JSON_PATH}" || m_curl -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+    check_ttl "${PATCHER_JSON_PATH}" || m_curl -L "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+
+    # Fetch some juicy data
+    local installed_eft patcher_eft mod_eft mod_version
+    local mod_url mod_hash patcher_expected_hash
+    installed_eft=$(get_eft_version) || m_exit 1
+    mod_eft=$(echo $(jq -r '.ClientVersion' "${MOD_JSON_PATH}")) || m_exit 1
+    mod_version=$(echo $(jq -r '.AkiVersion' "${MOD_JSON_PATH}")) || m_exit 1
+    mod_url=$(echo $(jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}")) || m_exit 1
+    mod_hash=$(echo $(jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}")) || m_exit 1
+    patcher_hash=$(echo $(jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1)) || m_exit 1
+    patcher_eft=$(get_patcher_eft_version) || m_exit 1
+    
+    # Check for cached mod archive
+    if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
+        msg "Downloading mod archive..."
+        m_curl -L "${mod_url}" -o "${MOD_PATH}"
+
+        # Make sure the file is good to use
+        check_hash "${MOD_PATH}" "${mod_hash}" \
+        || err "Downloaded mod archive is corrupted"
+    fi
+
+    msg "Latest SPT release is '${mod_version}'"
+
+    # Check if we need to patch the game files
+    msg "Comparing installed EFT <--> required EFT versions"
+    if [[ "${installed_eft}" -ne "${mod_eft}" ]]; then
+        msg "Incompatible EFT version found - Checking latest downpatcher"
+        # Check if target EFT version is lower, greater or equal to required EFT version
+        if [[ "${patcher_eft}" -lt "${installed_eft}" ]]; then
+            # No patcher available yet!
+            warn "Looks like there's no patcher available for your EFT version"
+            msg
+            msg "    > This usually happens when EFT has been updated recently."
+            msg "    > Please wait for the SPT team to generate a new patcher."
+            msg "    > Usually, this will take less then 24 hours."
+            msg
+            err "No patcher available"
+            
+        elif [[ "${patcher_eft}" -gt "${installed_eft}" ]]; then
+            # EFT is outdated!
+            warn "Looks like your installed EFT version is out-of-date"
+            msg
+            msg "    > Please update your live EFT installation & try again"
+            msg
+            err "EFT is out-of-date"
+
+        elif [[ "${patcher_eft}" -eq "${installed_eft}" ]]; then
+            # Downpatcher is compatible!
+            msg "Patcher is compatible"
+
+            # Check for cached patcher archive
+            if ! check_cached "${PATCHER_PATH}" "${patcher_hash}"; then
+                download_patcher
+                check_hash "${PATCHER_PATH}" "${patcher_hash}" \
+                || err "Downloaded patcher archive is corrupted"
+            fi
+
+            # Extract downpatcher to temp directory
+            m_7z "${PATCHER_PATH}" "${TMP_DIR}/patcher"
+
+            # Copy EFT files
+            msg "Copying EFT game files..."
+            m_cp "${EFT_DIR}/" "${SPT_DIR}"
+
+            # Move patcher files to install directory
+            msg "Moving patcher files to '${SPT_DIR}'"
+            find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*' | xargs mv -t "${SPT_DIR}" \
+            || err "Failed to move patcher files to SPT install directory" 
+
+            # Patch game using downloaded patcher files
+            opt_patch "${SPT_DIR}" || err "Something went wrong while patching game files"
+        fi
+    else
+        msg "Installed EFT version is compatible with 'SPT ${mod_version}'"
+        msg "Copying EFT game files..."
+        m_cp "${EFT_DIR}" "${SPT_DIR}"
+    fi
+
+    # Extract mod archive to install directory
+    m_7z "${MOD_PATH}" "${SPT_DIR}"
+}
+
+
+install_spt_wine() {
+    # Download SPT Installer
+    if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
+        msg "Downloading SPTInstaller.exe..."
+        cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-additions]}"
+    fi
+
+    # Run SPT Installer
+    msg "Launching SPT Installer..."
+    m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
 }
 
 
@@ -887,7 +909,7 @@ opt_install() {
     # SYNTAX: spt-additions install spt -p ~/Games/sptarkov
     local option spt_install_mode
     option="$1" && shift
-    spt_install_mode="wine"
+    spt_install_mode="proton"
 
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
@@ -897,7 +919,9 @@ opt_install() {
             -*)
                 case "${OPTARG}" in
                     native) spt_install_mode="native" ;;
-                    wine) spt_install_mode="wine" ;;
+                    proton) spt_install_mode="proton" ;;
+                    lutris) spt_install_mode="lutris" ;;
+                    # faugus) spt_install_mode="faugus" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
                     "") err "Option \"${option}\" requires an argument" ;;
                 esac
@@ -966,9 +990,12 @@ opt_uninstall() {
 
 
 opt_run() {
-    # SYNTAX: spt-additions run spt --launcher -e "" -a ""
+    # SYNTAX: spt-additions run spt-launcher -e "MANGOHUD=1"
     local option path
     option="$1" && shift
+
+    # Fail if EFT / BSG Launcher is running
+    check_eft_running
 
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
