@@ -1,9 +1,9 @@
 #!/bin/bash
 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-##       SPT - Server pre-launch script
-##                v2025.6-2 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+# # # # # # # # # # # # # # # # # # # # # # # #
+#       SPT - Server pre-launch script        #
+#                v2025.6-2                    #
+# # # # # # # # # # # # # # # # # # # # # # # #
 
 readonly ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly TERMINALS=("foot" "alacritty" "ptyxis" "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm")
