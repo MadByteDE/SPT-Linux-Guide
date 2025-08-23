@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.5"
+VERSION="0.5.6"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -32,6 +32,8 @@ readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}" && mkdir -p "${CONFIG_DIR}"
 readonly TMP_DIR="${CACHE_DIR}/tmp" && mkdir -p "${TMP_DIR}"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps" && mkdir -p "${ICO_DIR}"
 readonly APP_DIR="${DATA_HOME}/applications"
+readonly DEFAULT_PFX_DIR="${HOME}/Games/tarkov"
+readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
@@ -406,9 +408,21 @@ check_prefix_path() {
     [[ ! -d "$pfx_path" ]] && return 0
     for p in "${check_paths[@]}"; do
         if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
-            err "Invalid prefix path: \"${pfx_path}\""
+            set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
+            save_array config
+            err "Invalid wine prefix directory: \"${pfx_path}\""
         fi
     done
+}
+
+
+check_spt_path() {
+    local spt_path="${1%/}"
+    if [[ "$spt_path" != *"drive_c"* ]]; then
+        set_value config "spt_dir=${DEFAULT_SPT_DIR}"
+        save_array config
+        err "Invalid spt path: \"${spt_path}\""
+    fi
 }
 
 
@@ -850,10 +864,10 @@ uninstall_spt() {
 
 uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
-    [[ ! -d "${CONFIG[pfx_dir]}" ]] && msg "Prefix doesn't exist" && return 0
+    [[ ! -d "${CONFIG[pfx_dir]}" ]] && msg "Prefix directory does not exist" && return 0
     msg "Removing Prefix directory..."
-    [[ -d "${CONFIG[pfx_dir]}" ]] && m_rmdir "${CONFIG[pfx_dir]}"
-    [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+    m_rmdir "${CONFIG[pfx_dir]}"
+    [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
 
@@ -1430,8 +1444,8 @@ main() {
     [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]] && m_rmdir "${TMP_DIR}/"
 
     # Set default config variables
-    set_value config "pfx_dir=${HOME}/Games/tarkov"
-    set_value config "spt_dir=drive_c/SPTarkov"
+    set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
+    set_value config "spt_dir=${DEFAULT_SPT_DIR}"
 
     # Set default environment variables
     set_value env "PROTON_USE_XALIA=0"
@@ -1447,6 +1461,7 @@ main() {
 
     # Set prefix paths
     check_prefix_path "${CONFIG[pfx_dir]}"
+    check_spt_path "${CONFIG[spt_dir]}"
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
     EFT_DIR="$( get_eft_path )"
