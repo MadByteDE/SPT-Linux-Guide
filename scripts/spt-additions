@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.3"
+VERSION="0.5.4"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -614,6 +614,8 @@ install_spt() {
     msg "Starting \"SPTarkov\" setup..."
     msg "Install mode is \"$install_mode\"..."
 
+    check_eft_running
+
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
     # check_dotnet
 
@@ -689,7 +691,6 @@ EOF
 
 install_spt_native() {
     # Pre-Checks
-    check_eft_running
     check_native_deps
     check_disk_space
 
@@ -902,12 +903,6 @@ opt_install() {
                     *) err "Invalid option: ${OPTARG}" ;;
                 esac
             ;;
-            -*)
-                case "${OPTARG}" in
-                    :) err "Option \"-${OPTARG}\" requires an argument" ;;
-                    *) err "Invalid option: --${OPTARG}" ;;
-                esac
-            ;;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
             *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
@@ -936,7 +931,7 @@ opt_uninstall() {
     while getopts ":p:-:" subopt; do
         case ${subopt} in
             p) opt_setprefix "${OPTARG}";;
-            -)
+            -*)
                 case "${OPTARG}" in
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
                     *) err "Invalid option: --${OPTARG}" ;;
@@ -977,44 +972,41 @@ opt_run() {
     # SYNTAX: spt-additions run spt-launcher -e "MANGOHUD=1"
     local option="$1" && shift
 
-    # Fail if EFT / BSG Launcher is running
-    check_eft_running
-
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
             p) set_value config "pfx_dir=${OPTARG}";;
             e) opt_setenv "${OPTARG}";;
             a) opt_setarg "${OPTARG}";;
-            -*)
-                case "${OPTARG}" in
-                    *) err "Invalid option: --${OPTARG}" ;;
-                esac
-            ;;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
             *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
-    
+
     case "${option}" in
         eft|bsg|bsg-launcher)
-            # HACK: Workaround for getting the BSG Launcher working
+            check_eft_running
             opt_setarg "--disable-software-rasterizer"
             opt_setprefix "${CONFIG[pfx_dir]}"
             cd "${BSG_DIR}/BsgLauncher" || m_exit 1
-            m_umu "BsgLauncher.exe" "${ARGS[*]}" &
+            m_umu "BsgLauncher.exe" "${ARGS[@]}" &
         ;;
         spt-launcher)
+            check_eft_running
             opt_setprefix "${CONFIG[pfx_dir]}"
-            cd "${SPT_DIR}" && m_umu SPT.Launcher.exe "${ARGS[*]}" &
+            cd "${SPT_DIR}" && m_umu SPT.Launcher.exe "${ARGS[@]}" &
         ;;
         spt-server)
             # check_dotnet
+            check_eft_running
             opt_setprefix "${CONFIG[pfx_dir]}"
-            cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[*]}" &
+            cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[@]}" &
         ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
-        *) err "Invalid option \"${option}\"" ;;
+        *)
+            opt_setprefix "${CONFIG[pfx_dir]}"
+            cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" &
+        ;;
     esac
 }
 
@@ -1277,51 +1269,53 @@ opt_help() {
     case "${option}" in
         install)
             msg "${BOLD}Available options:${RESET}"
-            msg "[eft|bsg|tarkov]"
-            msg "[spt|sptarkov]"
+            msg "[eft|bsg|tarkov]               - Install the BSG Launcher"
+            msg "[spt|sptarkov]                 - Install SPTarkov"
             msg
             msg "${BOLD}SPT Install modes:${RESET}"
-            msg "native|proton|lutris"
+            msg "native|proton"
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-m${RESET}          - Change SPT install mode (Default is \"proton\")"
-            msg "${BOLD}-p${RESET}          - Set a custom prefix path (Default is \"~/Games/tarkov\")"
-            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
-            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
-            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+            msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"proton\")"
+            msg "${BOLD}-p${RESET}              - Set a custom prefix path (Default is \"~/Games/tarkov\")"
+            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
         uninstall)
             msg "${BOLD}Available options:${RESET}"
             msg "eft|spt|all"
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
-            msg "${BOLD}--no-prompt${RESET} - Disable interactive prompt messages"
-            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
+            msg "${BOLD}--no-prompt${RESET}     - Disable interactive prompt messages"
+            msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
         shortcut)
             msg "${BOLD}Available options:"
-            msg "[eft|bsg|bsg-launcher]"    - Update BSG-Launcher shortcut
-            msg "[spt|sptarkov]"            - Update SPT.Server and SPT.Launcher shortcut
-            msg "spt-launcher|spt-server"   - Update SPT.Server or SPT.Launcher shortcut
-            msg "all"                       - Update all shortcuts
+            msg "[eft|bsg|bsg-launcher]         - Update BSG-Launcher shortcut"
+            msg "[spt|sptarkov]                 - Update SPT.Server and SPT.Launcher shortcut"
+            msg "spt-launcher|spt-server        - Update SPT.Server or SPT.Launcher shortcut"
+            msg "all                            - Update all shortcuts"
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
-            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
-            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
+            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
         run)
             msg "${BOLD}Available options:${RESET}"
-            msg "[eft|bsg|bsg-launcher]"
-            msg "${BOLD}spt-launcher|spt-server${RESET}"
+            msg "[eft|bsg|bsg-launcher]         - Run the BSG Launcher"
+            msg "spt-launcher                   - Run the SPT Launcher"
+            msg "spt-server                     - Run the native SPT Server"
+            msg "[*]                            - Run a custom command inside the prefix"
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}          - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
-            msg "${BOLD}-a${RESET}          - Add a custom launch argument"
-            msg "${BOLD}-h|--help${RESET}   - Print the help message"
+            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
+            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
+            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
+            msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
         patch)
             msg "Patch game files using hpatchz"
@@ -1334,8 +1328,8 @@ opt_help() {
             msg "cache|config|data|all"
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}           - Set a custom path for the wine prefix"
-            msg "${BOLD}-h|--help${RESET}    - Print the help message"
+            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
+            msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
         "")
             msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
