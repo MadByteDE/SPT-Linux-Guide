@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.2"
+VERSION="0.5.3"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -36,7 +36,7 @@ readonly APP_DIR="${DATA_HOME}/applications"
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
 readonly SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
-readonly UMU_PATH=$(command -v umu-run || echo "${RUNTIME_DIR}/umu-run")
+readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/prefix.conf"
 readonly ENV_PATH="${CONFIG_DIR}/env.conf"
 readonly MOD_PATH="${CACHE_DIR}/SPT.7z"
@@ -64,7 +64,7 @@ URL[discord]="https://discord.com/invite/Xn9msqQZan"
 readonly -A URL
 
 # We don't want to run as root
-if [[ "$(id -u)" -eq 0 ]]; then
+if [[ "$( id -u )" -eq 0 ]]; then
     echo "This script is not supposed to be run as root!"
     exit 1
 fi
@@ -81,11 +81,10 @@ trap int INT; int() { err "Interrupt received"; }
 # # # # # # # # # #
 
 m_exit() {
-    local status
-    status=${1:-$?}
+    local status=${1:-$?}
 
     # Remove tmp files
-    [[ -d "${TMP_DIR}" ]] && [[ -n $(ls "${TMP_DIR}" 2>/dev/null) ]] && m_rmdir "${TMP_DIR}/"
+    [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]] && m_rmdir "${TMP_DIR}/"
 
     # Save configs
     if [[ -d "${CONFIG_DIR}" ]]; then
@@ -104,15 +103,13 @@ m_chmod() {
 
 
 m_cp() {
-    local source_path target_path
-    source_path="${1}"
-    target_path="${2}"
+    local source_path="${1}"; local target_path="${2}"
     # Check exists
-    [[ ! -d "${source_path}" ]] && err "Source '${source_path}' does not exist"
+    [[ ! -d "${source_path}" ]] && err "Source \"${source_path}\" does not exist"
     # Check if the target path is inside a valid directory
     case "${target_path}" in
         *"${CONFIG[pfx_dir]}"* | *"${CACHE_DIR}"*) ;;
-        *) err "Invalid target directory '$target_path'" ;;
+        *) err "Invalid target directory \"$target_path\"" ;;
     esac
     # Create missing directories
     mkdir -p "${target_path}"
@@ -125,8 +122,7 @@ m_cp() {
 
 
 m_rm() {
-    local path
-    path="$1"
+    local path="$1"
     if [[ -d "${path}" ]]; then
         err "Cannot remove directories. Use \"m_rmdir\" instead."
     fi
@@ -135,8 +131,7 @@ m_rm() {
 
 
 m_rmdir() {
-    local path
-    path="${1%/}"
+    local path="${1%/}"
     if [[ -f "${path}" ]]; then
         warn "Cannot remove single files. Use \"m_rm\" instead."
         exit 1
@@ -152,9 +147,7 @@ m_rmdir() {
 
 
 m_7z() {
-    local archive_path target_path filename status
-    archive_path="${1}"
-    target_path="${2}"
+    local archive_path="${1}"; local target_path="${2}"
     filename="${archive_path##*/}"
     # Extract
     msg "Extracting \"${filename}\""
@@ -178,9 +171,9 @@ m_umu() {
 # # # # # # # # # # #
 
 msg() {
-    local filtered_str output
-    output="${GRAY}[$TITLE]${RESET} ${*}"
-    filtered_str=$(echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
+    local filtered_str
+    local output="${GRAY}[$TITLE]${RESET} ${*}"
+    filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
 
     # Print to terminal
     echo -e "${output}"
@@ -193,16 +186,14 @@ msg() {
 
 
 warn() {
-    local pfx
-    pfx="${BLUE}Warn ${FUNCNAME[1]}: ${RESET}"
+    local pfx="${BLUE}Warn ${FUNCNAME[1]}: ${RESET}"
     msg "${pfx}$1"
 }
 
 
 err() {
-    local status pfx
-    status=$?
-    pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
+    local status=$?
+    local pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
     msg "${pfx}$1"
     msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}"
     m_exit ${status}
@@ -210,8 +201,7 @@ err() {
 
 
 dbg() {
-    local pfx
-    pfx="${GRAY}DEBUG ${FUNCNAME[1]}: ${RESET}"
+    local pfx="${GRAY}DEBUG ${FUNCNAME[1]}: ${RESET}"
     msg "${pfx}$1"
 }
 
@@ -229,31 +219,30 @@ ask() {
 
 
 set_value() {
-    local array_name input key value
-    array_name="${1}"
-    input="${2}" || err "Missing argument: set_value [array_name] [input]"
-    # msg "DEBUG: Input is '${input}'"
-    key="$(echo "$input" | cut -d '=' -f 1)"
-    value="$(echo "${input//["\""]}" | cut -d '=' -f 2-)"
+    local key value
+    local array_name="${1}"
+    local input="${2}" || err "Missing argument: set_value [array_name] [input]"
+    # msg "DEBUG: Input is \"${input}\""
+    key="$( echo "$input" | cut -d '=' -f 1 )"
+    value="$( echo "${input//["\""]}" | cut -d '=' -f 2- )"
     # Fail if no key is provided
-    [[ -z "$key" ]] && err "Failed to set value: Input \"$input\" in \"$array_name\" has no key"
+    [[ -z "$key" ]] && err "Input \"$input\" in \"$array_name\" has no key"
     case "${array_name}" in
         config)
-            # Fail if no value is provided
-            [[ -z "$value" ]] && err "Failed to set value: Key \"$key\" in \"$array_name\" has no value"
-            CONFIG[$key]="${value%/}"
+            case "${value}" in
+                "") err "Key \"$key\" in \"$array_name\" has no value" ;;
+                *) CONFIG[$key]="${value%/}"
+            esac
         ;;
-        env)
-            ENV[$key]="${value%/}"
-        ;;
+        env) ENV[$key]="${value%/}" ;;
         *) err "Invalid array name: \"$array_name\""
     esac
 }
 
 
 load_array() {
-    local array_name path
-    array_name="${1}" || err "Missing argument: load_array [array_name]"
+    local path
+    local array_name="${1}" || err "Missing argument: load_array [array_name]"
     case "$array_name" in
         config) path="${CONFIG_PATH}" ;;
         env) path="${ENV_PATH}" ;;
@@ -265,28 +254,27 @@ load_array() {
         return
     fi
     # Read lines & load values
-    while read line; do
-        if $(echo $line | grep -F = &>/dev/null); then
-            set_value "$array_name" "$line"
-        else err "Cannot load setting \"$line\": Invalid format"; fi
+    while read -r line; do
+        case "${line}" in
+            *=*) set_value "$array_name" "$line" ;;
+            *) err "Cannot load setting \"$line\": Invalid format" ;;
+        esac
     done < "$path"
 }
 
 
 save_array() {
-    local array_name array path
-    array_name="${1}" || exit 1
-    declare -A array
+    local array_name="${1}" || exit 1
     case "${array_name}" in
         config)
             [[ -f "${CONFIG_PATH}" ]] && m_rm "${CONFIG_PATH}"
-            for key in ${!CONFIG[@]}; do
+            for key in "${!CONFIG[@]}"; do
                 echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}" || exit 1
             done
         ;;
         env)
             [[ -f "${ENV_PATH}" ]] && m_rm "${ENV_PATH}"
-            for key in ${!ENV[@]}; do
+            for key in "${!ENV[@]}"; do
                 echo "${key}=\"${ENV[$key]}\"" >> "${ENV_PATH}" || exit 1
             done
         ;;
@@ -297,16 +285,15 @@ save_array() {
 
 export_env() {
     for key in "${!ENV[@]}"; do
-        export $(echo "$key=${ENV[$key]} ")
+        export "$key=${ENV[$key]}"
     done
 }
 
 
 get_env_string() {
-    local env var
-    env+="WINEPREFIX=\"${CONFIG[pfx_dir]}\""
+    local env+="WINEPREFIX=\"${CONFIG[pfx_dir]}\""
     for key in "${!ENV[@]}"; do
-        var=$(echo " $key=${ENV[$key]}")
+        local var=" $key=${ENV[$key]}"
         env+="$var"
     done
     printf "${env}\n"
@@ -318,12 +305,12 @@ get_env_string() {
 # # # # # # # # # # # # #
 
 get_eft_path() {
-    local reg entry path
+    local entry path
     [[ ! -d "${CONFIG[pfx_dir]}" ]] && exit 10
     [[ ! -f "${CONFIG[pfx_dir]}/system.reg" ]] && exit 11
     # get windows formatted path
-    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[pfx_dir]}/system.reg")
-    path=$(echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
+    entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[pfx_dir]}/system.reg" )
+    path=$( echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
     [[ -z "$path" ]] && exit 12
     # Replace backslashes with slashes
     path="${path//\\\\/\/}"
@@ -333,16 +320,16 @@ get_eft_path() {
 
 
 get_eft_version() {
-    local path version_path version
+    local version
     [[ ! -d "${EFT_DIR}" ]] && exit 10
     # Check if main exe exists
-    path="${EFT_DIR}/EscapeFromTarkov.exe"
+    local path="${EFT_DIR}/EscapeFromTarkov.exe"
     [[ ! -f "${path}" ]] \
-    && err "File '${path}' does not exist"
+    && err "File \"${path}\" does not exist"
     # Extract metadata
     m_7z "${path}" "${TMP_DIR}" 1>/dev/null
     # Get the EFT version from the version.txt file
-    version=$(cat "${TMP_DIR}/.rsrc/0/version.txt" | head -1 | tr -d '\0\r' | cut -d "," -f4 2>/dev/null)
+    version=$( cat "${TMP_DIR}/.rsrc/0/version.txt" | head -1 | tr -d '\0\r' | cut -d "," -f4 2>/dev/null )
     [[ -z "${version}" ]] && exit 12
     printf "${version}\n"
 }
@@ -353,10 +340,10 @@ get_eft_version() {
 # # # # # # # # # # # # # # #
 
 get_patcher_urls() {
-    local json_path index urls
-    json_path="${1:-"${PATCHER_JSON_PATH}"}"
-    index="${2}"
-    urls=$(cat "${json_path}" | jq -r '.Mirrors[].Link')
+    local urls
+    local json_path="${1:-"${PATCHER_JSON_PATH}"}"
+    local index="${2}"
+    urls=$( cat "${json_path}" | jq -r '.Mirrors[].Link' )
     [[ -z "${urls}" ]] && exit 12
     # Return a specific url
     if [[ -n "${index}" ]]; then
@@ -369,16 +356,16 @@ get_patcher_urls() {
 
 
 get_patcher_eft_version() {
-    local json_path url filename version
-    json_path="${1:-"${PATCHER_JSON_PATH}"}"
-    url=$(get_patcher_urls "${json_path}" 1) || exit 1
+    local url filename version
+    local json_path="${1:-"${PATCHER_JSON_PATH}"}"
+    url=$( get_patcher_urls "${json_path}" 1 ) || exit 1
     # Split filename to get version infos from it
-    filename=$(echo "${url##*/}" | tr "_." " ")
+    filename=$( echo "${url##*/}" | tr "_." " " )
     # get target EFT version
-    version=$(echo "${filename}" | cut -d " " -f5)
+    version=$( echo "${filename}" | cut -d " " -f5 )
     # Check returned value
     case "${version}" in
-        ''|*[!0-9]*) exit 14 ;;
+        ""|*[!0-9]*) exit 14 ;;
         *) printf "${version}\n" ;;
     esac
 }
@@ -387,7 +374,7 @@ get_patcher_eft_version() {
 download_patcher() {
     # Set global variable for patcher mirror urls
     local urls
-    urls=$(get_patcher_urls) || err "Failed to get patcher mirrors"
+    urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors"
     # Try to download from first to last
     echo "${urls}" | while read -r url; do
         msg "Downloading \"$url\"..."
@@ -401,14 +388,16 @@ download_patcher() {
 # # # # # # # # # # #
 
 check_disk_space() {
-    local path=${1:-"${CONFIG[pfx_dir]}"}; [[ -z "${path}" ]] && err "Missing path argument"
+    local path=${1:-"${CONFIG[pfx_dir]}"}
+    [[ -z "${path}" ]] && err "Missing path argument"
     # Get required values
-    local free_kb=$(df -k "${path}" | tail -1 | awk '{print $4}')
-    local eft_kb=$(du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1)
+    local free_kb eft_kb free_gb total_gb
+    free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
+    eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
     local overhead_kb=$((1024*1024*10))
-    local total_kb=$(($eft_kb + $overhead_kb))
-    local free_gb=$(echo "$free_kb" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }')
-    local total_gb=$(echo $total_kb | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }')
+    local total_kb=$((eft_kb + overhead_kb))
+    free_gb=$( echo "$free_kb" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }' )
+    total_gb=$( echo $total_kb | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }' )
     # Check if there's enough space
     [[ $free_kb -le $total_kb ]] && err "Not enough free disk space! ($free_gb free < $total_gb needed)"
     msg "Enough free disk space available! ($free_gb free > $total_gb needed)"
@@ -418,7 +407,7 @@ check_disk_space() {
 check_dotnet() {
     local status
     # Check for .NET Core and ASP.NET Runtime
-    if [[ -z "$(dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0")" ]]; then
+    if ! "$( dotnet --list-runtimes 2>/dev/null | grep -q "AspNet" | grep -q "9.0" )"; then
         msg "${YELLOW}> \"ASP.NET Runtime 9.0\" is not installed on your system${RESET}"
         status=1
     fi
@@ -430,8 +419,8 @@ check_dotnet() {
 
 
 check_native_deps() {
-    local cmds status
-    cmds=("7z" "xxd" "hpatchz" "jq")
+    local status
+    local cmds=( "7z" "xxd" "hpatchz" "jq" )
     # Check each cmd and error out if something is missing
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
@@ -453,10 +442,9 @@ check_native_deps() {
 
 
 check_eft_running() {
-    local processes
-    processes=("BsgLauncher.exe" "EscapeFromTarko")
-    for process in ${processes[@]}; do
-        if [[ -n $(pidof "$process") ]]; then
+    local processes=( "BsgLauncher.exe" "EscapeFromTarko" )
+    for process in "${processes[@]}"; do
+        if [[ -n $( pidof "$process" ) ]]; then
             msg "${YELLOW}> \"$process\" is currently running! Please close it to continue."
             err "\"$process\" is running"
         fi
@@ -465,15 +453,14 @@ check_eft_running() {
 
 
 check_hash() {
-    local file_path expected_hash
-    file_path="${1}"
-    expected_hash="${2}"
+    local file_hash
+    local file_path="${1}"; local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
-    [[ -z "${expected_hash}" ]] && err "Missing 'expected_hash' argument"
+    [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
     # use file to calculate MD5 hash and ENCODE in base64
     msg "Calculating checksum of file \"${file_path##*/}\""
-    local file_hash=$(md5sum "${file_path}" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null)
+    file_hash=$( md5sum "${file_path}" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null )
     [[ -z "${file_hash}" ]] && err "Failed to calculate hash"
     # dbg "File hash: ${file_hash} Expected hash: ${expected_hash}"
     # Compare
@@ -486,14 +473,13 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path expected_hash filename
-    cached_path="${1}"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
-    expected_hash="${2}"; [[ -z "${expected_hash}" ]] && err "Missing expected hash argument"
+    local cached_path="${1}"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
+    local expected_hash="${2}"; [[ -z "${expected_hash}" ]] && err "Missing expected hash argument"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] \
     || err "Given file isn't inside the scripts cache directory"
     # Verify the file is there and valid
-    filename=${cached_path##*/}
+    local filename=${cached_path##*/}
     msg "Checking for cached file \"${filename}\""
     if [[ -f "${cached_path}" ]]; then
         msg "Found \"${filename}\" in cache directory"
@@ -513,14 +499,14 @@ check_cached() {
 
 
 check_ttl() {
-    local file_path ttl c_time m_time e_time
-    file_path="${1}"
+    local c_time m_time e_time
+    local file_path="${1}"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && msg "File \"${file_path}\" does not exist" && return 1
     # Calculate time elapsed since last modified
-    ttl="${2:-"3600"}" 
-    c_time=$(date +%s)
-    m_time=$(date -r "${file_path}" +%s)
+    local ttl="${2:-"3600"}" 
+    c_time=$( date +%s )
+    m_time=$( date -r "${file_path}" +%s )
     ((e_time = c_time - m_time))
     # If elapsed time >= TTL - fail the check
     if [[ $e_time -ge $ttl ]]; then
@@ -536,11 +522,11 @@ check_ttl() {
 # # # # # # # # # # # # #
 
 winetricks_install() {
-    local name full_name args
-    name="${1}"; full_name="${2}"; args="${3}"
-    if ! cat "${CONFIG[pfx_dir]}/winetricks.log" 2>/dev/null | grep -q "$name"; then
-        msg "Installing $full_name..."
-        m_umu winetricks -q $name $args
+    local verb="${1}"; local name="${2}"; local args="${3}"
+    # Skip if dependency is already installed
+    if ! cat "${CONFIG[pfx_dir]}/winetricks.log" 2>/dev/null | grep -q "$verb"; then
+        msg "Installing $name..."
+        m_umu winetricks -q $verb $args
     fi
 }
 
@@ -551,8 +537,8 @@ install_hpatchz() {
     cd "${TMP_DIR}" || m_exit 1
     m_curl -LO "${URL[hpatchz]}"
     # Extract & remove when done
-    m_7z "$(ls -- !("hdiffpatch"))" "${TMP_DIR}"
-    # Move binaries to runtime directory
+    m_7z "$( ls -- !("hdiffpatch") )" "${TMP_DIR}"
+    # Move to runtime directory
     mv -f "./linux64/hpatchz" "${RUNTIME_DIR}" || err "Failed to move \"hpatchz\" into \"${RUNTIME_DIR}\""
 }
 
@@ -563,14 +549,14 @@ install_umu() {
     cd "${TMP_DIR}" || m_exit 1
     m_curl -LO "${URL[umu-launcher]}"
     # Extract & remove when done
-    tar -xf "$(ls -- !("zipapp.tar"))" || err "Failed to extract archive"
-    # Move umu-run to DATA_DIR
+    tar -xf "$( ls -- !("zipapp.tar") )" || err "Failed to extract archive"
+    # Move to runtime directory
     mv -f "./umu/umu-run" "${RUNTIME_DIR}" || err "Failed to move \"umu-run\" into \"${RUNTIME_DIR}\""
 }
 
 
 install_eft() {
-    msg "Started \"Escape from Tarkov\" setup..."
+    msg "Starting \"Escape from Tarkov\" setup..."
     opt_setprefix "${CONFIG[pfx_dir]}"
 
     # HACK: make sure to use UMU-Proton for dotnet48
@@ -623,11 +609,10 @@ install_eft() {
 
 
 install_spt() {
-    local install_mode
-    install_mode="${1:-"proton"}"
-
-    msg "Started \"SPTarkov\" setup..."
-    msg "Install mode is '$install_mode'..."
+    local install_mode="${1:-"proton"}"
+    
+    msg "Starting \"SPTarkov\" setup..."
+    msg "Install mode is \"$install_mode\"..."
 
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
     # check_dotnet
@@ -656,7 +641,7 @@ install_spt() {
     # Install SPT
     case "$install_mode" in
         native) install_spt_native ;;
-        lutris|proton) install_spt_wine ;;
+        lutris|proton) install_spt_proton ;;
         ""|*) err "Invalid install mode \"$install_mode\""
     esac
 
@@ -686,13 +671,12 @@ install_launch_script() {
     local path="${SPT_DIR}/launch-server.sh"
     cat <<'EOF' > "${path}"
 #!/bin/bash
-local root_path terms
 root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-terms=("foot" "alacritty" "ptyxis" "kgx" "konsole"
-    "gnome-terminal" "xfce4-terminal" "kitty" "xterm")
-[[ $(pidof "SPT.Server.Linux") != "" ]] && exit 0
+terms=( "foot" "alacritty" "ptyxis" "kgx" "konsole"
+    "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
+[[ $( pidof "SPT.Server.Linux" ) != "" ]] && exit 0
 for term in "${terms[@]}"; do
-    if command -v $term; then
+    if command -v $term &>/dev/null; then
         cd "${root_path}"
         $term -e "./SPT.Server.Linux"
         break
@@ -715,14 +699,14 @@ install_spt_native() {
 
     # Fetch some juicy data
     local installed_eft patcher_eft mod_eft mod_version
-    local mod_url mod_hash patcher_expected_hash
-    installed_eft=$(get_eft_version) || m_exit 1
-    mod_eft=$(echo $(jq -r '.ClientVersion' "${MOD_JSON_PATH}")) || m_exit 1
-    mod_version=$(echo $(jq -r '.AkiVersion' "${MOD_JSON_PATH}")) || m_exit 1
-    mod_url=$(echo $(jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}")) || m_exit 1
-    mod_hash=$(echo $(jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}")) || m_exit 1
-    patcher_hash=$(echo $(jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1)) || m_exit 1
-    patcher_eft=$(get_patcher_eft_version) || m_exit 1
+    local mod_url mod_hash patcher_hash
+    installed_eft=$( get_eft_version ) || m_exit 1
+    mod_eft="$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" )" || m_exit 1
+    mod_version="$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" )" || m_exit 1
+    mod_url="$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" )" || m_exit 1
+    mod_hash="$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" )" || m_exit 1
+    patcher_hash="$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 )" || m_exit 1
+    patcher_eft="$( get_patcher_eft_version )" || m_exit 1
     
     # Check for cached mod archive
     if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
@@ -734,7 +718,7 @@ install_spt_native() {
         || err "Downloaded mod archive is corrupted"
     fi
 
-    msg "Latest SPT release is '${mod_version}'"
+    msg "Latest SPT release is \"${mod_version}\""
 
     # Check if we need to patch the game files
     msg "Comparing installed EFT <--> required EFT versions"
@@ -778,17 +762,17 @@ install_spt_native() {
             m_cp "${EFT_DIR}/" "${SPT_DIR}"
 
             # Move patcher files to install directory
-            msg "Moving patcher files to '${SPT_DIR}'"
-            find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*' | xargs mv -t "${SPT_DIR}" \
+            msg "Moving patcher files to \"${SPT_DIR}\""
+            find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*' -print0 | xargs -0 mv -t "${SPT_DIR}" \
             || err "Failed to move patcher files to SPT install directory" 
 
             # Patch game using downloaded patcher files
             opt_patch "${SPT_DIR}" || err "Something went wrong while patching game files"
         fi
     else
-        msg "Installed EFT version is compatible with 'SPT ${mod_version}'"
+        msg "Installed EFT version is compatible with \"SPT ${mod_version}\""
         msg "Copying EFT game files..."
-        m_cp "${EFT_DIR}" "${SPT_DIR}"
+        m_cp "${EFT_DIR}/" "${SPT_DIR}"
     fi
 
     # Extract mod archive to install directory
@@ -796,7 +780,7 @@ install_spt_native() {
 }
 
 
-install_spt_wine() {
+install_spt_proton() {
     # Download SPT Installer
     if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
         msg "Downloading SPTInstaller.exe..."
@@ -810,8 +794,7 @@ install_spt_wine() {
 
 
 uninstall_eft() {
-    local no_prompt
-    no_prompt="${1:-$NO_PROMPT}"
+    local no_prompt="${1:-$NO_PROMPT}"
     if [[ "${no_prompt}" != 1 ]]; then
         # Warn user before continuing
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
@@ -831,8 +814,7 @@ uninstall_eft() {
 
 
 uninstall_spt() {
-    local no_prompt
-    no_prompt="${1:-$NO_PROMPT}"
+    local no_prompt="${1:-$NO_PROMPT}"
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
         msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
@@ -843,10 +825,9 @@ uninstall_spt() {
     [[ -d "${SPT_DIR}" ]] && m_rmdir "${SPT_DIR}"
 
     msg "Removing \"SPTarkov\" shortcuts..."
-    local apps app_path
-    apps=("SPTarkov - Launcher.desktop" "SPTarkov - Server.desktop")
+    local apps=( "SPT - Launcher.desktop" "SPT - Server.desktop" )
     for app in "${apps[@]}"; do
-        app_path="${APP_DIR}/${app}"
+        local app_path="${APP_DIR}/${app}"
         [[ -f "${app_path}" ]] && m_rm "${app_path}"
     done
 
@@ -859,8 +840,7 @@ uninstall_spt() {
 # # # # # # # # # # # #
 
 opt_setprefix() {
-    local path
-    path="${1}"
+    local path="${1}"
 
     if [[ -d "${path}" ]]; then
         [[ ! -f "${path}/system.reg" ]] && err "Invalid prefix directory: \"${path}\""
@@ -875,17 +855,17 @@ opt_setprefix() {
     # Update prefix paths
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
-    EFT_DIR="$(get_eft_path)"
+    EFT_DIR="$( get_eft_path )"
 
     msg "Prefix path has been set to \"${CONFIG[pfx_dir]}\""
 }
 
 
 opt_setenv() {
-    local string key value
-    string="$1"
-    key=$(echo "$string" | cut -d "=" -f1)
-    value=$(echo "$string" | cut -d "=" -f 2-)
+    local key value
+    local string="$1"
+    key=$( echo "$string" | cut -d "=" -f1 )
+    value=$( echo "$string" | cut -d "=" -f 2- )
     msg "Adding environment variable: \"$string\""
     set_value env "$key=$value"
     # Export to use in current session
@@ -894,14 +874,13 @@ opt_setenv() {
 
 
 opt_setarg() {
-    local arg args_string
-    arg="${1}"
-    args_string="${ARGS[*]}"
+    local arg="${1}"
+    local args_string="${ARGS[*]}"
     case "$args_string" in
      *"$arg"*) ;;
      *)
         msg "Adding launch argument: \"$arg\""
-        ARGS+=("$arg")
+        ARGS+=( "$arg" )
      ;;
     esac
 }
@@ -909,9 +888,8 @@ opt_setarg() {
 
 opt_install() {
     # SYNTAX: spt-additions install spt -p ~/Games/sptarkov
-    local option spt_install_mode
-    option="$1" && shift
-    spt_install_mode="proton"
+    local option="$1" && shift
+    local spt_install_mode="proton"
 
     while getopts ":p:e:a:m:-:" subopt; do
         case ${subopt} in
@@ -920,17 +898,14 @@ opt_install() {
             a) opt_setarg "${OPTARG}";;
             m)
                 case "${OPTARG}" in
-                    native) spt_install_mode="native" ;;
-                    proton) spt_install_mode="proton" ;;
-                    lutris) spt_install_mode="lutris" ;;
+                    native|proton|lutris) spt_install_mode="${OPTARG}" ;;
                     *) err "Invalid option: ${OPTARG}" ;;
-                    # faugus) spt_install_mode="faugus" ;;
                 esac
             ;;
             -*)
                 case "${OPTARG}" in
-                    *) err "Invalid option: --${OPTARG}" ;;
                     :) err "Option \"-${OPTARG}\" requires an argument" ;;
+                    *) err "Invalid option: --${OPTARG}" ;;
                 esac
             ;;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
@@ -1000,8 +975,7 @@ opt_uninstall() {
 
 opt_run() {
     # SYNTAX: spt-additions run spt-launcher -e "MANGOHUD=1"
-    local option path
-    option="$1" && shift
+    local option="$1" && shift
 
     # Fail if EFT / BSG Launcher is running
     check_eft_running
@@ -1026,7 +1000,7 @@ opt_run() {
             # HACK: Workaround for getting the BSG Launcher working
             opt_setarg "--disable-software-rasterizer"
             opt_setprefix "${CONFIG[pfx_dir]}"
-            cd "${BSG_DIR}/BsgLauncher"
+            cd "${BSG_DIR}/BsgLauncher" || m_exit 1
             m_umu "BsgLauncher.exe" "${ARGS[*]}" &
         ;;
         spt-launcher)
@@ -1036,7 +1010,7 @@ opt_run() {
         spt-server)
             # check_dotnet
             opt_setprefix "${CONFIG[pfx_dir]}"
-            "./launch-server.sh" "${ARGS[*]}" &
+            cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[*]}" &
         ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
@@ -1046,34 +1020,35 @@ opt_run() {
 
 
 opt_patch() {
+    local progress_total
+    local target_path="${1%/:-"${SPT_DIR}"}" 
+    local source_path="${2%/:-"${SPT_DIR}"}" 
     msg "Started \"SPTarkov\" patcher..."
-    local target_path source_path
-    target_path="${1%/:-"${SPT_DIR}"}" 
-    source_path="${2%/:-"${SPT_DIR}"}" 
-    [[ ! -d "${target_path}" ]] && err "Target directory '${target_path}' does not exist"
+    # Fail if the target director does not exist
+    [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
     # Make sure hpatchz is installed
     if ! command -v "hpatchz" &>/dev/null; then
         install_hpatchz || err "Missing dependency \"hpatchz\". Please install it & try again"
     fi
     # Search in optional SOURCE directory
-    if [ "$(find "$source_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null)" ]; then
-        msg "Using 'SPT_Patches' found in '${source_path}'"
+    if [ "$( find "$source_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
+        msg "Using \"SPT_Patches\" found in \"${source_path}\""
     # Search in TARGET directory
-    elif [ "$(find "$target_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null)" ]; then
-        msg "Using 'SPT_Patches' found in '${target_path}'"
+    elif [ "$( find "$target_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
+        msg "Using \"SPT_Patches\" found in \"${target_path}\""
         source_path="${target_path}"
     else
         # No "SPT_Patches" directory found
-        err "Unable to locate \"SPT_Patches\" directory in '${source_path}'"
+        err "Unable to locate \"SPT_Patches\" directory in \"${source_path}\""
     fi
     # Print debug strings
     msg "Source path: ${source_path}"
     msg "Target path: ${target_path}"
     
     local progress_start=1
-    local progress_total=$(find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c)
+    progress_total=$( find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c )
 
-    find "$source_path/SPT_Patches" \( -type f \) | while read source; do
+    find "$source_path/SPT_Patches" \( -type f \) -print0 | while IFS= read -r -d '' source; do 
         # progress_current
         local progress_current="[${progress_start}/${progress_total}]"
         # Isolate the operation extension
@@ -1090,19 +1065,19 @@ opt_patch() {
         case "$extension" in
             "delta")
                 msg "${progress_current} (*) Patching: ${formatted##*/}"
-                hpatchz "$output" "$source" "$target" 1>/dev/null
+                hpatchz "$output" "$source" "$target" 1>>"${LOG_PATH}" || return 1
 
                 # Remove old file and replace with .decoded file
-                [[ ! -f "${target}" ]] && err "Decoded file not found!"
-                m_rm "${output}" || err "Failed to remove '${output}'"
-                mv "${target}" "${output}" || err "Failed to move '${target##*/}' to '${output}'"
+                [[ ! -f "${target}" ]] && return 1
+                m_rm "${output}" || return 1
+                mv "${target}" "${output}" || return 1
             ;;
             "del")
                 msg "${progress_current} (-) Deleting: ${formatted##*/}"
-                m_rm "${output}" || err "Failed to remove '${output}'"
-                if [[ -z "$(ls -A "${dir_path}")" ]]; then
+                m_rm "${output}" || return 1
+                if [[ -z "$( ls -A "${dir_path}" )" ]]; then
                     msg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
-                    m_rmdir "${dir_path}" || err "Failed to remove: ${dir_path}"
+                    m_rmdir "${dir_path}" || return 1
                 fi
             ;;
             "new")
@@ -1111,21 +1086,21 @@ opt_patch() {
                     msg "${progress_current} (+) Adding directory: ${dir_path##*/}"
                     mkdir -p "${dir_path}"
                 fi
-                cp "${source}" "${output}" || err "Failed to add file"
+                cp "${source}" "${output}" || return 1
             ;;
             *)
-                err "File '${source}': Invalid or missing operation extension"
+                return 1
             ;;
         esac
-        progress_start=$((${progress_start}+1))
+        progress_start=$((progress_start+1))
     done
 
-    # Something went wrong, remove SPT game files
-    if [[ $? != 0 ]]; then
+    if [[ "$?" -ne "0" ]]; then
+        # Failed patching
         m_rmdir "${SPT_DIR}"
-        err "Failed to patch game files"
+        err "Patching failed"
     fi
-
+    
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         msg "Cleaning up patcher files..."
@@ -1139,11 +1114,10 @@ opt_patch() {
 
 opt_shortcut() {
     # SYNTAX: spt-additions shortcut spt --launcher -p "" -e "" -a ""
-    local option
     local name executable working_dir path icon
-    option="$1" && shift
+    local option="$1" && shift
 
-    while getopts ":p:e:a:-:" subopt; do
+    while getopts ":p:e:a:h:-:" subopt; do
         case ${subopt} in
             p) opt_setprefix "${OPTARG}";;
             e) opt_setenv "${OPTARG}";;
@@ -1151,8 +1125,8 @@ opt_shortcut() {
             h) opt_help "shortcut" ;;
             -*)
                 case "${OPTARG}" in
-                    *) err "Invalid option: --${OPTARG}" ;;
                     "") err "Option \"${option}\" requires an argument" ;;
+                    *) err "Invalid option: --${OPTARG}" ;;
                 esac
             ;;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
@@ -1201,7 +1175,8 @@ opt_shortcut() {
     esac
 
     # Create shortcut
-    local env=$(get_env_string)
+    local env
+    env=$( get_env_string )
     msg "Creating \"$name\" shortcut..."
 
     # Remove existing shortcut
@@ -1309,8 +1284,8 @@ opt_help() {
             msg "native|proton|lutris"
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-m${RESET}          - Change SPT install mode (Default is 'proton')"
-            msg "${BOLD}-p${RESET}          - Set a custom prefix path (Default is '~/Games/tarkov')"
+            msg "${BOLD}-m${RESET}          - Change SPT install mode (Default is \"proton\")"
+            msg "${BOLD}-p${RESET}          - Set a custom prefix path (Default is \"~/Games/tarkov\")"
             msg "${BOLD}-e${RESET}          - Add/Update a environment variable"
             msg "${BOLD}-a${RESET}          - Add a custom launch argument"
             msg "${BOLD}-h|--help${RESET}   - Print the help message"
@@ -1348,7 +1323,12 @@ opt_help() {
             msg "${BOLD}-a${RESET}          - Add a custom launch argument"
             msg "${BOLD}-h|--help${RESET}   - Print the help message"
         ;;
-        # patch) ;;
+        patch)
+            msg "Patch game files using hpatchz"
+            msg 
+            msg "${BOLD}Usage:${RESET}"
+            msg "$TITLE patch [target dir][source dir]"
+        ;;
         clean)
             msg "${BOLD}Available options:${RESET}"
             msg "cache|config|data|all"
@@ -1360,8 +1340,8 @@ opt_help() {
         "")
             msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
             msg
-            msg "${BOLD}Example usage:  ${YELLOW}spt-additions install eft -p ~/Games/tarkov${RESET}"
-            msg "${BOLD}                ${YELLOW}spt-additions shortcut spt-launcher -e MANGOHUD=1${RESET}"
+            msg "${BOLD}Example usage:${RESET}  ${YELLOW}spt-additions install eft -p ~/Games/tarkov${RESET}"
+            msg "                ${YELLOW}spt-additions shortcut spt-launcher -e MANGOHUD=1${RESET}"
             msg
             msg "${BOLD}OPTIONS:${RESET}"
             msg "${BOLD}install${RESET}          - Install EFT/SPT into a prefix"
@@ -1392,8 +1372,7 @@ opt_version() {
 # # # # # # # # # # #
 
 handle_opts() {
-    local option
-    option="${1}" && shift
+    local option="${1}" && shift
 
     # Install umu if needed
     case "$option" in
@@ -1433,7 +1412,7 @@ handle_opts() {
 
 main() {
     # Remove tmp files
-    [[ -d "${TMP_DIR}" ]] && [[ -n $(ls "${TMP_DIR}" 2>/dev/null) ]] && m_rmdir "${TMP_DIR}/"
+    [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]] && m_rmdir "${TMP_DIR}/"
 
     # Set default config variables
     set_value config "pfx_dir=${HOME}/Games/tarkov"
@@ -1454,7 +1433,7 @@ main() {
     # Set prefix paths
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
-    EFT_DIR="$(get_eft_path)"
+    EFT_DIR="$( get_eft_path )"
 
     # Export paths
     export PATH=$RUNTIME_DIR:$PATH
