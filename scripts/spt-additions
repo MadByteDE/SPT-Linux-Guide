@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.4"
+VERSION="0.5.5"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -86,12 +86,6 @@ m_exit() {
     # Remove tmp files
     [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]] && m_rmdir "${TMP_DIR}/"
 
-    # Save configs
-    if [[ -d "${CONFIG_DIR}" ]]; then
-        save_array env
-        save_array config
-    fi
-
     # Exit with passed status code
     exit "${status}"
 }
@@ -122,7 +116,7 @@ m_cp() {
 
 
 m_rm() {
-    local path="$1"
+    local path="${1%/}"
     if [[ -d "${path}" ]]; then
         err "Cannot remove directories. Use \"m_rmdir\" instead."
     fi
@@ -264,18 +258,20 @@ load_array() {
 
 
 save_array() {
-    local array_name="${1}" || exit 1
+    local array_name="${1}" || err "Missing argument: \"array_name\""
     case "${array_name}" in
         config)
             [[ -f "${CONFIG_PATH}" ]] && m_rm "${CONFIG_PATH}"
             for key in "${!CONFIG[@]}"; do
-                echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}" || exit 1
+                echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}"\
+                || err "Failed to write \"${CONFIG_PATH}\""
             done
         ;;
         env)
             [[ -f "${ENV_PATH}" ]] && m_rm "${ENV_PATH}"
             for key in "${!ENV[@]}"; do
-                echo "${key}=\"${ENV[$key]}\"" >> "${ENV_PATH}" || exit 1
+                echo "${key}=\"${ENV[$key]}\"" >> "${ENV_PATH}"\
+                || err "Failed to write \"${ENV_PATH}\""
             done
         ;;
         *) ;;
@@ -401,6 +397,18 @@ check_disk_space() {
     # Check if there's enough space
     [[ $free_kb -le $total_kb ]] && err "Not enough free disk space! ($free_gb free < $total_gb needed)"
     msg "Enough free disk space available! ($free_gb free > $total_gb needed)"
+}
+
+
+check_prefix_path() {
+    local pfx_path="${1%/}"
+    local check_paths=("${pfx_path}/system.reg" "${pfx_path}/dosdevices" "${pfx_path}/drive_c")
+    [[ ! -d "$pfx_path" ]] && return 0
+    for p in "${check_paths[@]}"; do
+        if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
+            err "Invalid prefix path: \"${pfx_path}\""
+        fi
+    done
 }
 
 
@@ -796,6 +804,8 @@ install_spt_proton() {
 
 uninstall_eft() {
     local no_prompt="${1:-$NO_PROMPT}"
+    [[ ! -d "${BSG_DIR}" ]] && msg "EFT is not installed" && return 0
+    # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         # Warn user before continuing
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
@@ -804,7 +814,7 @@ uninstall_eft() {
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
-    [[ -d "${BSG_DIR}" ]] && m_rmdir "${BSG_DIR}"
+    m_rmdir "${BSG_DIR}"
 
     msg "Removing \"BSG Launcher\" shortcut..."
     app_path="${APP_DIR}/BSG - Launcher.desktop"
@@ -816,14 +826,16 @@ uninstall_eft() {
 
 uninstall_spt() {
     local no_prompt="${1:-$NO_PROMPT}"
+    [[ ! -d "${SPT_DIR}" ]] && msg "SPT is not installed" && return 0
+    # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
-        msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
+        msg "SPT directory: ${UNDERLINE}${SPT_DIR}${RESET}"
         ask "Do you want to continue?"
     fi
 
     msg "Uninstalling \"SPTarkov\"..."
-    [[ -d "${SPT_DIR}" ]] && m_rmdir "${SPT_DIR}"
+    m_rmdir "${SPT_DIR}"
 
     msg "Removing \"SPTarkov\" shortcuts..."
     local apps=( "SPT - Launcher.desktop" "SPT - Server.desktop" )
@@ -836,22 +848,31 @@ uninstall_spt() {
 }
 
 
+uninstall_prefix() {
+    local no_prompt="${1:-$NO_PROMPT}"
+    [[ ! -d "${CONFIG[pfx_dir]}" ]] && msg "Prefix doesn't exist" && return 0
+    msg "Removing Prefix directory..."
+    [[ -d "${CONFIG[pfx_dir]}" ]] && m_rmdir "${CONFIG[pfx_dir]}"
+    [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+}
+
+
 # # # # # # # # # # # #
 #   Option functions  #
 # # # # # # # # # # # #
 
 opt_setprefix() {
-    local path="${1}"
+    local path="${1%/}"
 
-    if [[ -d "${path}" ]]; then
-        [[ ! -f "${path}/system.reg" ]] && err "Invalid prefix directory: \"${path}\""
-    fi
-        
+    # Check if it's valid
+    check_prefix_path "$path"
+
     # Update WINEPREFIX environment variable
     export WINEPREFIX="${path}"
 
     # Update prefix config
     set_value config "pfx_dir=${path}"
+    save_array config
 
     # Update prefix paths
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
@@ -869,6 +890,7 @@ opt_setenv() {
     value=$( echo "$string" | cut -d "=" -f 2- )
     msg "Adding environment variable: \"$string\""
     set_value env "$key=$value"
+    save_array env
     # Export to use in current session
     export_env
 }
@@ -946,8 +968,8 @@ opt_uninstall() {
         eft) uninstall_eft ;;
         spt) uninstall_spt ;;
         all)
+            # Ask for confirmation
             if ! [ "${NO_PROMPT}" = 1 ]; then
-                # Warn user before continuing
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
                 msg "${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
@@ -956,9 +978,8 @@ opt_uninstall() {
 
             uninstall_eft 1
             uninstall_spt 1
+            uninstall_prefix 1
 
-            msg "Removing Prefix directory..."
-            [[ -d "${CONFIG[pfx_dir]}" ]] && m_rmdir "${CONFIG[pfx_dir]}"
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         help|-h|--help) opt_help "uninstall";;
@@ -1425,6 +1446,7 @@ main() {
     [[ -f "${ENV_PATH}" ]] && load_array env
 
     # Set prefix paths
+    check_prefix_path "${CONFIG[pfx_dir]}"
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
     EFT_DIR="$( get_eft_path )"
