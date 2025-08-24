@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.7a"
+VERSION="0.5.8"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -237,22 +237,44 @@ wrap_run() {
 
 
 set_value() {
-    local key value
     local array_name="${1}"
-    local input="${2}" || err "Missing argument: set_value [array_name] [input]"
-    # msg "DEBUG: Input is \"${input}\""
-    key="$( echo "$input" | cut -d '=' -f 1 )"
-    value="$( echo "${input//["\""]}" | cut -d '=' -f 2- )"
-    # Fail if no key is provided
-    [[ -z "$key" ]] && err "Input \"$input\" in \"$array_name\" has no key"
+    local keyval="${2}" || err "Missing argument: set_value [array_name] [keyval]"
+    local key value
+    key="$( echo "$keyval" | cut -d '=' -f 1 )"
+    value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
+    # Filter for invalid keys/values
+    [[ -z "$key" ]] && err "Missing key for array \"$array_name\""
+    [[ ! "$key" =~ ^[A-Za-z0-9_] ]] && err "Key contains invalid characters: \"$key\""
+    [[ -n "$value" ]] && [[ ! "$value" =~ ^[A-Za-z0-9/_=] ]] && err "Value contains invalid characters: \"$value\""
+    # Set value
     case "${array_name}" in
         config)
-            case "${value}" in
-                "") err "Key \"$key\" in \"$array_name\" has no value" ;;
-                *) CONFIG[$key]="${value%/}"
-            esac
+            [[ -z "$value" ]] && err "Missing value for array \"$array_name\""
+            CONFIG[$key]="${value%/}"
+            save_array config
         ;;
-        env) ENV[$key]="${value%/}" ;;
+        env)
+            ENV[$key]="${value%/}"
+            save_array env
+            export $key="${value%/}"
+        ;;
+        *) err "Invalid array name: \"$array_name\""
+    esac
+}
+
+
+unset_value() {
+    local array_name="${1}"
+    local keyval="${2}" || err "Missing argument: set_value [array_name] [keyval]"
+    local key value
+    key="$( echo "$keyval" | cut -d '=' -f 1 )"
+    value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
+    # Filter for invalid keys
+    [[ -z "$key" ]] && err "Missing key: \"$array_name\""
+    # Unset key
+    case "${array_name}" in
+        config) unset CONFIG[$key] ;;
+        env) unset "$key"; unset ENV[$key] ;;
         *) err "Invalid array name: \"$array_name\""
     esac
 }
@@ -268,8 +290,7 @@ load_array() {
     esac
     # Warn if the file does not exist
     if [[ ! -f "$path" ]]; then
-        warn "Failed to load \"$path\": File does not exist"
-        return
+        warn "Failed to load \"$path\": File does not exist" && return
     fi
     # Read lines & load values
     while read -r line; do
@@ -303,10 +324,37 @@ save_array() {
 }
 
 
-export_env() {
-    for key in "${!ENV[@]}"; do
-        export "$key=${ENV[$key]}"
-    done
+set_prefix() {
+    local path="${1%/}"
+
+    # Check if it's valid
+    check_prefix_path "$path"
+
+    # Update WINEPREFIX environment variable
+    export WINEPREFIX="${path}"
+
+    # Update prefix config
+    set_value config "pfx_dir=${path}"
+
+    # Update prefix paths
+    SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
+    BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
+    EFT_DIR="$( get_eft_path )"
+
+    msg "Prefix path has been set to \"${CONFIG[pfx_dir]}\""
+}
+
+
+set_arg() {
+    local arg="${1}"
+    local args_string="${ARGS[*]}"
+    case "$args_string" in
+     *"$arg"*) ;;
+     *)
+        msg "Adding launch argument: \"$arg\""
+        ARGS+=( "$arg" )
+     ;;
+    esac
 }
 
 
@@ -418,8 +466,8 @@ check_prefix_path() {
     if [[ -d "$pfx_path" ]]; then
         for p in "${check_paths[@]}"; do
             if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
+                # Reset to default path
                 set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
-                save_array config
                 err "Invalid wine prefix directory: \"${pfx_path}\""
             fi
         done
@@ -430,8 +478,8 @@ check_prefix_path() {
 check_spt_path() {
     local spt_path="${1%/}"
     if [[ "$spt_path" != *"drive_c"* ]]; then
+        # Reset to default path
         set_value config "spt_dir=${DEFAULT_SPT_DIR}"
-        save_array config
         err "Invalid spt path: \"${spt_path}\""
     fi
 }
@@ -590,7 +638,7 @@ install_dep() {
 
 install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
-    opt_setprefix "${CONFIG[pfx_dir]}"
+    set_prefix "${CONFIG[pfx_dir]}"
 
     # HACK: make sure to use UMU-Proton for dotnet48
     export PROTONPATH="UMU-Latest"
@@ -653,7 +701,7 @@ install_spt() {
     # check_dotnet
 
     # Define used prefix
-    opt_setprefix "${CONFIG[pfx_dir]}"
+    set_prefix "${CONFIG[pfx_dir]}"
 
     if [[ ! -d "${EFT_DIR}" ]]; then
         msg "> ${YELLOW}Escape from Tarkov is not installed.${RESET}"
@@ -676,7 +724,18 @@ install_spt() {
     # Install SPT
     case "$install_mode" in
         native) install_spt_native ;;
-        lutris|proton) install_spt_proton ;;
+        lutris|proton)
+            # HACK: The SPTInstaller needs GE-Proton instead of UMU-Latest
+            export PROTONPATH="GE-Proton"
+            # Download SPT Installer
+            if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
+                msg "Downloading SPTInstaller.exe..."
+                cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
+            fi
+            # Run SPT Installer
+            msg "Launching SPT Installer..."
+            m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+        ;;
         ""|*) err "Invalid install mode \"$install_mode\""
     esac
 
@@ -801,19 +860,6 @@ install_spt_native() {
 }
 
 
-install_spt_proton() {
-    # Download SPT Installer
-    if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
-        msg "Downloading SPTInstaller.exe..."
-        cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
-    fi
-
-    # Run SPT Installer
-    msg "Launching SPT Installer..."
-    m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
-}
-
-
 install_launch_script() {
     # Server launch script
     local path="${SPT_DIR}/launch-server.sh"
@@ -893,53 +939,6 @@ uninstall_prefix() {
 # # # # # # # # # # # #
 #   Option functions  #
 # # # # # # # # # # # #
-
-opt_setprefix() {
-    local path="${1%/}"
-
-    # Check if it's valid
-    check_prefix_path "$path"
-
-    # Update WINEPREFIX environment variable
-    export WINEPREFIX="${path}"
-
-    # Update prefix config
-    set_value config "pfx_dir=${path}"
-    save_array config
-
-    # Update prefix paths
-    SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
-    BSG_DIR="${CONFIG[pfx_dir]%/}/drive_c/Battlestate Games"
-    EFT_DIR="$( get_eft_path )"
-
-    msg "Prefix path has been set to \"${CONFIG[pfx_dir]}\""
-}
-
-
-opt_setenv() {
-    local key value
-    local string="$1"
-    key=$( echo "$string" | cut -d "=" -f1 )
-    value=$( echo "$string" | cut -d "=" -f 2- )
-    msg "Adding environment variable: \"$string\""
-    set_value env "$key=$value"
-    save_array env
-    # Export to use in current session
-    export_env
-}
-
-
-opt_setarg() {
-    local arg="${1}"
-    local args_string="${ARGS[*]}"
-    case "$args_string" in
-     *"$arg"*) ;;
-     *)
-        msg "Adding launch argument: \"$arg\""
-        ARGS+=( "$arg" )
-     ;;
-    esac
-}
 
 
 opt_patch() {
@@ -1043,8 +1042,8 @@ opt_install() {
     while getopts ":p:e:a:m:-:" subopt; do
         case ${subopt} in
             p) set_value config "pfx_dir=${OPTARG}";;
-            e) opt_setenv "${OPTARG}";;
-            a) opt_setarg "${OPTARG}";;
+            e) opt_env set "${OPTARG}";;
+            a) set_arg "${OPTARG}";;
             m)
                 case "${OPTARG}" in
                     native|proton|lutris) spt_install_mode="${OPTARG}" ;;
@@ -1072,7 +1071,7 @@ opt_uninstall() {
 
     while getopts ":p:-:" subopt; do
         case ${subopt} in
-            p) opt_setprefix "${OPTARG}";;
+            p) set_prefix "${OPTARG}";;
             -*)
                 case "${OPTARG}" in
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
@@ -1116,8 +1115,8 @@ opt_run() {
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
             p) set_value config "pfx_dir=${OPTARG}";;
-            e) opt_setenv "${OPTARG}";;
-            a) opt_setarg "${OPTARG}";;
+            e) opt_env set "${OPTARG}";;
+            a) set_arg "${OPTARG}";;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
             *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
@@ -1126,28 +1125,62 @@ opt_run() {
     case "${option}" in
         eft|bsg|bsg-launcher)
             check_eft_running
-            opt_setarg "--disable-software-rasterizer"
-            opt_setprefix "${CONFIG[pfx_dir]}"
+            set_arg "--disable-software-rasterizer"
+            set_prefix "${CONFIG[pfx_dir]}"
             cd "${BSG_DIR}/BsgLauncher" || m_exit 1
             m_umu "BsgLauncher.exe" "${ARGS[@]}" &
         ;;
         spt-launcher)
             check_eft_running
-            opt_setprefix "${CONFIG[pfx_dir]}"
+            set_prefix "${CONFIG[pfx_dir]}"
             cd "${SPT_DIR}" && m_umu SPT.Launcher.exe "${ARGS[@]}" &
         ;;
         spt-server)
             # check_dotnet
             check_eft_running
-            opt_setprefix "${CONFIG[pfx_dir]}"
+            set_prefix "${CONFIG[pfx_dir]}"
             cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[@]}" &
         ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
         *)
-            opt_setprefix "${CONFIG[pfx_dir]}"
+            set_prefix "${CONFIG[pfx_dir]}"
             cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" &
         ;;
+    esac
+}
+
+
+opt_env() {
+    # SYNTAX: spt-additions env add MANGOHUD=1
+    local key value
+    local option="$1"
+    local keyval="$2" && shift 2
+    key=$( echo "$keyval" | cut -d "=" -f1 )
+    value=$( echo "$keyval" | cut -d "=" -f 2- )
+    [[ "$key" == "$value" ]] && unset value
+
+    # If the key begins with a - we actually wanna unset it!
+    if [[ $key == -* ]]; then
+        key="${key:1}"
+        opt_env unset "$key"
+        return
+    fi
+
+    case "${option}" in
+        set|add)
+            if [[ "${ENV[$key]}" ]]; then msg "Updating environment variable: \"$keyval\""
+            else msg "Adding environment variable: \"$keyval\""; fi
+            set_value env "$key=$value"
+        ;;
+        unset|remove)
+            [[ ! "${ENV[$key]}" ]] && msg "Environment variable \"$key\" is not set" && return
+            msg "Removing environment variable: \"$keyval\""
+            unset_value env "$key"
+        ;;
+        help|h|-h|--help) opt_help "env" ;;
+        "") err "Option \"env\" requires an argument" ;;
+        *) err "Invalid option \"${option}\"" ;;
     esac
 }
 
@@ -1220,9 +1253,9 @@ opt_shortcut() {
 
     while getopts ":p:e:a:h:-:" subopt; do
         case ${subopt} in
-            p) opt_setprefix "${OPTARG}";;
-            e) opt_setenv "${OPTARG}";;
-            a) opt_setarg "${OPTARG}";;
+            p) set_prefix "${OPTARG}";;
+            e) opt_env set "${OPTARG}";;
+            a) set_arg "${OPTARG}";;
             h) opt_help "shortcut" ;;
             -*)
                 case "${OPTARG}" in
@@ -1237,7 +1270,7 @@ opt_shortcut() {
     
     case "${option}" in
         eft|bsg|bsg-launcher)
-            opt_setarg "--disable-software-rasterizer"
+            set_arg "--disable-software-rasterizer"
             CACHE[_id]="app-shortcut"
             CACHE[name]="BSG - Launcher"
             CACHE[executable]="BsgLauncher.exe"
@@ -1269,21 +1302,21 @@ opt_shortcut() {
             opt_shortcut spt-server
         ;;
         faugus)
-            if [[ -d "$BSG_DIR" ]]; then
-                # BSG - Launcher
-                opt_setarg "--disable-software-rasterizer"
-                CACHE[_id]="faugus-shortcut"
-                CACHE[gameid]="bsg-launcher"
-                CACHE[title]="BSG Launcher"
-                CACHE[path]="$BSG_DIR/BsgLauncher.exe"
-                add_faugus_shortcut
-            fi
             if [[ -d "$SPT_DIR" ]]; then
                 # SPT - Launcher
                 CACHE[_id]="faugus-shortcut"
                 CACHE[gameid]="spt-launcher"
                 CACHE[title]="SPT Launcher"
                 CACHE[path]="$SPT_DIR/SPT.Launcher.exe"
+                add_faugus_shortcut
+            fi
+            if [[ -d "$BSG_DIR" ]]; then
+                # BSG - Launcher
+                set_arg "--disable-software-rasterizer"
+                CACHE[_id]="faugus-shortcut"
+                CACHE[gameid]="bsg-launcher"
+                CACHE[title]="BSG Launcher"
+                CACHE[path]="$BSG_DIR/BsgLauncher.exe"
                 add_faugus_shortcut
             fi
         ;;
@@ -1305,7 +1338,7 @@ opt_clean() {
 
     while getopts ":p:-:" subopt; do
         case ${subopt} in
-            p) opt_setprefix "${OPTARG}";;
+            p) set_prefix "${OPTARG}";;
             -*)
                 case "${OPTARG}" in
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
@@ -1385,7 +1418,7 @@ opt_help() {
             msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"proton\")"
             msg "${BOLD}-p${RESET}              - Set a custom prefix path (Default is \"~/Games/tarkov\")"
-            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
+            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
             msg "${BOLD}-a${RESET}              - Add a custom launch argument"
             msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
@@ -1407,7 +1440,7 @@ opt_help() {
             msg
             msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
+            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
             msg "${BOLD}-a${RESET}              - Add a custom launch argument"
             msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
@@ -1420,9 +1453,15 @@ opt_help() {
             msg
             msg "${BOLD}Available switches:${RESET}"
             msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}              - Add/Update a environment variable"
+            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
             msg "${BOLD}-a${RESET}              - Add a custom launch argument"
             msg "${BOLD}-h|--help${RESET}       - Print the help message"
+        ;;
+        env)
+            msg "Set/unset environment variables"
+            msg 
+            msg "${BOLD}Usage:${RESET}"
+            msg "$TITLE env [set|unset] [key|key=value]"
         ;;
         patch)
             msg "Patch game files using hpatchz"
@@ -1488,22 +1527,18 @@ handle_opts() {
         run) opt_run "$@" ;;
         patch) opt_patch "$@" ;;
         shortcut) opt_shortcut "$@" ;;
+        env) opt_env "$@" ;;
         clean) opt_clean "$@" ;;
         self-update) opt_selfupdate ;;
         version) opt_version ;;
         help) opt_help "$@";;
-        --*)
-            case "$option" in
-                --self-update) opt_selfupdate ;;
-                --version) opt_version ;;
-                --help) opt_help ;;
-                *) err "Invalid option: ${option}" ;;
-            esac
-        ;;
         -*)
             case "$option" in
                 -v) opt_version ;;
                 -h) opt_help ;;
+                --self-update) opt_selfupdate ;;
+                --version) opt_version ;;
+                --help) opt_help ;;
                 *) err "Invalid option: ${option}" ;;
             esac
         ;;
@@ -1520,13 +1555,16 @@ main() {
     fi
 
     # Set default config variables
-    set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
-    set_value config "spt_dir=${DEFAULT_SPT_DIR}"
-
+    if [[ ! -f "$CONFIG_PATH" ]]; then
+        set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
+        set_value config "spt_dir=${DEFAULT_SPT_DIR}"
+    fi
     # Set default environment variables
-    set_value env "PROTON_USE_XALIA=0"
-    set_value env "DOTNET_ROOT="
-    set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
+    if [[ ! -f "$ENV_PATH" ]]; then
+        set_value env "PROTON_USE_XALIA=0"
+        set_value env "DOTNET_ROOT="
+        set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
+    fi
 
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
@@ -1535,7 +1573,7 @@ main() {
     [[ -f "${CONFIG_PATH}" ]] && load_array config
     [[ -f "${ENV_PATH}" ]] && load_array env
 
-    # Set prefix paths
+    # Update prefix paths
     check_prefix_path "${CONFIG[pfx_dir]}"
     check_spt_path "${CONFIG[spt_dir]}"
     SPT_DIR="${CONFIG[pfx_dir]%/}/${CONFIG[spt_dir]%/}"
@@ -1544,9 +1582,6 @@ main() {
 
     # Export paths
     export PATH=$RUNTIME_DIR:$PATH
-
-    # Export env vars from config
-    export_env
 
     # HACK: Just for debugging purposes rn
     export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
