@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.6"
+VERSION="0.5.7"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -34,6 +34,7 @@ readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps" && mkdir -p "${ICO_DI
 readonly APP_DIR="${DATA_HOME}/applications"
 readonly DEFAULT_PFX_DIR="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
+readonly FAUGUS_CONFIG_DIR="$CONFIG_HOME/faugus-launcher"
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
@@ -45,22 +46,31 @@ readonly MOD_PATH="${CACHE_DIR}/SPT.7z"
 readonly PATCHER_PATH="${CACHE_DIR}/Patcher.7z"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
+readonly FAUGUS_JSON_PATH="${FAUGUS_CONFIG_DIR}/games.json"
 
 declare -A CONFIG
 declare -A ENV
 declare -a ARGS
+declare -A CACHE
 
 declare -A URL
-URL[mod-json]="https://spt-releases.modd.in/release.json"
-URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
+# Libraries / Tools
 URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
+URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+# Installers
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
-URL[spt-additions]="https://ligma.waffle-lord.net/SPTInstaller.exe"
+URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
+# Scripts
+URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions"
+# Icons
 URL[bsg-launcher-ico]="https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png"
 URL[spt-launcher-ico]="https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png"
 URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png"
-URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions"
+# Metadata
+URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
+URL[mod-json]="https://spt-releases.modd.in/release.json"
+# Links
 URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
 URL[discord]="https://discord.com/invite/Xn9msqQZan"
 readonly -A URL
@@ -86,7 +96,9 @@ m_exit() {
     local status=${1:-$?}
 
     # Remove tmp files
-    [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]] && m_rmdir "${TMP_DIR}/"
+    if [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]]; then
+        m_rmdir "${TMP_DIR}/"
+    fi
 
     # Exit with passed status code
     exit "${status}"
@@ -147,7 +159,7 @@ m_7z() {
     filename="${archive_path##*/}"
     # Extract
     msg "Extracting \"${filename}\""
-    7z x "${archive_path}" -o"${target_path}" 1>/dev/null; status=$?
+    7z x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null; status=$?
     [[ "$status" != 0 ]] && err "Failed to extract \"${filename}\" (status code $status)"
 }
 
@@ -289,9 +301,8 @@ export_env() {
 
 
 get_env_string() {
-    local env+="WINEPREFIX=\"${CONFIG[pfx_dir]}\""
     for key in "${!ENV[@]}"; do
-        local var=" $key=${ENV[$key]}"
+        local var="$key=${ENV[$key]} "
         env+="$var"
     done
     printf "${env}\n"
@@ -405,14 +416,16 @@ check_disk_space() {
 check_prefix_path() {
     local pfx_path="${1%/}"
     local check_paths=("${pfx_path}/system.reg" "${pfx_path}/dosdevices" "${pfx_path}/drive_c")
-    [[ ! -d "$pfx_path" ]] && return 0
-    for p in "${check_paths[@]}"; do
-        if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
-            set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
-            save_array config
-            err "Invalid wine prefix directory: \"${pfx_path}\""
-        fi
-    done
+    [[ $pfx_path != /* ]] && err "Malformed prefix path: \"$pfx_path\""
+    if [[ -d "$pfx_path" ]]; then
+        for p in "${check_paths[@]}"; do
+            if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
+                set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
+                save_array config
+                err "Invalid wine prefix directory: \"${pfx_path}\""
+            fi
+        done
+    fi
 }
 
 
@@ -443,22 +456,30 @@ check_dotnet() {
 check_native_deps() {
     local status
     local cmds=( "7z" "xxd" "hpatchz" "jq" )
+    msg "Checking for native dependencies..."
     # Check each cmd and error out if something is missing
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             case ${cmd} in
-                hpatchz) install_hpatchz || err "Failed to install \"$cmd\" into the runtime directory" ;;
+                jq)
+                    $(install_dep "jq" "${URL[jq]}")\
+                    || msg "${YELLOW}> Failed to install \"$cmd\". Please install it manually."
+                    status=1
+                ;;
+                hpatchz)
+                    $(install_dep "hpatchz" "${URL[hpatchz]}")\
+                    || msg "${YELLOW}> Failed to install \"$cmd\". Please install it manually."
+                    status=1
+                ;;
                 7z) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
-                jq) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
                 xxd) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
-                mangohud) warn "HINT: \"$cmd\" is not installed on your system." ;;
-                gamemode) warn "HINT: \"$cmd\" is not installed on your system." ;;
+                mangohud) msg "${BLUE}HINT${RESET}: \"$cmd\" is not installed on your system." ;;
+                gamemode) msg "${BLUE}HINT${RESET}: \"$cmd\" is not installed on your system." ;;
             esac
         fi
     done
     if [ "$status" = 1 ]; then
-        msg "${YELLOW}> Please install all missing dependencies & try again.${RESET}"
-        err "Missing dependencies"
+        err "Please install all missing dependencies & try again."
     fi
 }
 
@@ -535,7 +556,6 @@ check_ttl() {
         warn "File \"${file_path}\" is out of date"
         return 1
     fi
-    msg "File \"${file_path##*/}\" is up to date"
 }
 
 
@@ -553,27 +573,29 @@ winetricks_install() {
 }
 
 
-install_hpatchz() {
-    # Download zipapp archive
-    msg "Downloading \"hpatchz\"..."
-    cd "${TMP_DIR}" || m_exit 1
-    m_curl -LO "${URL[hpatchz]}"
-    # Extract & remove when done
-    m_7z "$( ls -- !("hdiffpatch") )" "${TMP_DIR}"
-    # Move to runtime directory
-    mv -f "./linux64/hpatchz" "${RUNTIME_DIR}" || err "Failed to move \"hpatchz\" into \"${RUNTIME_DIR}\""
-}
-
-
-install_umu() {
-    # Download zipapp archive
-    msg "Downloading \"UMU Launcher\"..."
-    cd "${TMP_DIR}" || m_exit 1
-    m_curl -LO "${URL[umu-launcher]}"
-    # Extract & remove when done
-    tar -xf "$( ls -- !("zipapp.tar") )" || err "Failed to extract archive"
-    # Move to runtime directory
-    mv -f "./umu/umu-run" "${RUNTIME_DIR}" || err "Failed to move \"umu-run\" into \"${RUNTIME_DIR}\""
+install_dep() {
+    local cmd_name="$1"; local url="$2"
+    local source_path="${3:-$TMP_DIR}"; local target_path="${4:-$RUNTIME_DIR}"
+    local download_name="${url##*/}"
+    [[ "$download_name" = *"."* ]] && local file_ext=".${download_name##*.}"
+    local file_name="${cmd_name}${file_ext}"
+    cd "${TMP_DIR}" || err "Failed to change directory to \"$TMP_DIR\""
+    # Download
+    msg "Downloading \"$cmd_name\"..."
+    m_curl -L "${url}" -o "${file_name}"
+    # Exctract archive if needed
+    case "$file_ext" in
+        *.zip*|*.7z*) m_7z "${file_name}" "${TMP_DIR}" ;;
+        *.tar*) tar -xf "${file_name}" || err "Failed to extract tar archive" ;;
+        *) ;;
+    esac
+    local file_path=$( find "$source_path" \( -name "$cmd_name" -type f \) )
+    [[ -z "$file_path" ]] && err "Cannot find \"$cmd_name\" in \"$source_path\""
+    # Change permissions
+    chmod +x "$file_path" || err "Failed to set permissions for \"$cmd_name\""
+    # Move to target directory
+    mv -f "$file_path" "$target_path/$cmd_name" || err "Failed to move \"$cmd_name\" into \"${target_path}\""
+    msg "Installed \"$cmd_name\" successfully"
 }
 
 
@@ -613,7 +635,7 @@ install_eft() {
     m_umu "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
 
     # Re-initialize prefix for GE-Proton
-    opt_setenv "PROTONPATH=GE-Proton"
+    export PROTONPATH="GE-Proton"
     msg "Updating wine prefix..."
     m_umu wineboot -u
 
@@ -687,27 +709,6 @@ install_spt() {
     esac
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
-}
-
-
-# Server launch script
-install_launch_script() {
-    local path="${SPT_DIR}/launch-server.sh"
-    cat <<'EOF' > "${path}"
-#!/bin/bash
-root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-terms=( "foot" "alacritty" "ptyxis" "kgx" "konsole"
-    "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
-[[ $( pidof "SPT.Server.Linux" ) != "" ]] && exit 0
-for term in "${terms[@]}"; do
-    if command -v $term &>/dev/null; then
-        cd "${root_path}"
-        $term -e "./SPT.Server.Linux"
-        break
-    fi
-done
-EOF
-    m_chmod +x "${path}"
 }
 
 
@@ -807,12 +808,33 @@ install_spt_proton() {
     # Download SPT Installer
     if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
         msg "Downloading SPTInstaller.exe..."
-        cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-additions]}"
+        cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
     fi
 
     # Run SPT Installer
     msg "Launching SPT Installer..."
     m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+}
+
+
+install_launch_script() {
+    # Server launch script
+    local path="${SPT_DIR}/launch-server.sh"
+    cat <<'EOF' > "${path}"
+#!/bin/bash
+root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+terms=( "foot" "alacritty" "ptyxis" "kgx" "konsole"
+"gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
+[[ $( pidof "SPT.Server.Linux" ) != "" ]] && exit 0
+for term in "${terms[@]}"; do
+    if command -v $term &>/dev/null; then
+        cd "${root_path}"
+        $term -e "./SPT.Server.Linux"
+        break
+    fi
+done
+EOF
+    m_chmod +x "${path}"
 }
 
 
@@ -945,14 +967,8 @@ opt_install() {
     done
     
     case "${option}" in
-        eft|tarkov|bsg)
-            # Launch setup
-            install_eft
-        ;;
-        spt|sptarkov)
-            # Launch setup
-            install_spt "$spt_install_mode"
-        ;;
+        eft|tarkov|bsg) install_eft ;;
+        spt|sptarkov) install_spt "$spt_install_mode" ;;
         help|-h|--help) opt_help "install";;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
@@ -1055,7 +1071,7 @@ opt_patch() {
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
     # Make sure hpatchz is installed
     if ! command -v "hpatchz" &>/dev/null; then
-        install_hpatchz || err "Missing dependency \"hpatchz\". Please install it & try again"
+        install_dep "hpatchz" "${URL[hpatchz]}" || err "Missing dependency \"hpatchz\". Please install it & try again"
     fi
     # Search in optional SOURCE directory
     if [ "$( find "$source_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
@@ -1092,7 +1108,7 @@ opt_patch() {
         case "$extension" in
             "delta")
                 msg "${progress_current} (*) Patching: ${formatted##*/}"
-                hpatchz "$output" "$source" "$target" 1>>"${LOG_PATH}" || return 1
+                hpatchz "$output" "$source" "$target" 1>/dev/null || return 1
 
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && return 1
@@ -1135,7 +1151,68 @@ opt_patch() {
         [[ -f "${source_path}/patcher.exe" ]] && m_rmdir "${source_path}/patcher.exe"
     fi
 
-    msg "Done"
+    msg "Done patching game files!"
+}
+
+
+add_app_shortcut() {
+    # Check if our cache array is prepared
+    [[ "${CACHE[_id]}" != "app-shortcut" ]] && err "Failed to load shortcut data from cache array"
+    msg "Creating \"${CACHE[name]}\" shortcut..."
+    # Get env string
+    local env="$( get_env_string )"
+    env+="WINEPREFIX=${CONFIG[pfx_dir]}"
+    [[ "$env" != *"PROTONPATH"* ]] && env="$(echo "PROTONPATH=GE-Proton $env")"
+    # Remove existing shortcut
+    [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
+    # Generate the exec string
+    local exec_string
+    case "${CACHE[executable]}" in
+        *exe*|*bat*|*msi*) exec_string="Exec=env $env $UMU_PATH \"${CACHE[executable]}\" ${ARGS[*]}" ;;
+        *) exec_string="Exec=\"${CACHE[working_dir]}/${CACHE[executable]}\" ${ARGS[*]}" ;;
+    esac
+    # Write desktop file
+    {   echo "[Desktop Entry]"
+        echo "Categories=Game;ActionGame;Simulation"
+        echo "Path=${CACHE[working_dir]}"
+        echo "${exec_string}"
+        echo "Name=${CACHE[name]}"
+        echo "Icon=${CACHE[icon]}"
+        echo "Type=Application"
+    } > "${CACHE[path]}" && m_chmod +x "${CACHE[path]}"
+}
+
+
+add_faugus_shortcut() {
+    # Check if faugus-launcher is installed
+    if [[ ! "$(command -v "faugus-launcher")" ]]; then
+        msg "Faugus-Launcher is not installed"
+        return 0
+    fi
+    # Check if our cache array is prepared
+    [[ "${CACHE[_id]}" != "faugus-shortcut" ]] && err "Failed to load shortcut data from cache array"
+    # Create Faugus config dir if not already there
+    mkdir -p "$FAUGUS_CONFIG_DIR"
+    # Create games.json if it doesn't exist
+    [[ ! -f "$FAUGUS_JSON_PATH" ]] && jq -n '[]' > "$FAUGUS_JSON_PATH"
+    # Check if the game ids already exist
+    if [[ "$(cat "$FAUGUS_JSON_PATH" | grep "${CACHE[gameid]}")" ]]; then
+        warn "A shortcut for \"${CACHE[title]}\" already exists, skipping"
+        return 0
+    fi
+    # Add shortcut
+    local prefix="${CONFIG[pfx_dir]}"
+    local launch_args="$(get_env_string)"
+    local game_args="${ARGS[*]}"
+    local runner="GE-Proton"
+    msg "Adding \"${CACHE[title]}\" to Faugus Launcher..."
+    jq --arg gameid "${CACHE[gameid]}" --arg title "${CACHE[title]}" --arg path "${CACHE[path]}" \
+    --arg prefix "$prefix" --arg launch_args "$launch_args" --arg game_args "$game_args" --arg runner "$runner" \
+    '. += [{ "gameid": $gameid,"title": $title,"path": $path,"prefix": $prefix,
+    "launch_arguments": $launch_args,"game_arguments": $game_args,"runner": $runner,
+    "lossless_enabled": false,"lossless_performance": false,"lossless_hdr": false }]'\
+    "$FAUGUS_JSON_PATH" > "$TMP_DIR/games.json"
+    mv "$TMP_DIR/games.json" "$FAUGUS_JSON_PATH"
 }
 
 
@@ -1163,67 +1240,65 @@ opt_shortcut() {
     
     case "${option}" in
         eft|bsg|bsg-launcher)
-            # HACK: Workaround for getting the BSG Launcher working
             opt_setarg "--disable-software-rasterizer"
-            name="BSG - Launcher"
-            executable="BsgLauncher.exe"
-            working_dir="${BSG_DIR}/BsgLauncher"
-            path="${APP_DIR}/$name.desktop"
-            icon="bsg_launcher"
+            CACHE[_id]="app-shortcut"
+            CACHE[name]="BSG - Launcher"
+            CACHE[executable]="BsgLauncher.exe"
+            CACHE[working_dir]="${BSG_DIR}/BsgLauncher"
+            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
+            CACHE[icon]="bsg_launcher"
+            add_app_shortcut
         ;;
         spt-launcher)
-            executable="SPT.Launcher.exe"
-            working_dir="${SPT_DIR}"
-            name="SPT - Launcher"
-            path="${APP_DIR}/$name.desktop"
-            icon="spt_launcher"
+            CACHE[_id]="app-shortcut"
+            CACHE[name]="SPT - Launcher"
+            CACHE[executable]="SPT.Launcher.exe"
+            CACHE[working_dir]="${SPT_DIR}"
+            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
+            CACHE[icon]="spt_launcher"
+            add_app_shortcut
         ;;
         spt-server)
-            executable="launch-server.sh"
-            working_dir="${SPT_DIR}"
-            name="SPT - Server"
-            path="${APP_DIR}/$name.desktop"
-            icon="spt_server"
+            CACHE[_id]="app-shortcut"
+            CACHE[name]="SPT - Server"
+            CACHE[executable]="launch-server.sh"
+            CACHE[working_dir]="${SPT_DIR}"
+            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
+            CACHE[icon]="spt_server"
+            add_app_shortcut
         ;; 
         spt|sptarkov)
             opt_shortcut spt-launcher
             opt_shortcut spt-server
-            return
+        ;;
+        faugus)
+            if [[ -d "$BSG_DIR" ]]; then
+                # BSG - Launcher
+                opt_setarg "--disable-software-rasterizer"
+                CACHE[_id]="faugus-shortcut"
+                CACHE[gameid]="bsg-launcher"
+                CACHE[title]="BSG Launcher"
+                CACHE[path]="$BSG_DIR/BsgLauncher.exe"
+                add_faugus_shortcut
+            fi
+            if [[ -d "$SPT_DIR" ]]; then
+                # SPT - Launcher
+                CACHE[_id]="faugus-shortcut"
+                CACHE[gameid]="spt-launcher"
+                CACHE[title]="SPT Launcher"
+                CACHE[path]="$SPT_DIR/SPT.Launcher.exe"
+                add_faugus_shortcut
+            fi
         ;;
         all)
             opt_shortcut bsg-launcher
             opt_shortcut spt-launcher
             opt_shortcut spt-server
-            return
         ;;
         help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
-
-    # Create shortcut
-    local env
-    env=$( get_env_string )
-    msg "Creating \"$name\" shortcut..."
-
-    # Remove existing shortcut
-    [[ -f "${path}" ]] && m_rm "${path}"
-
-    local exec_string
-    case "$executable" in
-        *exe*|*bat*|*msi*) exec_string="Exec=env $env $UMU_PATH \"$executable\" ${ARGS[*]}" ;;
-        *) exec_string="Exec=\"${working_dir}/$executable\" ${ARGS[*]}" ;;
-    esac
-
-    # Write desktop file
-    {   echo "[Desktop Entry]"
-        echo "Categories=Game;ActionGame;Simulation"
-        echo "Path=$working_dir"
-        echo "${exec_string}"
-        echo "Name=$name"
-        echo "Icon=$icon"
-        echo "Type=Application"
-    } > "${path}" && m_chmod +x "${path}"
 }
 
 
@@ -1405,7 +1480,9 @@ handle_opts() {
 
     # Install umu if needed
     case "$option" in
-        install|run|patch) [[ ! -f "${UMU_PATH}" ]] && install_umu ;;
+        install|run|patch)
+            [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+        ;;
     esac
 
     case "$option" in
@@ -1441,7 +1518,9 @@ handle_opts() {
 
 main() {
     # Remove tmp files
-    [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]] && m_rmdir "${TMP_DIR}/"
+    if [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]]; then
+        m_rmdir "${TMP_DIR}/"
+    fi
 
     # Set default config variables
     set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
