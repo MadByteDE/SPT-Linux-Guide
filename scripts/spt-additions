@@ -13,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.7"
+VERSION="0.5.7a"
 DATE="2025-08-23"
 
 # ANSI codes
@@ -226,6 +226,16 @@ ask() {
 }
 
 
+wrap_run() {
+    # Useful when wrapped code has exit calls but should continue
+    # & just return the error code instead
+    local out status
+    out="$( "$@" )"; status=$?
+    printf "$out\n"
+    return $status
+}
+
+
 set_value() {
     local key value
     local array_name="${1}"
@@ -380,18 +390,6 @@ get_patcher_eft_version() {
 }
 
 
-download_patcher() {
-    # Set global variable for patcher mirror urls
-    local urls
-    urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors"
-    # Try to download from first to last
-    echo "${urls}" | while read -r url; do
-        msg "Downloading \"$url\"..."
-        m_curl -L "${url}" -o "${PATCHER_PATH}" && break
-    done
-}
-
-
 # # # # # # # # # # #
 #  Check functions  #
 # # # # # # # # # # #
@@ -461,16 +459,8 @@ check_native_deps() {
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             case ${cmd} in
-                jq)
-                    $(install_dep "jq" "${URL[jq]}")\
-                    || msg "${YELLOW}> Failed to install \"$cmd\". Please install it manually."
-                    status=1
-                ;;
-                hpatchz)
-                    $(install_dep "hpatchz" "${URL[hpatchz]}")\
-                    || msg "${YELLOW}> Failed to install \"$cmd\". Please install it manually."
-                    status=1
-                ;;
+                jq) wrap_run install_dep "jq" "${URL[jq]}" || status=1 ;;
+                hpatchz) wrap_run install_dep "hpatchz" "${URL[hpatchz]}" || status=1 ;;
                 7z) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
                 xxd) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
                 mangohud) msg "${BLUE}HINT${RESET}: \"$cmd\" is not installed on your system." ;;
@@ -485,11 +475,10 @@ check_native_deps() {
 
 
 check_eft_running() {
-    local processes=( "BsgLauncher.exe" "EscapeFromTarko" )
-    for process in "${processes[@]}"; do
-        if [[ -n $( pidof "$process" ) ]]; then
-            msg "${YELLOW}> \"$process\" is currently running! Please close it to continue."
-            err "\"$process\" is running"
+    local apps=( "BsgLauncher.exe" "EscapeFromTarko" )
+    for app in "${apps[@]}"; do
+        if [[ -n $( pidof "$app" ) ]]; then
+            err "\"$app\" is currently running! Please close it to continue."
         fi
     done
 }
@@ -773,7 +762,15 @@ install_spt_native() {
 
             # Check for cached patcher archive
             if ! check_cached "${PATCHER_PATH}" "${patcher_hash}"; then
-                download_patcher
+                # Set global variable for patcher mirror urls
+                local urls
+                urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors"
+                # Try to download from first to last
+                echo "${urls}" | while read -r url; do
+                    msg "Downloading \"$url\"..."
+                    m_curl -L "${url}" -o "${PATCHER_PATH}" && break
+                done
+                # Check archive
                 check_hash "${PATCHER_PATH}" "${patcher_hash}" \
                 || err "Downloaded patcher archive is corrupted"
             fi
@@ -945,6 +942,99 @@ opt_setarg() {
 }
 
 
+opt_patch() {
+    local progress_total
+    local target_path="${1%/:-"${SPT_DIR}"}" 
+    local source_path="${2%/:-"${SPT_DIR}"}" 
+    msg "Started \"SPTarkov\" patcher..."
+    # Fail if the target director does not exist
+    [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
+    # Make sure hpatchz is installed
+    if ! command -v "hpatchz" &>/dev/null; then
+        install_dep "hpatchz" "${URL[hpatchz]}" || err "Missing dependency \"hpatchz\". Please install it & try again"
+    fi
+    # Search in optional SOURCE directory
+    if [ "$( find "$source_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
+        msg "Using \"SPT_Patches\" found in \"${source_path}\""
+    # Search in TARGET directory
+    elif [ "$( find "$target_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
+        msg "Using \"SPT_Patches\" found in \"${target_path}\""
+        source_path="${target_path}"
+    else
+        # No "SPT_Patches" directory found
+        err "Unable to locate \"SPT_Patches\" directory in \"${source_path}\""
+    fi
+    # Print debug strings
+    msg "Source path: ${source_path}"
+    msg "Target path: ${target_path}"
+    
+    local progress_start=1
+    progress_total=$( find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c )
+
+    find "$source_path/SPT_Patches" \( -type f \) -print0 | while IFS= read -r -d '' source; do 
+        # progress_current
+        local progress_current="[${progress_start}/${progress_total}]"
+        # Isolate the operation extension
+        local extension="${source##*.}"
+        # Isolate sub-directories of SPT_Patches
+        local formatted="${source#*SPT_Patches/}"
+        # Remove operation extension to get actual file name
+        formatted="${formatted%.*}"
+
+        local output="${target_path}/${formatted}"
+        local target="${output}.decoded"
+        local dir_path="${output%/*}"
+
+        case "$extension" in
+            "delta")
+                msg "${progress_current} (*) Patching: ${formatted##*/}"
+                hpatchz "$output" "$source" "$target" 1>/dev/null || return 1
+
+                # Remove old file and replace with .decoded file
+                [[ ! -f "${target}" ]] && return 1
+                m_rm "${output}" || return 1
+                mv "${target}" "${output}" || return 1
+            ;;
+            "del")
+                msg "${progress_current} (-) Deleting: ${formatted##*/}"
+                m_rm "${output}" || return 1
+                if [[ -z "$( ls -A "${dir_path}" )" ]]; then
+                    msg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
+                    m_rmdir "${dir_path}" || return 1
+                fi
+            ;;
+            "new")
+                msg "${progress_current} (+) Adding: ${formatted##*/}"
+                if [[ ! -d "${dir_path}" ]]; then
+                    msg "${progress_current} (+) Adding directory: ${dir_path##*/}"
+                    mkdir -p "${dir_path}"
+                fi
+                cp "${source}" "${output}" || return 1
+            ;;
+            *)
+                return 1
+            ;;
+        esac
+        progress_start=$((progress_start+1))
+    done
+
+    if [[ "$?" -ne "0" ]]; then
+        # Failed patching
+        m_rmdir "${SPT_DIR}"
+        err "Patching failed"
+    fi
+    
+    # Clean up patcher files
+    if [[ "${target_path}" == *"${source_path}"* ]]; then
+        msg "Cleaning up patcher files..."
+        [[ -d "${source_path}/SPT_Patches" ]] && m_rmdir "${source_path}/SPT_Patches"
+        [[ -f "${source_path}/patcher.exe" ]] && m_rmdir "${source_path}/patcher.exe"
+    fi
+
+    msg "Done patching game files!"
+}
+
+
 opt_install() {
     # SYNTAX: spt-additions install spt -p ~/Games/sptarkov
     local option="$1" && shift
@@ -1059,99 +1149,6 @@ opt_run() {
             cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" &
         ;;
     esac
-}
-
-
-opt_patch() {
-    local progress_total
-    local target_path="${1%/:-"${SPT_DIR}"}" 
-    local source_path="${2%/:-"${SPT_DIR}"}" 
-    msg "Started \"SPTarkov\" patcher..."
-    # Fail if the target director does not exist
-    [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
-    # Make sure hpatchz is installed
-    if ! command -v "hpatchz" &>/dev/null; then
-        install_dep "hpatchz" "${URL[hpatchz]}" || err "Missing dependency \"hpatchz\". Please install it & try again"
-    fi
-    # Search in optional SOURCE directory
-    if [ "$( find "$source_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
-        msg "Using \"SPT_Patches\" found in \"${source_path}\""
-    # Search in TARGET directory
-    elif [ "$( find "$target_path" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
-        msg "Using \"SPT_Patches\" found in \"${target_path}\""
-        source_path="${target_path}"
-    else
-        # No "SPT_Patches" directory found
-        err "Unable to locate \"SPT_Patches\" directory in \"${source_path}\""
-    fi
-    # Print debug strings
-    msg "Source path: ${source_path}"
-    msg "Target path: ${target_path}"
-    
-    local progress_start=1
-    progress_total=$( find "$source_path/SPT_Patches" \( -type f -printf x \) | wc -c )
-
-    find "$source_path/SPT_Patches" \( -type f \) -print0 | while IFS= read -r -d '' source; do 
-        # progress_current
-        local progress_current="[${progress_start}/${progress_total}]"
-        # Isolate the operation extension
-        local extension="${source##*.}"
-        # Isolate sub-directories of SPT_Patches
-        local formatted="${source#*SPT_Patches/}"
-        # Remove operation extension to get actual file name
-        formatted="${formatted%.*}"
-
-        local output="${target_path}/${formatted}"
-        local target="${output}.decoded"
-        local dir_path="${output%/*}"
-
-        case "$extension" in
-            "delta")
-                msg "${progress_current} (*) Patching: ${formatted##*/}"
-                hpatchz "$output" "$source" "$target" 1>/dev/null || return 1
-
-                # Remove old file and replace with .decoded file
-                [[ ! -f "${target}" ]] && return 1
-                m_rm "${output}" || return 1
-                mv "${target}" "${output}" || return 1
-            ;;
-            "del")
-                msg "${progress_current} (-) Deleting: ${formatted##*/}"
-                m_rm "${output}" || return 1
-                if [[ -z "$( ls -A "${dir_path}" )" ]]; then
-                    msg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
-                    m_rmdir "${dir_path}" || return 1
-                fi
-            ;;
-            "new")
-                msg "${progress_current} (+) Adding: ${formatted##*/}"
-                if [[ ! -d "${dir_path}" ]]; then
-                    msg "${progress_current} (+) Adding directory: ${dir_path##*/}"
-                    mkdir -p "${dir_path}"
-                fi
-                cp "${source}" "${output}" || return 1
-            ;;
-            *)
-                return 1
-            ;;
-        esac
-        progress_start=$((progress_start+1))
-    done
-
-    if [[ "$?" -ne "0" ]]; then
-        # Failed patching
-        m_rmdir "${SPT_DIR}"
-        err "Patching failed"
-    fi
-    
-    # Clean up patcher files
-    if [[ "${target_path}" == *"${source_path}"* ]]; then
-        msg "Cleaning up patcher files..."
-        [[ -d "${source_path}/SPT_Patches" ]] && m_rmdir "${source_path}/SPT_Patches"
-        [[ -f "${source_path}/patcher.exe" ]] && m_rmdir "${source_path}/patcher.exe"
-    fi
-
-    msg "Done patching game files!"
 }
 
 
