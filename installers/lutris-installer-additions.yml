@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.6-6 
+##                 v2025.8-1
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
@@ -14,12 +14,9 @@ name: SPTarkov - Launcher
 runner: wine
 script:
     files:
-    - spt-linux-additions:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-linux-additions
-        filename: spt-linux-additions
-    - launch-server-sh:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/launch-server.sh
-        filename: launch-server.sh
+    - spt-additions:
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions
+        filename: spt-additions
     game:
         arch: win64
         exe: drive_c/SPTarkov/SPT.Launcher.exe
@@ -44,22 +41,14 @@ script:
         name: winekill
 
     # Install SPT using the native installer script
-    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/spt-linux-additions
+    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions
     - merge:
-        src: spt-linux-additions
+        src: spt-additions
         dst: $GAMEDIR
-    - chmodx: ./spt-linux-additions
+    - chmodx: ./spt-additions
     - execute:
-        command: NO_ANSI=1 ./spt-linux-additions install -np "$GAMEDIR"
+        command: ./spt-additions install spt -m lutris -p "$GAMEDIR" --no-ansi
         description: Installing SPT ...
-
-    # Used as pre-launch script in Lutris to launch the native server automatically with
-    # the 'SPTarkov - Launcher' shortcut
-    # Source - https://github.com/MadByteDE/SPT-Linux-Guide/blob/SPTv4-dev/scripts/launch-server.sh
-    - merge:
-        src: launch-server-sh
-        dst: $GAMEDIR/drive_c/SPTarkov
-    - chmodx: $GAMEDIR/drive_c/SPTarkov/launch-server.sh
 
     # Installation complete
     install_complete_text: "All done! ※\\(^o^)/※\n
@@ -83,7 +72,6 @@ script:
     wine:
         overrides:
             winhttp: n,b
-            # icu: d
 
 slug: sptarkov
 version: sptarkov-additions-latest
