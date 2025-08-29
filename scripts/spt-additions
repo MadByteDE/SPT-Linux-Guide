@@ -5,7 +5,6 @@
 # # # # # # # # # 
 
 # TODO: Single SPT cache: Share path of cached SPT files with the official SPTInstaller
-# TODO: Support Flatpak Lutris installer scripts? Massive pain, hmm... :(
 
 # exit codes:
 # 1: general error | 10: -d check failed | 11: -f check failed | 12: empty string | 13: m_7z failed
@@ -14,7 +13,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.9a"
+VERSION="0.5.9b"
 DATE="2025-08-29"
 
 # ANSI codes
@@ -775,6 +774,7 @@ install_spt() {
             # Create application shortcuts
             opt_shortcut spt
         ;;
+        lutris) ;;
         ""|*) err "Invalid install mode \"$install_mode\""
     esac
 
@@ -1539,8 +1539,6 @@ opt_help() {
 
 opt_version() {
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
-    msg "${BOLD}Author: ${RESET}${AUTHOR}"
-    msg "${BOLD}License: ${RESET}${LICENSE}"
 }
 
 
@@ -1579,7 +1577,7 @@ handle_opts() {
                 *) err "Invalid option: ${option}" ;;
             esac
         ;;
-        "") ;;
+        "") opt_version ;;
         *) err "Invalid option: ${option}" ;;
     esac
 }
@@ -1629,5 +1627,4 @@ main() {
 
 # Main entry
 main "$@"
-
 m_exit 0
