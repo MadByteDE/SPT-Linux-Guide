@@ -4,17 +4,18 @@
 # SPT-ADDITIONS #
 # # # # # # # # # 
 
+# TODO: Single SPT cache: Share path of cached SPT files with the official SPTInstaller
+# TODO: Support Flatpak Lutris installer scripts? Massive pain, hmm... :(
+
 # exit codes:
 # 1: general error | 10: -d check failed | 11: -f check failed | 12: empty string | 13: m_7z failed
 # 14: case char mismatch
 
-# TODO: Think about splitting the script up and source common functions
-# Downside would be less portability :/
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.8"
-DATE="2025-08-23"
+VERSION="0.5.9"
+DATE="2025-08-29"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -34,7 +35,13 @@ readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps" && mkdir -p "${ICO_DI
 readonly APP_DIR="${DATA_HOME}/applications"
 readonly DEFAULT_PFX_DIR="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
-readonly FAUGUS_CONFIG_DIR="$CONFIG_HOME/faugus-launcher"
+
+declare -A FAUGUS
+FAUGUS[config_dir]="$CONFIG_HOME/faugus-launcher"
+FAUGUS[flatpak_config_dir]="$HOME/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher"
+FAUGUS[json_path]="${FAUGUS[config_dir]}/games.json"
+FAUGUS[flatpak_json_path]="${FAUGUS[flatpak_config_dir]}/games.json"
+readonly -A FAUGUS
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
@@ -46,7 +53,6 @@ readonly MOD_PATH="${CACHE_DIR}/SPT.7z"
 readonly PATCHER_PATH="${CACHE_DIR}/Patcher.7z"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
-readonly FAUGUS_JSON_PATH="${FAUGUS_CONFIG_DIR}/games.json"
 
 declare -A CONFIG
 declare -A ENV
@@ -58,6 +64,7 @@ declare -A URL
 URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
 URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+URL[xxd]="https://ftp5.gwdg.de/pub/linux/archlinux/extra/os/x86_64/vim-9.1.1623-1-x86_64.pkg.tar.zst"
 # Installers
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
 URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
@@ -200,11 +207,11 @@ warn() {
 
 
 err() {
-    local status=$?
+    local message="$1"; local status="${2:-"1"}"
     local pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
-    msg "${pfx}$1"
+    msg "${pfx}$message (exit status $status)"
     msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}"
-    m_exit ${status}
+    m_exit "$status"
 }
 
 
@@ -214,13 +221,27 @@ dbg() {
 }
 
 
-ask() {
+yesno() {
     printf "${GRAY}[${TITLE}]${RESET} $* [y/n] "
     while true; do
         read -r -p "> " yn
         case $yn in
             [Yy]*) return 0 ;;  
             [Nn]*) msg "Aborted"; m_exit 0 ;;
+        esac
+    done
+}
+
+
+choice() {
+    PS3="$1" && shift 1
+    select answer in "$@"; do
+        case "$REPLY" in
+            1|2|3|4|5|6|7|8|9)
+                if [[ $# -ge $REPLY ]]; then
+                    echo "$REPLY" && break
+                fi
+            ;;
         esac
     done
 }
@@ -256,7 +277,7 @@ set_value() {
         env)
             ENV[$key]="${value%/}"
             save_array env
-            export $key="${value%/}"
+            export "$key"="${value%/}"
         ;;
         *) err "Invalid array name: \"$array_name\""
     esac
@@ -274,7 +295,7 @@ unset_value() {
     # Unset key
     case "${array_name}" in
         config) unset CONFIG[$key] ;;
-        env) unset "$key"; unset ENV[$key] ;;
+        env) unset ENV[$key]; unset "$key" ;;
         *) err "Invalid array name: \"$array_name\""
     esac
 }
@@ -463,7 +484,7 @@ check_prefix_path() {
     local pfx_path="${1%/}"
     local check_paths=("${pfx_path}/system.reg" "${pfx_path}/dosdevices" "${pfx_path}/drive_c")
     [[ $pfx_path != /* ]] && err "Malformed prefix path: \"$pfx_path\""
-    if [[ -d "$pfx_path" ]]; then
+    if [[ -d "${pfx_path}" ]] && [[ -n "$( ls -A "${pfx_path}" )" ]]; then
         for p in "${check_paths[@]}"; do
             if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
                 # Reset to default path
@@ -507,10 +528,8 @@ check_native_deps() {
     for cmd in "${cmds[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             case ${cmd} in
-                jq) wrap_run install_dep "jq" "${URL[jq]}" || status=1 ;;
-                hpatchz) wrap_run install_dep "hpatchz" "${URL[hpatchz]}" || status=1 ;;
-                7z) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
-                xxd) msg "${YELLOW}> \"$cmd\" is not installed on your system${RESET}" && status=1 ;;
+                jq|hpatchz|xxd) wrap_run install_dep "$cmd" "${URL[$cmd]}" || status=1 ;;
+                7z) msg "\"$cmd\" is not installed on your system." && status=1 ;;
                 mangohud) msg "${BLUE}HINT${RESET}: \"$cmd\" is not installed on your system." ;;
                 gamemode) msg "${BLUE}HINT${RESET}: \"$cmd\" is not installed on your system." ;;
             esac
@@ -620,13 +639,13 @@ install_dep() {
     # Download
     msg "Downloading \"$cmd_name\"..."
     m_curl -L "${url}" -o "${file_name}"
-    # Exctract archive if needed
+    # Extract archive if needed
     case "$file_ext" in
         *.zip*|*.7z*) m_7z "${file_name}" "${TMP_DIR}" ;;
-        *.tar*) tar -xf "${file_name}" || err "Failed to extract tar archive" ;;
+        *.tar*|*.zst*) tar -xf "${file_name}" || err "Failed to extract tar archive" ;;
         *) ;;
     esac
-    local file_path=$( find "$source_path" \( -name "$cmd_name" -type f \) )
+    local file_path=$( find "$source_path" \( -name "$cmd_name" -type f \) | head -1 )
     [[ -z "$file_path" ]] && err "Cannot find \"$cmd_name\" in \"$source_path\""
     # Change permissions
     chmod +x "$file_path" || err "Failed to set permissions for \"$cmd_name\""
@@ -889,7 +908,7 @@ uninstall_eft() {
         # Warn user before continuing
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
         msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
-        ask "Do you want to continue?"
+        yesno "Do you want to continue?"
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
@@ -910,7 +929,7 @@ uninstall_spt() {
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
         msg "SPT directory: ${UNDERLINE}${SPT_DIR}${RESET}"
-        ask "Do you want to continue?"
+        yesno "Do you want to continue?"
     fi
 
     msg "Uninstalling \"SPTarkov\"..."
@@ -1092,7 +1111,7 @@ opt_uninstall() {
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
                 msg "${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
-                ask "Do you want to continue?"
+                yesno "Do you want to continue?"
             fi
 
             uninstall_eft 1
@@ -1109,7 +1128,7 @@ opt_uninstall() {
 
 
 opt_run() {
-    # SYNTAX: spt-additions run spt-launcher -e "MANGOHUD=1"
+    # SYNTAX: spt-additions run spt-launcher -e MANGOHUD=1
     local option="$1" && shift
 
     while getopts ":p:e:a:-:" subopt; do
@@ -1192,7 +1211,7 @@ add_app_shortcut() {
     # Get env string
     local env="$( get_env_string )"
     env+="WINEPREFIX=${CONFIG[pfx_dir]}"
-    [[ "$env" != *"PROTONPATH"* ]] && env="$(echo "PROTONPATH=GE-Proton $env")"
+    [[ "$env" != *"PROTONPATH"* ]] && env+=" PROTONPATH=GE-Proton"
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
     # Generate the exec string
@@ -1214,19 +1233,28 @@ add_app_shortcut() {
 
 
 add_faugus_shortcut() {
+    local config_dir json_path
     # Check if faugus-launcher is installed
-    if [[ ! "$(command -v "faugus-launcher")" ]]; then
+    if [[ "$(command -v "faugus-launcher")" ]]; then
+        # Native
+        config_dir="${FAUGUS[config_dir]}"
+        json_path="${FAUGUS[json_path]}"
+    elif [[ -n "$(flatpak list | grep faugus-launcher)" ]]; then
+        # Flatpak
+        config_dir="${FAUGUS[flatpak_config_dir]}"
+        json_path="${FAUGUS[flatpak_json_path]}"
+    else
         msg "Faugus-Launcher is not installed"
         return 0
     fi
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "faugus-shortcut" ]] && err "Failed to load shortcut data from cache array"
     # Create Faugus config dir if not already there
-    mkdir -p "$FAUGUS_CONFIG_DIR"
+    mkdir -p "$config_dir"
     # Create games.json if it doesn't exist
-    [[ ! -f "$FAUGUS_JSON_PATH" ]] && jq -n '[]' > "$FAUGUS_JSON_PATH"
+    [[ ! -f "$json_path" ]] && jq -n '[]' > "$json_path"
     # Check if the game ids already exist
-    if [[ "$(cat "$FAUGUS_JSON_PATH" | grep "${CACHE[gameid]}")" ]]; then
+    if [[ "$(cat "$json_path" | grep "${CACHE[gameid]}")" ]]; then
         warn "A shortcut for \"${CACHE[title]}\" already exists, skipping"
         return 0
     fi
@@ -1241,8 +1269,8 @@ add_faugus_shortcut() {
     '. += [{ "gameid": $gameid,"title": $title,"path": $path,"prefix": $prefix,
     "launch_arguments": $launch_args,"game_arguments": $game_args,"runner": $runner,
     "lossless_enabled": false,"lossless_performance": false,"lossless_hdr": false }]'\
-    "$FAUGUS_JSON_PATH" > "$TMP_DIR/games.json"
-    mv "$TMP_DIR/games.json" "$FAUGUS_JSON_PATH"
+    "$json_path" > "$TMP_DIR/games.json" || err "Failed to add Faugus shortcut"
+    mv "$TMP_DIR/games.json" "$json_path"
 }
 
 
@@ -1316,7 +1344,7 @@ opt_shortcut() {
                 CACHE[_id]="faugus-shortcut"
                 CACHE[gameid]="bsg-launcher"
                 CACHE[title]="BSG Launcher"
-                CACHE[path]="$BSG_DIR/BsgLauncher.exe"
+                CACHE[path]="$BSG_DIR/BsgLauncher/BsgLauncher.exe"
                 add_faugus_shortcut
             fi
         ;;
@@ -1369,12 +1397,12 @@ opt_clean() {
         all)
             if [[ "${NO_PROMPT}" != 1 ]]; then
                 # Warn user before continuing
-                msg "${BOLD}This action will remove all configs, cached files & all game shortcuts!${RESET}"
+                msg "${BOLD}This action will remove all configs & cached files!${RESET}"
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
                 msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
-                ask "Do you want to continue?"
+                yesno "Do you want to continue?"
             fi
             export NO_PROMPT=1
             opt_clean data
@@ -1396,7 +1424,7 @@ opt_selfupdate() {
         msg
         msg "> This feature is ${BOLD}NOT${RESET} fully implemented yet & won't validate the new script file!"
         msg
-        ask "Do you want to continue?"
+        yesno "Do you want to continue?"
     fi
     msg "Updating script..."
     cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
@@ -1432,7 +1460,7 @@ opt_help() {
             msg "${BOLD}-h|--help${RESET}       - Print the help message"
         ;;
         shortcut)
-            msg "${BOLD}Available options:"
+            msg "${BOLD}Available options:${RESET}"
             msg "[eft|bsg|bsg-launcher]         - Update BSG-Launcher shortcut"
             msg "[spt|sptarkov]                 - Update SPT.Server and SPT.Launcher shortcut"
             msg "spt-launcher|spt-server        - Update SPT.Server or SPT.Launcher shortcut"
@@ -1542,7 +1570,7 @@ handle_opts() {
                 *) err "Invalid option: ${option}" ;;
             esac
         ;;
-        "") opt_help ;;
+        "") ;;
         *) err "Invalid option: ${option}" ;;
     esac
 }
