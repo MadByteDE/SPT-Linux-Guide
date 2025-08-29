@@ -14,7 +14,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.9"
+VERSION="0.5.9a"
 DATE="2025-08-29"
 
 # ANSI codes
@@ -191,8 +191,11 @@ msg() {
     filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
 
     # Print to terminal
-    echo -e "${output}"
-
+    case ${NO_ANSI} in
+        1) echo "${filtered_str}" ;;
+        *) echo -e "${output}" ;;
+    esac
+    
     # Write to log file
     if [[ -d "${CACHE_DIR}" ]]; then
         echo "${filtered_str}" &>> "${LOG_PATH}"
@@ -742,8 +745,8 @@ install_spt() {
 
     # Install SPT
     case "$install_mode" in
-        native) install_spt_native ;;
-        lutris|proton)
+        native|lutris) install_spt_native ;;
+        proton)
             # HACK: The SPTInstaller needs GE-Proton instead of UMU-Latest
             export PROTONPATH="GE-Proton"
             # Download SPT Installer
@@ -1067,6 +1070,12 @@ opt_install() {
                 case "${OPTARG}" in
                     native|proton|lutris) spt_install_mode="${OPTARG}" ;;
                     *) err "Invalid option: ${OPTARG}" ;;
+                esac
+            ;;
+            -*)
+                case "${OPTARG}" in
+                    no-ansi) export NO_ANSI=1; msg "\"NO_ANSI\" option set" ;;
+                    *) err "Invalid option: --${OPTARG}" ;;
                 esac
             ;;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
