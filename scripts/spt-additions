@@ -4,8 +4,6 @@
 # SPT-ADDITIONS #
 # # # # # # # # # 
 
-# TODO: Single SPT cache: Share path of cached SPT files with the official SPTInstaller
-
 # exit codes:
 # 1: general error | 10: -d check failed | 11: -f check failed | 12: empty string | 13: m_7z failed
 # 14: case char mismatch
@@ -13,7 +11,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.9b"
+VERSION="0.5.10"
 DATE="2025-08-29"
 
 # ANSI codes
@@ -48,8 +46,8 @@ readonly SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
 readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/prefix.conf"
 readonly ENV_PATH="${CONFIG_DIR}/env.conf"
-readonly MOD_PATH="${CACHE_DIR}/SPT.7z"
-readonly PATCHER_PATH="${CACHE_DIR}/Patcher.7z"
+readonly MOD_PATH="${CACHE_DIR}/SPT"
+readonly PATCHER_PATH="${CACHE_DIR}/patcher"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
@@ -102,8 +100,13 @@ m_exit() {
     local status=${1:-$?}
 
     # Remove tmp files
-    if [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]]; then
+    if [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" ) ]]; then
         m_rmdir "${TMP_DIR}/"
+    fi
+
+    # Remove empty prefix directories
+    if [[ -d "${CONFIG[pfx_dir]}" ]] && [[ -z $( m_ls "${CONFIG[pfx_dir]}" ) ]]; then
+        m_rmdir "${CONFIG[pfx_dir]}"
     fi
 
     # Exit with passed status code
@@ -112,7 +115,7 @@ m_exit() {
 
 
 m_chmod() {
-    chmod "$@" &>> "${LOG_PATH}" || err "Command \"$*\" failed (status code $?)"
+    chmod "$@" &>> "${LOG_PATH}" || err "Command \"chmod $*\" failed (status code $?)"
 }
 
 
@@ -128,10 +131,15 @@ m_cp() {
     # Create missing directories
     mkdir -p "${target_path}"
     # Copy files to target path
-    if [[ -n "$( ls -A "${source_path}" )" ]]; then
+    if [[ -n "$( m_ls -A "${source_path}" )" ]]; then
         cp --reflink=auto -r "${source_path}"* "${target_path}" \
-        || err "Command \"$*\" failed (status code $?)"
+        || err "Command \"cp $*\" failed (status code $?)"
     fi
+}
+
+
+m_ls() {
+    ls "$@" 2>/dev/null || err "Command \"ls $*\" failed (status code $?)"
 }
 
 
@@ -140,7 +148,7 @@ m_rm() {
     if [[ -d "${path}" ]]; then
         err "Cannot remove directories. Use \"m_rmdir\" instead."
     fi
-    rm "$1" || err "Command \"$*\" failed (status code $?)"
+    rm "$1" || err "Command \"rm $*\" failed (status code $?)"
 }
 
 
@@ -171,12 +179,12 @@ m_7z() {
 
 
 m_curl() {
-    curl --connect-timeout 30 -f "$@" || err "Command \"$*\" failed (status code $?)"
+    curl --connect-timeout 30 -f "$@" || err "Command \"curl $*\" failed (status code $?)"
 }
 
 
 m_umu() {
-    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"$*\" failed (status code $?)"
+    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed (status code $?)"
 }
 
 
@@ -211,7 +219,7 @@ warn() {
 err() {
     local message="$1"; local status="${2:-"1"}"
     local pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
-    msg "${pfx}$message (exit status $status)"
+    msg "${pfx}$message"
     msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}"
     m_exit "$status"
 }
@@ -483,17 +491,31 @@ check_disk_space() {
 
 
 check_prefix_path() {
+    local status path
     local pfx_path="${1%/}"
     local check_paths=("${pfx_path}/system.reg" "${pfx_path}/dosdevices" "${pfx_path}/drive_c")
-    [[ $pfx_path != /* ]] && err "Malformed prefix path: \"$pfx_path\""
-    if [[ -d "${pfx_path}" ]] && [[ -n "$( ls -A "${pfx_path}" )" ]]; then
-        for p in "${check_paths[@]}"; do
-            if [[ ! -f "$p" ]] && [[ ! -d "$p" ]]; then
-                # Reset to default path
-                set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
-                err "Invalid wine prefix directory: \"${pfx_path}\""
-            fi
-        done
+    while true; do
+        [[ "${pfx_path:0:1}" != "/" ]] && status=1 && break
+        [[ -f "${pfx_path}" ]] && status=2 && break
+        if [[ -d "${pfx_path}" ]] && [[ -n "$( m_ls -A "${pfx_path}" )" ]]; then
+            for path in "${check_paths[@]}"; do
+                [[ ! -f "$path" ]] && [[ ! -d "$path" ]] && status=3 && break
+            done
+        fi
+        break
+    done
+    if [[ $status != 0 ]]; then
+        # Reset to default path
+        set_value config "pfx_dir=${DEFAULT_PFX_DIR}"
+        case $status in
+            1) err "Missing leading \"/\" character: \"${pfx_path}\"" ;;
+            2) err "Given path is a file: \"${pfx_path}\"" ;;
+            3) err "Given path is not a valid wine prefix: \"${pfx_path}\"" ;;
+        esac
+    fi
+    # Try to create the directory to make sure we have write permissions
+    if [[ ! -d "${pfx_path}" ]]; then
+         mkdir -p "$pfx_path" || err "Missing write permissions: \"${pfx_path}\""
     fi
 }
 
@@ -659,16 +681,13 @@ install_dep() {
 
 install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
-    set_prefix "${CONFIG[pfx_dir]}"
 
     # HACK: make sure to use UMU-Proton for dotnet48
     export PROTONPATH="UMU-Latest"
 
-    if [[ ! -d "${CONFIG[pfx_dir]}" ]]; then
-        # Initialize prefix
-        msg "Initializing wine prefix..."
-        m_umu wineboot -u || err "Failed to initialize wine prefix"
-    fi
+    # Initialize prefix
+    msg "Initializing wine prefix..."
+    m_umu wineboot -u || err "Failed to initialize wine prefix"
 
     # Install game dependencies
     winetricks_install "dotnet48" ".NET 4.8 Runtime (this might take a while)"
@@ -721,9 +740,6 @@ install_spt() {
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
     # check_dotnet
 
-    # Define used prefix
-    set_prefix "${CONFIG[pfx_dir]}"
-
     if [[ ! -d "${EFT_DIR}" ]]; then
         msg "> ${YELLOW}Escape from Tarkov is not installed.${RESET}"
         msg "> ${YELLOW}make sure to install the game inside the BSG Launcher & try again!${RESET}"
@@ -753,6 +769,10 @@ install_spt() {
                 msg "Downloading SPTInstaller.exe..."
                 cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
             fi
+            # Symlink SPTInstaller cache directory to our cache directory to save on disk space
+            local spt_cache_dir="${CONFIG[pfx_dir]}/drive_c/users/steamuser/Application Data/spt-installer/cache"
+            [[ -d "$spt_cache_dir" ]] && m_rmdir "$spt_cache_dir"
+            ln -s "${CACHE_DIR}" "$spt_cache_dir"
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
@@ -890,11 +910,19 @@ install_launch_script() {
 root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 terms=( "foot" "alacritty" "ptyxis" "kgx" "konsole"
 "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
-[[ $( pidof "SPT.Server.Linux" ) != "" ]] && exit 0
+# NOTE: When Flatpak Lutris is used, we don't have access to `dotnet-runtime` and
+# `aspnet-runtime` packages on the host system. To work around this limitation,
+# we use `flatpak-spawn --host` to launch the server outside of the sandboxed
+# environment. (not supported with some desktop portals in Wayland e.g. cinnemon/xapp)
+m_run() {
+    if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
+    else flatpak-spawn --host "$@"; fi
+}
+[[ $( m_run pidof "SPT.Server.Linux" ) != "" ]] && exit 0
 for term in "${terms[@]}"; do
-    if command -v $term &>/dev/null; then
+    if m_run command -v $term &>/dev/null; then
         cd "${root_path}"
-        $term -e "./SPT.Server.Linux"
+        m_run $term -e "./SPT.Server.Linux"
         break
     fi
 done
@@ -1019,7 +1047,7 @@ opt_patch() {
             "del")
                 msg "${progress_current} (-) Deleting: ${formatted##*/}"
                 m_rm "${output}" || return 1
-                if [[ -z "$( ls -A "${dir_path}" )" ]]; then
+                if [[ -z "$( m_ls -A "${dir_path}" )" ]]; then
                     msg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
                     m_rmdir "${dir_path}" || return 1
                 fi
@@ -1063,7 +1091,7 @@ opt_install() {
 
     while getopts ":p:e:a:m:-:" subopt; do
         case ${subopt} in
-            p) set_value config "pfx_dir=${OPTARG}";;
+            p) set_prefix "${OPTARG}";;
             e) opt_env set "${OPTARG}";;
             a) set_arg "${OPTARG}";;
             m)
@@ -1142,7 +1170,7 @@ opt_run() {
 
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
-            p) set_value config "pfx_dir=${OPTARG}";;
+            p) set_prefix "${OPTARG}";;
             e) opt_env set "${OPTARG}";;
             a) set_arg "${OPTARG}";;
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
@@ -1585,7 +1613,7 @@ handle_opts() {
 
 main() {
     # Remove tmp files
-    if [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" 2>/dev/null ) ]]; then
+    if [[ -d "${TMP_DIR}" ]] && [[ -n $( m_ls "${TMP_DIR}" ) ]]; then
         m_rmdir "${TMP_DIR}/"
     fi
 
@@ -1616,6 +1644,7 @@ main() {
     EFT_DIR="$( get_eft_path )"
 
     # Export paths
+    export WINEPREFIX="${CONFIG[pfx_dir]}"
     export PATH=$RUNTIME_DIR:$PATH
 
     # HACK: Just for debugging purposes rn
