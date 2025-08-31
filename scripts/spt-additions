@@ -11,8 +11,8 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.10"
-DATE="2025-08-29"
+VERSION="0.5.11"
+DATE="2025-08-31"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -100,7 +100,7 @@ m_exit() {
     local status=${1:-$?}
 
     # Remove tmp files
-    if [[ -d "${TMP_DIR}" ]] && [[ -n $( ls "${TMP_DIR}" ) ]]; then
+    if [[ -d "${TMP_DIR}" ]] && [[ -n $( m_ls "${TMP_DIR}" ) ]]; then
         m_rmdir "${TMP_DIR}/"
     fi
 
@@ -144,7 +144,7 @@ m_ls() {
 
 
 m_rm() {
-    local path="${1%/}"
+    local path="$(realpath "${1%/}")"
     if [[ -d "${path}" ]]; then
         err "Cannot remove directories. Use \"m_rmdir\" instead."
     fi
@@ -153,7 +153,7 @@ m_rm() {
 
 
 m_rmdir() {
-    local path="${1%/}"
+    local path="$(realpath "${1%/}")"
     if [[ -f "${path}" ]]; then
         warn "Cannot remove single files. Use \"m_rm\" instead."
         exit 1
@@ -169,7 +169,7 @@ m_rmdir() {
 
 
 m_7z() {
-    local archive_path="${1}"; local target_path="${2}"
+    local archive_path="$(realpath "${1%/}")"; local target_path="$(realpath ${2%/})"
     filename="${archive_path##*/}"
     # Extract
     msg "Extracting \"${filename}\""
@@ -356,7 +356,7 @@ save_array() {
 
 
 set_prefix() {
-    local path="${1%/}"
+    local path="$(realpath "${1%/}")"
 
     # Check if it's valid
     check_prefix_path "$path"
@@ -491,8 +491,8 @@ check_disk_space() {
 
 
 check_prefix_path() {
-    local status path
-    local pfx_path="${1%/}"
+    local status=0 path
+    local pfx_path="$(realpath "${1%/}")"
     local check_paths=("${pfx_path}/system.reg" "${pfx_path}/dosdevices" "${pfx_path}/drive_c")
     while true; do
         [[ "${pfx_path:0:1}" != "/" ]] && status=1 && break
@@ -577,7 +577,7 @@ check_eft_running() {
 
 check_hash() {
     local file_hash
-    local file_path="${1}"; local expected_hash="${2}"
+    local file_path="$(realpath "${1%/}")"; local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
     [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
@@ -596,7 +596,7 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path="${1}"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
+    local cached_path="$(realpath "${1%/}")"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
     local expected_hash="${2}"; [[ -z "${expected_hash}" ]] && err "Missing expected hash argument"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] \
@@ -623,7 +623,7 @@ check_cached() {
 
 check_ttl() {
     local c_time m_time e_time
-    local file_path="${1}"
+    local file_path="$(realpath "${1%/}")"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && msg "File \"${file_path}\" does not exist" && return 1
     # Calculate time elapsed since last modified
@@ -769,10 +769,15 @@ install_spt() {
                 msg "Downloading SPTInstaller.exe..."
                 cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
             fi
-            # Symlink SPTInstaller cache directory to our cache directory to save on disk space
-            local spt_cache_dir="${CONFIG[pfx_dir]}/drive_c/users/steamuser/Application Data/spt-installer/cache"
-            [[ -d "$spt_cache_dir" ]] && m_rmdir "$spt_cache_dir"
-            ln -s "${CACHE_DIR}" "$spt_cache_dir"
+            # Symlink SPTInstaller cache directory to our cache directory
+            local appdata_dir="${CONFIG[pfx_dir]}/drive_c/users/steamuser/Application Data/spt-installer"
+            local installer_cache_dir="${appdata_dir}/cache"
+            if [[ -d "${installer_cache_dir}" ]]; then
+                [[ $(readlink "${installer_cache_dir}") != "${CACHE_DIR}" ]] && m_rmdir "${installer_cache_dir}"
+            else
+                mkdir -p "${appdata_dir}"
+                ln -s "${CACHE_DIR}" "${installer_cache_dir}"
+            fi
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
@@ -993,8 +998,8 @@ uninstall_prefix() {
 
 opt_patch() {
     local progress_total
-    local target_path="${1%/:-"${SPT_DIR}"}" 
-    local source_path="${2%/:-"${SPT_DIR}"}" 
+    local target_path="$(realpath "${1%/:-"${SPT_DIR}"}")"
+    local source_path="$(realpath "${2%/:-"${SPT_DIR}"}")"
     msg "Started \"SPTarkov\" patcher..."
     # Fail if the target director does not exist
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
@@ -1555,6 +1560,7 @@ opt_help() {
             msg "${BOLD}shortcut${RESET}         - Create/update EFT/SPT shortcuts"
             msg "${BOLD}run${RESET}              - Run EFT/SPT from the terminal"
             msg "${BOLD}clean${RESET}            - Clean installer and prefix files"
+            msg "${BOLD}help${RESET}             - Get help for a command (e.g. 'help install')"
             msg "${BOLD}--self-update${RESET}    - Updates this installer script"
             msg "${BOLD}--no-prompt${RESET}      - Disable interactive prompt messages"
             msg "${BOLD}-h | --help${RESET}      - Print the help message"
