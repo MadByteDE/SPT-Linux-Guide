@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 #       SPT - Server pre-launch script        #
-#                v2025.6-2                    #
+#                v2025.9-1                    #
 # # # # # # # # # # # # # # # # # # # # # # # #
 
 readonly ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
