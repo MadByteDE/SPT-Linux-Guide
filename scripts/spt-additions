@@ -11,7 +11,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.13b"
+VERSION="0.5.13c"
 DATE="2025-09-07"
 
 # ANSI codes
@@ -1180,6 +1180,8 @@ opt_uninstall() {
 opt_run() {
     # SYNTAX: spt-additions run spt-launcher -e MANGOHUD=1
     local option="$1" && shift
+    # Default to GE-Proton
+    export PROTONPATH="GE-Proton"
 
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
