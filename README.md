@@ -23,7 +23,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
   - Recommended install method!
 
   > [!WARNING]
-  > - Uses a custom **native Linux** installer script ([view source](scripts/spt-linux-additions))
+  > - Uses a custom **native Linux** installer script ([view source](scripts/spt-additions))
   > - Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 [Lutris installer (Official)](docs/lutris/installer_official.md)

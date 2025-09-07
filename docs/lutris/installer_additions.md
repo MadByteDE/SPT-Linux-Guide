@@ -4,7 +4,7 @@
 
 This *.yml script uses a **custom**, native Linux install script.
 
-You can review the source code [here](../../scripts/spt-linux-additions).
+You can review the source code [here](../../scripts/spt-additions).
 
 <details>
 
@@ -43,7 +43,6 @@ To get rid of this extra step and also improve on stability and usability, we be
 - Tested wine versions:
     - **[wine-10.0-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
     - **[wine-kron4ek-10.8 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.8)** (install & play)
-    - **wine-ge-8-26** (install & play)
     - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
 
 ### - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
