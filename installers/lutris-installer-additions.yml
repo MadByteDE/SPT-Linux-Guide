@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.8-1
+##                 v2025.9-1
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
@@ -23,23 +23,6 @@ script:
         prefix: $GAMEDIR
     requires: escape-from-tarkov
     installer:
-
-    ## Prepare the wine prefix
-    - task:
-        app: arial times dotnetdesktop8 dotnetdesktop9
-        arch: win64
-        description: Installing game dependencies ...
-        name: winetricks
-        prefix: $GAMEDIR
-    - task:
-        app: win10
-        arch: win64
-        description: Setting windows version to Windows 10...
-        name: winetricks 
-        prefix: $GAMEDIR
-    - task:
-        name: winekill
-
     # Install SPT using the native installer script
     # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions
     - merge:
@@ -73,6 +56,6 @@ script:
         overrides:
             winhttp: n,b
 
+version: spt-additions-latest
 slug: sptarkov
-version: sptarkov-additions-latest
 year: 2017
