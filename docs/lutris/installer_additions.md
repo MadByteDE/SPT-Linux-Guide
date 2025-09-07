@@ -41,9 +41,9 @@ To get rid of this extra step and also improve on stability and usability, we be
 - Check if GPU and vulkan drivers are installed
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - Tested wine versions:
+    - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
     - **[wine-10.0-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
     - **[wine-kron4ek-10.8 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.8)** (install & play)
-    - **[ge-proton](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
 
 ### - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
@@ -97,6 +97,9 @@ sudo pacman -S install aspnet-runtime
 - Now follow the steps & wait for the installation to complete.
 
 **3. Running SPT**
+
+> [!WARNING]
+> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to one of the tested wine versions for better performance and an overall better experience.
 
 Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 
