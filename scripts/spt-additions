@@ -11,7 +11,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.13c"
+VERSION="0.5.14"
 DATE="2025-09-07"
 
 # ANSI codes
@@ -713,7 +713,7 @@ install_eft() {
 
     # Re-initialize prefix for GE-Proton
     export PROTONPATH="GE-Proton"
-    msg "Updating wine prefix for \"GE-Proton\"..."
+    msg "Updating wine prefix for \"$PROTONPATH\"..."
     m_umu -q wineboot -u
 
     # Copy icon to user icons directory
@@ -1179,10 +1179,9 @@ opt_uninstall() {
 
 opt_run() {
     # SYNTAX: spt-additions run spt-launcher -e MANGOHUD=1
-    local option="$1" && shift
-    # Default to GE-Proton
-    export PROTONPATH="GE-Proton"
-
+    local option="$1" && shift 1
+    [[ -z "$option" ]] && err "Option \"run\" requires an argument"
+    
     while getopts ":p:e:a:-:" subopt; do
         case ${subopt} in
             p) set_prefix "${OPTARG}" ;;
@@ -1195,29 +1194,21 @@ opt_run() {
 
     case "${option}" in
         eft|bsg|bsg-launcher)
-            check_eft_running
             set_arg "--disable-software-rasterizer"
-            set_prefix "${CONFIG[pfx_dir]}"
-            cd "${BSG_DIR}/BsgLauncher" || m_exit 1
-            m_umu "BsgLauncher.exe" "${ARGS[@]}" &
+            cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "${ARGS[@]}" &
         ;;
         spt-launcher)
             check_eft_running
-            set_prefix "${CONFIG[pfx_dir]}"
             cd "${SPT_DIR}" && m_umu SPT.Launcher.exe "${ARGS[@]}" &
         ;;
         spt-server)
-            # check_dotnet
-            check_eft_running
-            set_prefix "${CONFIG[pfx_dir]}"
+            check_dotnet && check_eft_running
             cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[@]}" &
         ;;
+        winetricks) m_umu winetricks -q "$*" ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
-        *)
-            set_prefix "${CONFIG[pfx_dir]}"
-            cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" &
-        ;;
+        *) cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" & ;;
     esac
 }
 
@@ -1540,6 +1531,7 @@ opt_help() {
             msg "[eft|bsg|bsg-launcher]         - Run the BSG Launcher"
             msg "spt-launcher                   - Run the SPT Launcher"
             msg "spt-server                     - Run the native SPT Server"
+            msg "winetricks [*]                 - Run \"winetricks -q [VERBS]\" inside the prefix"
             msg "[*]                            - Run a custom command inside the prefix"
             msg
             msg "${BOLD}Available switches:${RESET}"
@@ -1579,7 +1571,7 @@ opt_help() {
             msg "${BOLD}uninstall${RESET}        - Uninstall EFT/SPT from a prefix"
             msg "${BOLD}patch${RESET}            - Downpatch EFT game files"
             msg "${BOLD}shortcut${RESET}         - Create/update EFT/SPT shortcuts"
-            msg "${BOLD}run${RESET}              - Run EFT/SPT from the terminal"
+            msg "${BOLD}run${RESET}              - Run EFT/SPT or custom commands inside the prefix"
             msg "${BOLD}clean${RESET}            - Clean installer and prefix files"
             msg "${BOLD}help${RESET}             - Get help for a command (e.g. 'help install')"
             msg "${BOLD}--self-update${RESET}    - Updates this installer script"
@@ -1671,6 +1663,7 @@ main() {
     EFT_DIR="$( get_eft_path )"
 
     # Export paths
+    export PROTONPATH="GE-Proton"
     export WINEPREFIX="${CONFIG[pfx_dir]}"
     export PATH=$RUNTIME_DIR:$PATH
 
