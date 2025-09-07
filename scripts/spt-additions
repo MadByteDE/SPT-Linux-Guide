@@ -11,8 +11,8 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.12"
-DATE="2025-09-02"
+VERSION="0.5.13"
+DATE="2025-09-07"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -61,7 +61,7 @@ declare -A URL
 URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
 URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
-URL[xxd]="https://ftp5.gwdg.de/pub/linux/archlinux/extra/os/x86_64/vim-9.1.1623-1-x86_64.pkg.tar.zst"
+URL[xxd]="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.1.1230-2_amd64.deb"
 # Installers
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
 URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
@@ -179,7 +179,10 @@ m_curl() {
 
 
 m_umu() {
-    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed (status code $?)"
+    case $1 in
+        -q) shift 1; "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed (status code $?)";;
+        *) "${UMU_PATH}" "$@" || err "Command \"umu-run $*\" failed (status code $?)";;
+    esac
 }
 
 
@@ -299,14 +302,8 @@ unset_value() {
     [[ -z "$key" ]] && err "Missing key: \"$array_name\""
     # Unset key
     case "${array_name}" in
-        config)
-            unset CONFIG[$key]
-            save_array config
-        ;;
-        env)
-            unset ENV[$key]; unset "$key"
-            save_array env
-        ;;
+        config) unset CONFIG[$key]; save_array config ;;
+        env) unset ENV[$key]; unset "$key"; save_array env ;;
         *) err "Invalid array name: \"$array_name\""
     esac
 }
@@ -532,7 +529,7 @@ check_spt_path() {
 check_dotnet() {
     local status
     # Check for .NET Core and ASP.NET Runtime
-    if ! "$( dotnet --list-runtimes 2>/dev/null | grep -q "AspNet" | grep -q "9.0" )"; then
+    if ! dotnet --list-runtimes | grep "AspNet" | grep "9.0" &>/dev/null; then
         msg "${YELLOW}> \"ASP.NET Runtime 9.0\" is not installed on your system${RESET}"
         status=1
     fi
@@ -647,7 +644,7 @@ winetricks_install() {
     # Skip if dependency is already installed
     if ! cat "${CONFIG[pfx_dir]}/winetricks.log" 2>/dev/null | grep -q "$verb"; then
         msg "Installing $name..."
-        m_umu winetricks -q $verb $args
+        m_umu -q winetricks -q $verb $args
     fi
 }
 
@@ -666,6 +663,10 @@ install_dep() {
     case "$file_ext" in
         *.zip*|*.7z*) m_7z "${file_name}" "${TMP_DIR}" ;;
         *.tar*|*.zst*) tar -xf "${file_name}" || err "Failed to extract tar archive" ;;
+        *.deb*)
+            m_7z "${file_name}" "${TMP_DIR}"
+            tar -xf "data.tar" || err "Failed to extract tar archive"
+        ;;
         *) ;;
     esac
     local file_path=$( find "$source_path" \( -name "$cmd_name" -type f \) | head -1 )
@@ -686,7 +687,7 @@ install_eft() {
 
     # Initialize prefix
     msg "Initializing wine prefix..."
-    m_umu wineboot -u || err "Failed to initialize wine prefix"
+    m_umu -q wineboot -u || err "Failed to initialize wine prefix"
 
     # Install game dependencies
     winetricks_install "dotnet48" ".NET 4.8 Runtime (this might take a while)"
@@ -694,11 +695,11 @@ install_eft() {
 
     # Add prefix update pop-up workaround
     msg "Adding window pop-up workaround..."
-    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
+    m_umu -q reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
 
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
-    m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
+    m_umu -q reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
     # Download BSG Launcher if needed
     if [[ ! -f "${CACHE_DIR}/BsgLauncher.exe" ]]; then
@@ -708,12 +709,12 @@ install_eft() {
 
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
-    m_umu "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
+    m_umu -q "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
 
     # Re-initialize prefix for GE-Proton
     export PROTONPATH="GE-Proton"
     msg "Updating wine prefix for \"GE-Proton\"..."
-    m_umu wineboot -u
+    m_umu -q wineboot -u
 
     # Copy icon to user icons directory
     if [[ ! -f "${ICO_DIR}/bsg_launcher.png" ]]; then
@@ -737,7 +738,7 @@ install_spt() {
     check_eft_running
 
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
-    # check_dotnet
+    check_dotnet
 
     if [[ ! -d "${EFT_DIR}" ]]; then
         msg "> ${YELLOW}Escape from Tarkov is not installed.${RESET}"
@@ -755,11 +756,11 @@ install_spt() {
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
-    m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
+    m_umu -q reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
 
     # Install SPT
     case "$install_mode" in
-        native|lutris) install_spt_native ;;
+        native|lutris|faugus) install_spt_native ;;
         proton)
             # HACK: The SPTInstaller needs GE-Proton instead of UMU-Latest
             export PROTONPATH="GE-Proton"
@@ -778,7 +779,7 @@ install_spt() {
             ln -s "${CACHE_DIR}" "${installer_cache_dir}"
             # Run SPT Installer
             msg "Launching SPT Installer..."
-            m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
+            m_umu -q "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
         ;;
         ""|*) err "Invalid install mode \"$install_mode\""
     esac
@@ -797,6 +798,7 @@ install_spt() {
             # Create application shortcuts
             opt_shortcut spt
         ;;
+        faugus) opt_shortcut faugus ;;
         lutris) ;;
         ""|*) err "Invalid install mode \"$install_mode\""
     esac
@@ -1231,11 +1233,16 @@ opt_env() {
             if [[ "${ENV[$key]}" ]]; then msg "Updating environment variable: \"$keyval\""
             else msg "Adding environment variable: \"$keyval\""; fi
             set_value env "$key=$value"
+            # TODO: Think about launching EFT/SPT through the script to avoid updating shortcuts constantly
+            [[ -d "$EFT_DIR" ]] && opt_shortcut eft
+            [[ -d "$SPT_DIR" ]] && opt_shortcut spt
         ;;
         unset|remove)
             [[ ! "${ENV[$key]}" ]] && msg "Environment variable \"$key\" is not set" && return
             msg "Removing environment variable: \"$keyval\""
             unset_value env "$key"
+            [[ -d "$EFT_DIR" ]] && opt_shortcut eft
+            [[ -d "$SPT_DIR" ]] && opt_shortcut spt
         ;;
         list|-l)
             for key in "${!ENV[@]}"; do
@@ -1253,7 +1260,7 @@ opt_env() {
 add_app_shortcut() {
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "app-shortcut" ]] && err "Failed to load shortcut data from cache array"
-    msg "Creating \"${CACHE[name]}\" shortcut..."
+    msg "Updating \"${CACHE[name]}\" shortcut..."
     # Get env string
     local env="$( get_env_string )"
     env+="WINEPREFIX=${CONFIG[pfx_dir]}"
