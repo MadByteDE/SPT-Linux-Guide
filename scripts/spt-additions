@@ -11,7 +11,7 @@
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.13a"
+VERSION="0.5.13b"
 DATE="2025-09-07"
 
 # ANSI codes
@@ -761,7 +761,14 @@ install_spt() {
 
     # Install SPT
     case "$install_mode" in
-        native|lutris|faugus) install_spt_native ;;
+        native|faugus) install_spt_native ;;
+        lutris)
+            # Add prefix update pop-up workaround
+            msg "Adding window pop-up workaround..."
+            m_umu -q reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
+            # Install SPT
+            install_spt_native
+        ;;
         proton)
             # HACK: The SPTInstaller needs GE-Proton instead of UMU-Latest
             export PROTONPATH="GE-Proton"
