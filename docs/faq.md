@@ -59,17 +59,13 @@ Before lowering graphics settings in the game, here are some tips on how to impr
 - Rolling-release distributions receive the latest packages much faster then fixed or semi-rolling release distros.
 - **Be warned**: Having the latest and greatest packages can also come with extra hurdles and instability!
 
-#### 5. Mods: Install De-Clutterer, limit AI
-- **[De-Clutterer](https://hub.sp-tarkov.com/files/file/1546-de-clutterer/)**: Removes smaller clutter game objects like trash and bullet shells
-- **[AI-Limit](https://hub.sp-tarkov.com/files/file/793-ai-limit/)**: Limits the amount of active bots dynamically. Similar functionality can also be included in other mods like Questing Bots.
-
-#### 6. GPU bottleneck: Enable DLSS/FSR
+#### 5. GPU bottleneck: Enable DLSS/FSR
 - Turning on DLSS/FSR can give you significant performance benefits if you're GPU limited.
 
-#### 7. Tweak mod settings
+#### 6. Tweak mod settings
 - Having mods like SAIN, That's Lit, Questing Bots or Looting Bots installed can take a lot of breath out of your system. You can tweak mod settings e.g. reduce total amount of bots spawned or set slower intervals for checks (like bots looking for loot/looking for cover) to get improved performance.
 
-    Check out the mod pages on the [SPT Hub](https://hub.sp-tarkov.com/files/) to get more details!
+    Check out the mod pages on the [Forge](https://forge.sp-tarkov.com/) to get more details!
 
 ***
 [Back to landing page](../README.md)
