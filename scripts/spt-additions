@@ -26,7 +26,7 @@ trap int INT; int() { err "Interrupt received"; }
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.6.2"
+VERSION="0.6.2a"
 DATE="2025-09-14"
 
 # ANSI codes
@@ -1171,19 +1171,18 @@ opt_guided_install() {
     local input
 
     # Overview
-    echo
-    msg "${BOLD}${BLUE}Welcome soldier!${RESET}"
-    msg "This cli installer will perform the following steps for you:"
-    msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not already installed)"
-    msg "   - Setup the wine prefix & install all required dependencies"
+    msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
+    msg "This CLI installer will perform the following steps:"
+    msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not installed already)"
+    msg "   - Setup the wine prefix, install dependencies & apply workarounds"
     msg "   - Install the BSG Launcher"
-    msg "   - Install SPTarkov using a native Linux installer script"
-    msg "   - Add application shortcuts"
+    msg "   - Install SPTarkov"
+    msg "   - Add application menu shortcuts"
     msg
 
     while true; do
         # Choose a custom prefix install location
-        msg "${BOLD}${BLUE}Where do you want to install the prefix? (Current path is \"${CONFIG[pfx_dir]}\")${RESET}"
+        msg "${BOLD}${BLUE}Where do you want to install the wine prefix (Leave blank for \"${CONFIG[pfx_dir]}\")${RESET}"
         input="$(read_input)"
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
         # Install UMU if needed
@@ -1209,12 +1208,12 @@ opt_guided_install() {
             esac
         fi
         msg
-        msg "${BOLD}${BLUE}EFT/SPT is now installed! :)${RESET}"
+        msg "${BOLD}${BLUE}Install successful!${RESET}"
         msg
-        msg "${BOLD}${BLUE}You need more help or just wanna chat with other nerds? Go here:${RESET}"
+        msg "${BOLD}${BLUE}Do you need help or just wanna hang out with the nerds? Go here:${RESET}"
         msg "   > ${URL[discord]}"
         msg
-        msg "${BOLD}${BLUE}Find your favorite mods in ${GREEN}THE FORGE${RESET}:"
+        msg "${BOLD}${BLUE}Get your favorite mods from ${GREEN}THE FORGE${RESET}:"
         msg "   > ${URL[forge]}"
         return 0
     done
