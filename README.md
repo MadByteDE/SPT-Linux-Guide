@@ -25,40 +25,40 @@ Additions CLI installer ✨
   > [!NOTE]
   > - Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
-  1. Install `aspnetcore-runtime-9.0` <details>
-  <summary>more details</summary>
-  
-  ### - [.NET / ASP.NET Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-  To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
-
-  **Ubuntu / Debian (based)**
-  ```
-  sudo apt install aspnetcore-runtime-9.0
-  ```
-
-  > [!NOTE]
-  > On some distributions you might need to add the `dotnet/backports` PPA:
-
-  ```
-  sudo add-apt-repository ppa:dotnet/backports
-  sudo apt update
-  ```
-  **Fedora (based)**
-  ```
-  sudo dnf install aspnetcore-runtime-9.0
-  ```
-
-  **Fedora Atomic (e.g. Bazzite/Aurora/Bluefin)**
-  ```
-  rpm-ostree install aspnetcore-runtime-9.0
-  ```
-
-  **Arch (based)**
-  ```
-  sudo pacman -S install aspnet-runtime
-  ```
+  1. Install `aspnetcore-runtime-9.0`
+  <details>
+    <summary>more details</summary>
     
+    To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
+
+    **Ubuntu / Debian (based)**
+    ```
+    sudo apt install aspnetcore-runtime-9.0
+    ```
+
+    > [!NOTE]
+    > On some distributions you might need to add the `dotnet/backports` PPA:
+
+    ```
+    sudo add-apt-repository ppa:dotnet/backports
+    sudo apt update
+    ```
+    **Fedora (based)**
+    ```
+    sudo dnf install aspnetcore-runtime-9.0
+    ```
+
+    **Fedora Atomic (e.g. Bazzite/Aurora/Bluefin)**
+    ```
+    rpm-ostree install aspnetcore-runtime-9.0
+    ```
+
+    **Arch (based)**
+    ```
+    sudo pacman -S install aspnet-runtime
+    ```
   </details>
+
   2. Run the following command in a terminal:
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions)"
