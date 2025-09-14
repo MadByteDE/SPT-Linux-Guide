@@ -26,7 +26,7 @@ trap int INT; int() { err "Interrupt received"; }
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.6.1"
+VERSION="0.6.2"
 DATE="2025-09-14"
 
 # ANSI codes
@@ -519,7 +519,7 @@ check_prefix_path() {
     while true; do
         [[ "${pfx_path:0:1}" != "/" ]] && status=1 && break
         [[ -f "${pfx_path}" ]] && status=2 && break
-        [[ ! -w "$(dirname "${pfx_path}")" ]] && status=3 && break
+        [[ -d "${pfx_path}" && ! -w "$(dirname "${pfx_path}")" ]] && status=3 && break
         if [[ -d "${pfx_path}" ]] && [[ -n "$( m_ls -A "${pfx_path}" )" ]]; then
             for path in "${check_paths[@]}"; do
                 [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=4 && break
@@ -1186,6 +1186,8 @@ opt_guided_install() {
         msg "${BOLD}${BLUE}Where do you want to install the prefix? (Current path is \"${CONFIG[pfx_dir]}\")${RESET}"
         input="$(read_input)"
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
+        # Install UMU if needed
+        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
         # Install EFT
         opt_install eft
         msg "The \"BSG Launcher\" has been installed successfully!"
