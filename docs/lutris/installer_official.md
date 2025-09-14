@@ -37,6 +37,11 @@ sudo apt update
 sudo dnf install aspnetcore-runtime-9.0
 ```
 
+**Fedora Atomic (e.g. Bazzite/Aurora/Bluefin)**
+```
+rpm-ostree install aspnetcore-runtime-9.0
+```
+
 **Arch (based)**
 ```
 sudo pacman -S install aspnet-runtime
