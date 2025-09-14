@@ -26,7 +26,7 @@ trap int INT; int() { err "Interrupt received"; }
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.6.2a"
+VERSION="0.6.2b"
 DATE="2025-09-14"
 
 # ANSI codes
@@ -1171,6 +1171,7 @@ opt_guided_install() {
     local input
 
     # Overview
+    opt_version
     msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
     msg "This CLI installer will perform the following steps:"
     msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not installed already)"
@@ -1183,6 +1184,7 @@ opt_guided_install() {
     while true; do
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}Where do you want to install the wine prefix (Leave blank for \"${CONFIG[pfx_dir]}\")${RESET}"
+        msg "(ctrl-c to cancel action)"
         input="$(read_input)"
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
         # Install UMU if needed
