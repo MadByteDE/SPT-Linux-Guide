@@ -4,7 +4,6 @@
 # SPT-ADDITIONS #
 # # # # # # # # # 
 
-# TODO: Add guided game install with interactive choices
 # TODO: Add zenity dialog boxes for guided game installs
 # TODO: Think about launching EFT/SPT through the script to avoid updating shortcuts constantly
 
@@ -27,8 +26,8 @@ trap int INT; int() { err "Interrupt received"; }
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.5.15"
-DATE="2025-09-11"
+VERSION="0.6.0"
+DATE="2025-09-14"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -67,6 +66,9 @@ readonly PATCHER_PATH="${CACHE_DIR}/patcher"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
+# Default SPT install mode
+INSTALL_MODE="native"
+
 declare -A CONFIG
 declare -A ENV
 declare -a ARGS
@@ -93,6 +95,7 @@ URL[mod-json]="https://spt-releases.modd.in/release.json"
 # Links
 URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
 URL[discord]="https://discord.com/invite/Xn9msqQZan"
+URL[forge]="https://forge.sp-tarkov.com/"
 readonly -A URL
 
 
@@ -143,7 +146,7 @@ m_ls() {
 
 
 m_rm() {
-    local path="$(realpath "${1%/}")"
+    local path="$(realpath -m "${1%/}")"
     if [[ -d "${path}" ]]; then
         err "Cannot remove directories. Use \"m_rmdir\" instead."
     fi
@@ -152,7 +155,7 @@ m_rm() {
 
 
 m_rmdir() {
-    local path="$(realpath "${1%/}")"
+    local path="$(realpath -m "${1%/}")"
     if [[ -f "${path}" ]]; then
         warn "Cannot remove single files. Use \"m_rm\" instead."
         exit 1
@@ -168,7 +171,7 @@ m_rmdir() {
 
 
 m_7z() {
-    local archive_path="$(realpath "${1%/}")"; local target_path="$(realpath "${2%/}")"
+    local archive_path="$(realpath -m "${1%/}")"; local target_path="$(realpath -m "${2%/}")"
     filename="${archive_path##*/}"
     # Extract
     msg "Extracting \"${filename}\""
@@ -249,9 +252,16 @@ yesno() {
         read -r -p "> " yn
         case $yn in
             [Yy]*) return 0 ;;  
-            [Nn]*) msg "Aborted"; m_exit 0 ;;
+            [Nn]*) return 1 ;;
         esac
     done
+}
+
+
+read_input() {
+    local input
+    read -r -p "> " input
+    printf "$input\n"
 }
 
 
@@ -368,7 +378,7 @@ save_array() {
 
 
 set_prefix() {
-    local path="$(realpath "${1%/}")"
+    local path="$(realpath -m "${1%/}")"
 
     # Check if it's valid
     check_prefix_path "${path}"
@@ -504,7 +514,7 @@ check_disk_space() {
 
 check_prefix_path() {
     local status=0 path
-    local pfx_path="$(realpath "${1%/}")"
+    local pfx_path="$(realpath -m "${1%/}")"
     local check_paths=("${pfx_path}/system.reg" "${pfx_path}/dosdevices" "${pfx_path}/drive_c")
     while true; do
         [[ "${pfx_path:0:1}" != "/" ]] && status=1 && break
@@ -536,6 +546,22 @@ check_spt_path() {
         # Reset to default path
         set_value config "spt_dir=${DEFAULT_SPT_DIR}"
         err "Invalid spt path: \"${spt_path}\""
+    fi
+}
+
+
+check_faugus() {
+    # Check if faugus-launcher is installed
+    if command -v "faugus-launcher" &>/dev/null; then
+        # Native
+        config_dir="${FAUGUS[config_dir]}"
+        json_path="${FAUGUS[json_path]}"
+    elif flatpak list | grep -q faugus-launcher &>/dev/null; then
+        # Flatpak
+        config_dir="${FAUGUS[flatpak_config_dir]}"
+        json_path="${FAUGUS[flatpak_json_path]}"
+    else
+        return 1
     fi
 }
 
@@ -587,7 +613,7 @@ check_eft_running() {
 
 check_hash() {
     local file_hash
-    local file_path="$(realpath "${1%/}")"; local expected_hash="${2}"
+    local file_path="$(realpath -m "${1%/}")"; local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
     [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
@@ -606,7 +632,7 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path="$(realpath "${1%/}")"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
+    local cached_path="$(realpath -m "${1%/}")"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
     local expected_hash="${2}"; [[ -z "${expected_hash}" ]] && err "Missing expected hash argument"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] \
@@ -633,7 +659,7 @@ check_cached() {
 
 check_ttl() {
     local c_time m_time e_time
-    local file_path="$(realpath "${1%/}")"
+    local file_path="$(realpath -m "${1%/}")"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && msg "File \"${file_path}\" does not exist" && return 1
     # Calculate time elapsed since last modified
@@ -955,7 +981,7 @@ uninstall_eft() {
         # Warn user before continuing
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
         msg "Prefix directory: ${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
-        yesno "Do you want to continue?"
+        yesno "Do you want to continue?" || m_exit 0
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
@@ -976,7 +1002,7 @@ uninstall_spt() {
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
         msg "SPT directory: ${UNDERLINE}${SPT_DIR}${RESET}"
-        yesno "Do you want to continue?"
+        yesno "Do you want to continue?" || m_exit 0
     fi
 
     msg "Uninstalling \"SPTarkov\"..."
@@ -1009,8 +1035,8 @@ uninstall_prefix() {
 
 opt_patch() {
     local progress_total
-    local target_path="$(realpath "${1%/:-"${SPT_DIR}"}")"
-    local source_path="$(realpath "${2%/:-"${SPT_DIR}"}")"
+    local target_path="$(realpath -m "${1%/:-"${SPT_DIR}"}")"
+    local source_path="$(realpath -m "${2%/:-"${SPT_DIR}"}")"
     msg "Started \"SPTarkov\" patcher..."
     # Fail if the target director does not exist
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
@@ -1101,60 +1127,21 @@ opt_patch() {
 
 
 opt_install() {
-    # SYNTAX: spt-additions install spt -p ~/Games/sptarkov
+    # SYNTAX: spt-additions -p ~/Games/sptarkov install spt 
     local option="$1" && shift
-    local spt_install_mode="proton"
-
-    while getopts ":p:e:a:m:-:" subopt; do
-        case ${subopt} in
-            p) set_prefix "${OPTARG}";;
-            e) opt_env set "${OPTARG}";;
-            a) set_arg "${OPTARG}";;
-            m)
-                case "${OPTARG}" in
-                    native|proton|lutris) spt_install_mode="${OPTARG}" ;;
-                    *) err "Invalid option: ${OPTARG}" ;;
-                esac
-            ;;
-            -*)
-                case "${OPTARG}" in
-                    no-ansi) export NO_ANSI=1; msg "\"NO_ANSI\" option set" ;;
-                    *) err "Invalid option: --${OPTARG}" ;;
-                esac
-            ;;
-            :) err "Switch \"${OPTARG}\" requires an argument" ;;
-            *) err "Invalid switch \"-${OPTARG}\"" ;;
-        esac
-    done
-    
     case "${option}" in
         eft|tarkov|bsg) install_eft ;;
-        spt|sptarkov) install_spt "${spt_install_mode}" ;;
+        spt|sptarkov) install_spt "${INSTALL_MODE}" ;;
         help|-h|--help) opt_help "install";;
-        "") err "Option \"install\" requires an argument" ;;
+        "") opt_guided_install ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 }
 
 
 opt_uninstall() {
-    # SYNTAX: spt-additions uninstall spt -p ~/Games/sptarkov
+    # SYNTAX: spt-additions -p ~/Games/sptarkov uninstall spt 
     local option="$1" && shift
-
-    while getopts ":p:-:" subopt; do
-        case ${subopt} in
-            p) set_prefix "${OPTARG}";;
-            -*)
-                case "${OPTARG}" in
-                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
-                    *) err "Invalid option: --${OPTARG}" ;;
-                esac
-            ;;
-            :) err "Switch \"${OPTARG}\" requires an argument" ;;
-            *) err "Invalid switch \"-${OPTARG}\"" ;;
-        esac
-    done
-    
     case "${option}" in
         eft|tarkov|bsg) uninstall_eft ;;
         spt|sptarkov) uninstall_spt ;;
@@ -1164,7 +1151,7 @@ opt_uninstall() {
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
                 msg "${UNDERLINE}${CONFIG[pfx_dir]}${RESET}"
-                yesno "Do you want to continue?"
+                yesno "Do you want to continue?" || m_exit 0
             fi
 
             uninstall_eft 1
@@ -1180,38 +1167,80 @@ opt_uninstall() {
 }
 
 
+opt_guided_install() {
+    local input
+
+    # Overview
+    echo
+    msg "${BOLD}${BLUE}Welcome soldier!${RESET}"
+    msg "This cli installer will perform the following steps for you:"
+    msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not already installed)"
+    msg "   - Setup the wine prefix & install all required dependencies"
+    msg "   - Install the BSG Launcher"
+    msg "   - Install SPTarkov using a native Linux installer script"
+    msg "   - Add application shortcuts"
+    msg
+
+    while true; do
+        # Choose a custom prefix install location
+        msg "${BOLD}${BLUE}Where do you want to install the prefix? (Current path is \"${CONFIG[pfx_dir]}\")${RESET}"
+        input="$(read_input)"
+        [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
+        # Install EFT
+        opt_install eft
+        msg "The \"BSG Launcher\" has been installed successfully!"
+        # Interactive - Users need to manually install the game client inside the BSG Launcher
+        msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
+        opt_run bsg-launcher
+        # Update EFT path
+        EFT_DIR="$( get_eft_path )"
+        # Install SPT
+        opt_install spt
+        # Ask to add Faugus shortcuts
+        if check_faugus; then
+            msg
+            msg "Looks like you have \"Faugus-Launcher\" installed on your system."
+            yesno "${BOLD}${BLUE}Do you want to add EFT/SPT shortcuts to it?${RESET}"
+            case $? in
+                0) opt_shortcut faugus ;;
+                *) ;;
+            esac
+        fi
+        msg
+        msg "${BOLD}${BLUE}EFT/SPT is now installed! :)${RESET}"
+        msg
+        msg "${BOLD}${BLUE}You need more help or just wanna chat with other nerds? Go here:${RESET}"
+        msg "   > ${URL[discord]}"
+        msg
+        msg "${BOLD}${BLUE}Find your favorite mods in ${GREEN}THE FORGE${RESET}:"
+        msg "   > ${URL[forge]}"
+        return 0
+    done
+}
+
+
 opt_run() {
-    # SYNTAX: spt-additions run spt-launcher -e MANGOHUD=1
+    # SYNTAX: spt-additions -e MANGOHUD=1 run spt-launcher 
     local option="$1" && shift
     [[ -z "${option}" ]] && err "Option \"run\" requires an argument"
     
-    while getopts ":p:e:a:-:" subopt; do
-        case ${subopt} in
-            p) set_prefix "${OPTARG}" ;;
-            e) opt_env set "${OPTARG}" ;;
-            a) set_arg "${OPTARG}";;
-            :) err "Switch \"${OPTARG}\" requires an argument" ;;
-            *) err "Invalid switch \"-${OPTARG}\"" ;;
-        esac
-    done
-
     case "${option}" in
-        eft|bsg|bsg-launcher)
+        eft|tarkov|bsg|bsg-launcher)
             set_arg "--disable-software-rasterizer"
-            cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "${ARGS[@]}" &
+            cd "${BSG_DIR}/BsgLauncher" && m_umu -q "BsgLauncher.exe" "${ARGS[@]}"
         ;;
-        spt-launcher)
+        spt-launcher|launcher)
             check_eft_running
-            cd "${SPT_DIR}" && m_umu SPT.Launcher.exe "${ARGS[@]}" &
+            cd "${SPT_DIR}" && m_umu -q SPT.Launcher.exe "${ARGS[@]}"
         ;;
-        spt-server)
+        spt-server|server)
             check_eft_running
-            cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[@]}" &
+            cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[@]}"
         ;;
         winetricks) m_umu winetricks -q "$*" ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
-        *) cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" & ;;
+        *) cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" ;;
     esac
 }
 
@@ -1286,19 +1315,12 @@ add_app_shortcut() {
 
 add_faugus_shortcut() {
     local config_dir json_path
-    # Check if faugus-launcher is installed
-    if command -v "faugus-launcher" &>/dev/null; then
-        # Native
-        config_dir="${FAUGUS[config_dir]}"
-        json_path="${FAUGUS[json_path]}"
-    elif flatpak list | grep -q faugus-launcher &>/dev/null; then
-        # Flatpak
-        config_dir="${FAUGUS[flatpak_config_dir]}"
-        json_path="${FAUGUS[flatpak_json_path]}"
-    else
+
+    if ! check_faugus; then
         msg "Faugus-Launcher is not installed"
         return 0
     fi
+
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "faugus-shortcut" ]] && err "Failed to load shortcut data from cache array"
     # Create Faugus config dir if not already there
@@ -1327,27 +1349,10 @@ add_faugus_shortcut() {
 
 
 opt_shortcut() {
-    # SYNTAX: spt-additions shortcut spt-launcher -p "" -e "" -a ""
+    # SYNTAX: spt-additions -p "" -e "" -a "" shortcut spt-launcher
     local name executable working_dir path icon
     local option="$1" && shift
 
-    while getopts ":p:e:a:h:-:" subopt; do
-        case ${subopt} in
-            p) set_prefix "${OPTARG}";;
-            e) opt_env set "${OPTARG}";;
-            a) set_arg "${OPTARG}";;
-            h) opt_help "shortcut" ;;
-            -*)
-                case "${OPTARG}" in
-                    "") err "Option \"${option}\" requires an argument" ;;
-                    *) err "Invalid option: --${OPTARG}" ;;
-                esac
-            ;;
-            :) err "Switch \"${OPTARG}\" requires an argument" ;;
-            *) err "Invalid switch \"-${OPTARG}\"" ;;
-        esac
-    done
-    
     case "${option}" in
         eft|bsg|bsg-launcher)
             set_arg "--disable-software-rasterizer"
@@ -1416,20 +1421,6 @@ opt_clean() {
     # SYNTAX: spt-additions clean all --no-prompt
     local option="$1" && shift
 
-    while getopts ":p:-:" subopt; do
-        case ${subopt} in
-            p) set_prefix "${OPTARG}";;
-            -*)
-                case "${OPTARG}" in
-                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
-                    *) err "Invalid option: --${OPTARG}" ;;
-                esac
-            ;;
-            :) err "Switch \"${OPTARG}\" requires an argument" ;;
-            *) err "Invalid switch \"-${OPTARG}\"" ;;
-        esac
-    done
-
     case "${option}" in
         cache)
             msg "Removing Cache directory..."
@@ -1454,7 +1445,7 @@ opt_clean() {
                 msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
                 msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
-                yesno "Do you want to continue?"
+                yesno "Do you want to continue?" || m_exit 0
             fi
             export NO_PROMPT=1
             opt_clean data
@@ -1476,7 +1467,7 @@ opt_selfupdate() {
         msg
         msg "> This feature is ${BOLD}NOT${RESET} fully implemented yet & won't validate the new script file!"
         msg
-        yesno "Do you want to continue?"
+        yesno "Do you want to continue?" || m_exit 0
     fi
     msg "Updating script..."
     cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
@@ -1494,22 +1485,12 @@ opt_help() {
             msg
             msg "${BOLD}SPT Install modes:${RESET}"
             msg "native|proton"
-            msg
-            msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"proton\")"
-            msg "${BOLD}-p${RESET}              - Set a custom prefix path (Default is \"~/Games/tarkov\")"
-            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
-            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
-            msg "${BOLD}-h|--help${RESET}       - Print the help message"
+            opt_help switches
         ;;
         uninstall)
             msg "${BOLD}Available options:${RESET}"
             msg "eft|spt|all"
-            msg
-            msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}--no-prompt${RESET}     - Disable interactive prompt messages"
-            msg "${BOLD}-h|--help${RESET}       - Print the help message"
+            opt_help switches
         ;;
         shortcut)
             msg "${BOLD}Available options:${RESET}"
@@ -1517,52 +1498,51 @@ opt_help() {
             msg "[spt|sptarkov]                 - Update SPT.Server and SPT.Launcher shortcut"
             msg "spt-launcher|spt-server        - Update SPT.Server or SPT.Launcher shortcut"
             msg "all                            - Update all shortcuts"
-            msg
-            msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
-            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
-            msg "${BOLD}-h|--help${RESET}       - Print the help message"
+            opt_help switches
         ;;
         run)
             msg "${BOLD}Available options:${RESET}"
             msg "[eft|bsg|bsg-launcher]         - Run the BSG Launcher"
-            msg "spt-launcher                   - Run the SPT Launcher"
-            msg "spt-server                     - Run the native SPT Server"
+            msg "[spt-launcher|launcher]        - Run the SPT Launcher"
+            msg "[spt-server|server]            - Run the native SPT Server"
             msg "winetricks [*]                 - Run \"winetricks -q [VERBS]\" inside the prefix"
-            msg "[*]                            - Run a custom command inside the prefix"
-            msg
-            msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
-            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
-            msg "${BOLD}-h|--help${RESET}       - Print the help message"
+            msg "[*]                            - Run a custom command/executable inside the prefix"
+            opt_help switches
         ;;
         env)
             msg "Set/unset environment variables"
             msg 
             msg "${BOLD}Usage:${RESET}"
             msg "$TITLE env [set|unset] [key|key=value]"
+            opt_help switches
         ;;
         patch)
             msg "Patch game files using hpatchz"
             msg 
             msg "${BOLD}Usage:${RESET}"
             msg "$TITLE patch [target dir][source dir]"
+            opt_help switches
         ;;
         clean)
             msg "${BOLD}Available options:${RESET}"
             msg "cache|config|data|all"
+            opt_help switches
+        ;;
+        switches)
             msg
             msg "${BOLD}Available switches:${RESET}"
+            msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"proton\")"
             msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-h|--help${RESET}       - Print the help message"
+            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
+            msg "${BOLD}-a${RESET}              - Add a custom launch argument"
+            msg "${BOLD}--no-prompt${RESET}     - Disable interactive prompt messages"
+            msg "${BOLD}--no-ansi${RESET}       - Disable ansi codes in messages"
         ;;
         "")
             msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
             msg
-            msg "${BOLD}Example usage:${RESET}  ${YELLOW}spt-additions install eft -p ~/Games/tarkov${RESET}"
-            msg "                ${YELLOW}spt-additions shortcut spt-launcher -e MANGOHUD=1${RESET}"
+            msg "${BOLD}Example usage:${RESET}  ${YELLOW}spt-additions -p ~/Games/tarkov install eft ${RESET}"
+            msg "                ${YELLOW}spt-additions -e MANGOHUD=1 shortcut spt-launcher ${RESET}"
             msg
             msg "${BOLD}OPTIONS:${RESET}"
             msg "${BOLD}install${RESET}          - Install EFT/SPT into a prefix"
@@ -1573,11 +1553,10 @@ opt_help() {
             msg "${BOLD}clean${RESET}            - Clean installer and prefix files"
             msg "${BOLD}help${RESET}             - Get help for a command (e.g. 'help install')"
             msg "${BOLD}--self-update${RESET}    - Updates this installer script"
-            msg "${BOLD}--no-prompt${RESET}      - Disable interactive prompt messages"
-            msg "${BOLD}-h | --help${RESET}      - Print the help message"
-            msg "${BOLD}-v | --VERSION${RESET}   - Print the VERSION info message"
+            msg "${BOLD}-h | --help${RESET}     - Print the help message"
+            msg "${BOLD}-v | --VERSION${RESET}  - Print the VERSION info message"
         ;;
-        *) msg "Invalid option: ${option}. Available options: install|uninstall|shortcut|run|patch|clean" ;;
+        *) msg "Invalid option: ${option}" ;;
     esac
 }
 
@@ -1592,6 +1571,32 @@ opt_version() {
 # # # # # # # # # # #
 
 handle_opts() {
+    while getopts ":p:e:a:m:h-:" subopt; do
+        case ${subopt} in
+            p) set_prefix "${OPTARG}" ;;
+            e) opt_env set "${OPTARG}" ;;
+            a) set_arg "${OPTARG}";;
+            m)
+                case "${OPTARG}" in
+                    native|proton|lutris) INSTALL_MODE="${OPTARG}" ;;
+                    *) err "Invalid value: ${OPTARG}" ;;
+                esac
+            ;;
+            h) opt_help "${option}" ;;
+            -*)
+                case "${OPTARG}" in
+                    no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
+                    no-ansi) export NO_ANSI=1; msg "\"NO_ANSI\" option set" ;;
+                    *) err "Invalid option: --${OPTARG}" ;;
+                esac
+            ;;
+            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            *) err "Invalid switch \"-${OPTARG}\"" ;;
+        esac
+        # Shift for the switch and it's value
+        shift 2
+    done
+
     local option="${1}" && shift
 
     # Install umu if needed
