@@ -25,6 +25,8 @@ Additions CLI installer ✨
   > [!NOTE]
   > - Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
+  1. Install `aspnetcore-runtime-9.0`
+  2. Run the following command in a terminal:
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions)"
 
