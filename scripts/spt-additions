@@ -26,7 +26,7 @@ trap int INT; int() { err "Interrupt received"; }
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.6.0"
+VERSION="0.6.1"
 DATE="2025-09-14"
 
 # ANSI codes
@@ -1133,7 +1133,7 @@ opt_install() {
         eft|tarkov|bsg) install_eft ;;
         spt|sptarkov) install_spt "${INSTALL_MODE}" ;;
         help|-h|--help) opt_help "install";;
-        "") opt_guided_install ;;
+        "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 }
@@ -1627,7 +1627,7 @@ handle_opts() {
                 *) err "Invalid option: ${option}" ;;
             esac
         ;;
-        "") opt_version ;;
+        "") opt_guided_install ;;
         *) err "Invalid option: ${option}" ;;
     esac
 }
