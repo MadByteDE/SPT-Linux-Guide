@@ -4,7 +4,6 @@
 # SPT-ADDITIONS #
 # # # # # # # # # 
 
-# TODO: Add zenity dialog boxes for guided game installs
 # TODO: Think about launching EFT/SPT through the script to avoid updating shortcuts constantly
 
 # exit codes:
@@ -26,8 +25,8 @@ trap int INT; int() { err "Interrupt received"; }
 TITLE="spt-additions"
 AUTHOR="MadByte"
 LICENSE="MIT"
-VERSION="0.6.2b"
-DATE="2025-09-14"
+VERSION="0.6.3"
+DATE="2025-09-15"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -80,22 +79,27 @@ URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
 URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 URL[xxd]="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.1.1230-2_amd64.deb"
+
 # Installers
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
 URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
+
 # Scripts
 URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions"
+
 # Icons
 URL[bsg-launcher-ico]="https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png"
 URL[spt-launcher-ico]="https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png"
 URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png"
+
 # Metadata
 URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
 URL[mod-json]="https://spt-releases.modd.in/release.json"
+
 # Links
 URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
 URL[discord]="https://discord.com/invite/Xn9msqQZan"
-URL[forge]="https://forge.sp-tarkov.com/"
+URL[forge]="https://forge.sp-tarkov.com"
 readonly -A URL
 
 
@@ -105,10 +109,9 @@ readonly -A URL
 
 m_exit() {
     local status=${1:-$?}
-
     # Remove tmp files
     if [[ -d "${TMP_DIR}" ]] && [[ -n $( m_ls "${TMP_DIR}" ) ]]; then
-        m_rmdir "${TMP_DIR}/"
+        m_rmdir "${TMP_DIR}"
     fi
 
     # Exit with passed status code
@@ -122,21 +125,35 @@ m_chmod() {
 
 
 m_cp() {
+    local progress_total
     local source_path="${1}"; local target_path="${2}"
     # Check exists
     [[ ! -d "${source_path}" ]] && err "Source \"${source_path}\" does not exist"
+
     # Check if the target path is inside a valid directory
     case "${target_path}" in
         *"${CONFIG[pfx_dir]}"* | *"${CACHE_DIR}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
+
     # Create missing directories
     mkdir -p "${target_path}"
+
     # Copy files to target path
-    if [[ -n "$( m_ls -A "${source_path}" )" ]]; then
-        cp --reflink=auto -r "${source_path}"* "${target_path}" \
+    local progress_start=1
+    progress_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
+
+    # Iterate files
+    echo; find "${source_path}" \( -type f \) -print0 | while IFS= read -r -d '' source; do
+        local formatted="${source/#$source_path}"
+        local output="${target_path}/${formatted}"
+        local progress_current="[${progress_start}/${progress_total}]"
+        msg -o "${progress_current} Copying: ${formatted##*/}"
+        [[ ! -d "${output%/*}" ]] && mkdir -p "${output%/*}"
+        cp --reflink=auto "${source}" "${output}" \
         || err "Command \"cp $*\" failed (status code $?)"
-    fi
+        progress_start=$((progress_start+1))
+    done
 }
 
 
@@ -173,7 +190,6 @@ m_rmdir() {
 m_7z() {
     local archive_path="$(realpath -m "${1%/}")"; local target_path="$(realpath -m "${2%/}")"
     filename="${archive_path##*/}"
-    # Extract
     msg "Extracting \"${filename}\""
     7z x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null; status=$?
     [[ "$status" != 0 ]] && err "Failed to extract \"${filename}\" (status code $status)"
@@ -195,7 +211,7 @@ m_umu() {
 
 m_winetricks() {
     local verb="${1}"; local name="${2}"; local args="${3}"
-    # Skip if dependency is already installed
+    # Skip installed
     if ! cat "${CONFIG[pfx_dir]}/winetricks.log" 2>/dev/null | grep -q "${verb}"; then
         msg "${name}..."
         m_umu -q winetricks -q $verb $args
@@ -208,18 +224,27 @@ m_winetricks() {
 # # # # # # # # # # #
 
 msg() {
-    local filtered_str
-    local output="${GRAY}[$TITLE]${RESET} ${*}"
+    local mode; local filtered_str
+    case "$1" in
+        -o) mode="o"; shift ;;
+    esac
+
+    local output="${GRAY}[$TITLE]${RESET} $@"
     filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
 
     # Print to terminal
     case ${NO_ANSI} in
         1) echo "${filtered_str}" ;;
-        *) echo -e "${output}" ;;
+        *)
+            case ${mode} in
+                o) echo -e "\r\033[1A\033[0K${output}" ;;
+                *) echo -e "${output}" ;;
+            esac
+        ;;
     esac
-    
+
     # Write to log file
-    if [[ -d "${CACHE_DIR}" ]]; then
+    if [[ -d "${CACHE_DIR}" ]] && [[ "${mode}" != "o" ]] ; then
         echo "${filtered_str}" &>> "${LOG_PATH}"
     fi
 }
@@ -280,8 +305,6 @@ choice() {
 
 
 wrap_run() {
-    # Useful when wrapped code has exit calls but should continue
-    # & just return the error code instead
     local out status
     out="$( "$@" )"; status=$?
     printf "%s\n" "${out}"
@@ -295,10 +318,12 @@ set_value() {
     local key value
     key="$( echo "${keyval}" | cut -d '=' -f 1 )"
     value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
+
     # Filter for invalid keys/values
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
     [[ ! "${key}" =~ ^[A-Za-z0-9_] ]] && err "Key contains invalid characters: \"${key}\""
     [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/_=] ]] && err "Value contains invalid characters: \"${value}\""
+
     # Set value
     case "${array_name}" in
         config)
@@ -322,8 +347,10 @@ unset_value() {
     local key value
     key="$( echo "${keyval}" | cut -d '=' -f 1 )"
     value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
+
     # Filter for invalid keys
     [[ -z "$key" ]] && err "Missing key: \"${array_name}\""
+
     # Unset key
     case "${array_name}" in
         config) unset CONFIG[$key]; save_array config ;;
@@ -341,10 +368,12 @@ load_array() {
         env) path="${ENV_PATH}" ;;
         *) err "Invalid argument \"${array_name}\"";;
     esac
+
     # Warn if the file does not exist
     if [[ ! -f "$path" ]]; then
         warn "Failed to load \"${path}\": File does not exist" && return
     fi
+
     # Read lines & load values
     while read -r line; do
         case "${line}" in
@@ -379,7 +408,6 @@ save_array() {
 
 set_prefix() {
     local path="$(realpath -m "${1%/}")"
-
     # Check if it's valid
     check_prefix_path "${path}"
 
@@ -551,7 +579,6 @@ check_spt_path() {
 
 
 check_faugus() {
-    # Check if faugus-launcher is installed
     if command -v "faugus-launcher" &>/dev/null; then
         # Native
         config_dir="${FAUGUS[config_dir]}"
@@ -566,9 +593,8 @@ check_faugus() {
 }
 
 
-check_dotnet() {
+check_aspnet() {
     local status
-    # Check for .NET Core and ASP.NET Runtime
     if ! dotnet --list-runtimes | grep "AspNet" | grep "9.0" &>/dev/null; then
         msg "${YELLOW}> \"ASP.NET Runtime 9.0\" is not installed on your system${RESET}"
         status=1
@@ -584,7 +610,6 @@ check_native_deps() {
     local status
     local cmds=( "7z" "xxd" "hpatchz" "jq" )
     msg "Checking for native dependencies..."
-    # Check each cmd and error out if something is missing
     for cmd in "${cmds[@]}"; do
         if ! command -v "${cmd}" &> /dev/null; then
             case ${cmd} in
@@ -686,9 +711,11 @@ install_dep() {
     [[ "$download_name" = *"."* ]] && local file_ext=".${download_name##*.}"
     local file_name="${cmd_name}${file_ext}"
     cd "${TMP_DIR}" || err "Failed to change directory to \"$TMP_DIR\""
+
     # Download
     msg "Downloading \"${cmd_name}\"..."
-    m_curl -L "${url}" -o "${file_name}"
+    m_curl -s -L "${url}" -o "${file_name}"
+
     # Extract archive if needed
     case "${file_ext}" in
         *.zip*|*.7z*) m_7z "${file_name}" "${TMP_DIR}" ;;
@@ -701,8 +728,10 @@ install_dep() {
     esac
     local file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
     [[ -z "${file_path}" ]] && err "Cannot find \"${cmd_name}\" in \"${source_path}\""
+
     # Change permissions
     chmod +x "${file_path}" || err "Failed to set permissions for \"${cmd_name}\""
+
     # Move to target directory
     mv -f "${file_path}" "$target_path/${cmd_name}" || err "Failed to move \"${cmd_name}\" into \"${target_path}\""
     msg "Installed \"${cmd_name}\" successfully"
@@ -749,7 +778,7 @@ install_eft() {
     # Copy icon to user icons directory
     if [[ ! -f "${ICO_DIR}/bsg_launcher.png" ]]; then
         msg "Getting app icon from SteamGridDB..."
-        cd "${ICO_DIR}" && m_curl -L "${URL[bsg-launcher-ico]}" -o "bsg_launcher.png"
+        cd "${ICO_DIR}" && m_curl -s -L "${URL[bsg-launcher-ico]}" -o "bsg_launcher.png"
     fi
 
     # Create application shortcut
@@ -760,15 +789,15 @@ install_eft() {
 
 
 install_spt() {
-    local install_mode="${1:-"proton"}"
+    local install_mode="${1:-"${INSTALL_MODE}"}"
     
-    msg "Starting \"SPTarkov\" setup..."
-    msg "Install mode is \"${install_mode}\"..."
+    msg "Installing SPTarkov..."
+    msg "Selected install mode is \"${install_mode}\"..."
 
     check_eft_running
 
     # Check for dotnet / aspnet dependencies (for SPT 4.x)
-    # check_dotnet
+    # check_aspnet
 
     if [[ ! -d "${EFT_DIR}" ]]; then
         msg "> ${YELLOW}Escape from Tarkov is not installed.${RESET}"
@@ -781,8 +810,10 @@ install_spt() {
     fi
     
     # Install dependencies
+    m_winetricks "dotnetdesktop6" "Installing .NET Desktop 6 Runtime"
     m_winetricks "dotnetdesktop8" "Installing .NET Desktop 8 Runtime"
     m_winetricks "dotnetdesktop9" "Installing .NET Desktop 9 Runtime"
+    m_winetricks "win81" "Setting Windows version to \"Windows 8.1\""
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
@@ -795,17 +826,20 @@ install_spt() {
             # Add prefix update pop-up workaround
             msg "Adding window pop-up workaround..."
             m_umu -q reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
+
             # Install SPT
             install_spt_native
         ;;
         proton)
-            # HACK: The SPTInstaller needs GE-Proton instead of UMU-Latest
+            # The SPTInstaller needs GE-Proton instead of UMU-Latest
             export PROTONPATH="GE-Proton"
+
             # Download SPT Installer
             if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
                 msg "Downloading SPTInstaller.exe..."
                 cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
             fi
+
             # Symlink SPTInstaller cache directory to our cache directory
             local appdata_dir="${CONFIG[pfx_dir]}/drive_c/users/steamuser/Application Data/spt-installer"
             local installer_cache_dir="${appdata_dir}/cache"
@@ -814,6 +848,7 @@ install_spt() {
             fi
             [[ ! -d "${installer_cache_dir}" ]] && mkdir -p "${appdata_dir}"
             ln -s "${CACHE_DIR}" "${installer_cache_dir}"
+            
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu -q "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\SPTarkov" || err "Failed to launch SPT Installer"
@@ -829,9 +864,10 @@ install_spt() {
             # Copy icon to user icons directory
             if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
                 msg "Getting app icons from SteamGridDB..."
-                cd "${ICO_DIR}" && m_curl -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
-                cd "${ICO_DIR}" && m_curl -L "${URL[spt-server-ico]}" -o "spt_server.png"
+                cd "${ICO_DIR}" && m_curl -s -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
+                cd "${ICO_DIR}" && m_curl -s -L "${URL[spt-server-ico]}" -o "spt_server.png"
             fi
+
             # Create application shortcuts
             opt_shortcut spt
         ;;
@@ -850,19 +886,22 @@ install_spt_native() {
     check_disk_space
 
     # Get required metadata for mod and patcher releases
-    check_ttl "${MOD_JSON_PATH}" || m_curl -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-    check_ttl "${PATCHER_JSON_PATH}" || m_curl -L "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+    if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
+        msg "Downloading metadata..."
+        m_curl -s -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+        m_curl -s -L "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+    fi
 
     # Fetch some juicy data
     local installed_eft patcher_eft mod_eft mod_version
     local mod_url mod_hash patcher_hash
-    installed_eft=$( get_eft_version ) || m_exit 1
-    mod_eft="$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" )" || m_exit 1
-    mod_version="$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" )" || m_exit 1
-    mod_url="$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" )" || m_exit 1
-    mod_hash="$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" )" || m_exit 1
-    patcher_hash="$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 )" || m_exit 1
-    patcher_eft="$( get_patcher_eft_version )" || m_exit 1
+    installed_eft=$( get_eft_version ) || err "Failed to get EFT version info"
+    mod_eft="$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" )" || err "Failed to get required EFT version for SPT"
+    mod_version="$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" )" || err "Failed to get SPT version"
+    mod_url="$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" )" || err "Failed to get SPT download url"
+    mod_hash="$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" )" || err "Failed to get mod hash"
+    patcher_hash="$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 )" || err "Failed to get patcher hash"
+    patcher_eft="$( get_patcher_eft_version )" || err "Failed to get required EFT version for patcher"
     
     # Check for cached mod archive
     if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
@@ -908,11 +947,13 @@ install_spt_native() {
                 # Set global variable for patcher mirror urls
                 local urls
                 urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors"
+
                 # Try to download from first to last
                 echo "${urls}" | while read -r url; do
                     msg "Downloading \"${url}\"..."
                     m_curl -L "${url}" -o "${PATCHER_PATH}" && break
                 done
+
                 # Check archive
                 check_hash "${PATCHER_PATH}" "${patcher_hash}" \
                 || err "Downloaded patcher archive is corrupted"
@@ -926,16 +967,16 @@ install_spt_native() {
             m_cp "${EFT_DIR}/" "${SPT_DIR}"
 
             # Move patcher files to install directory
-            msg "Moving patcher files to \"${SPT_DIR}\""
-            find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*' -print0 | xargs -0 mv -t "${SPT_DIR}" \
-            || err "Failed to move patcher files to SPT install directory" 
+            msg "Copying patch files to \"${SPT_DIR}\""
+            local patch_dir="$(find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*')"
+            m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
 
-            # Patch game using downloaded patcher files
-            opt_patch "${SPT_DIR}" || err "Something went wrong while patching game files"
+            # Patch game files
+            opt_patch "${SPT_DIR}"
         fi
     else
         msg "Installed EFT version is compatible with \"SPT ${mod_version}\""
-        msg "Copying EFT game files..."
+        msg "Copying EFT game files to \"$SPT_DIR\"..."
         m_cp "${EFT_DIR}/" "${SPT_DIR}"
     fi
 
@@ -1032,37 +1073,34 @@ uninstall_prefix() {
 #   Option functions  #
 # # # # # # # # # # # #
 
-
 opt_patch() {
+    msg "Patching game files..."
     local progress_total
-    local target_path="$(realpath -m "${1%/:-"${SPT_DIR}"}")"
-    local source_path="$(realpath -m "${2%/:-"${SPT_DIR}"}")"
-    msg "Started \"SPTarkov\" patcher..."
+    local target_path=$(realpath -m "${1%/:-"${SPT_DIR}"}")
+    local source_path=$(realpath -q -m "${2%/:-"${SPT_DIR}"}")
+
     # Fail if the target director does not exist
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
+
     # Make sure hpatchz is installed
     if ! command -v "hpatchz" &>/dev/null; then
         install_dep "hpatchz" "${URL[hpatchz]}" || err "Missing dependency \"hpatchz\". Please install it & try again"
     fi
     # Search in optional SOURCE directory
     if [ "$( find "${source_path}" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
-        msg "Using \"SPT_Patches\" found in \"${source_path}\""
+        source_path="${source_path}"
     # Search in TARGET directory
     elif [ "$( find "${target_path}" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
-        msg "Using \"SPT_Patches\" found in \"${target_path}\""
         source_path="${target_path}"
     else
-        # No "SPT_Patches" directory found
         err "Unable to locate \"SPT_Patches\" directory in \"${source_path}\""
     fi
-    # Print debug strings
-    msg "Source path: ${source_path}"
-    msg "Target path: ${target_path}"
-    
+
     local progress_start=1
     progress_total=$( find "${source_path}/SPT_Patches" \( -type f -printf x \) | wc -c )
 
-    find "${source_path}/SPT_Patches" \( -type f \) -print0 | while IFS= read -r -d '' source; do 
+    # Iterate files
+    echo; find "${source_path}/SPT_Patches" \( -type f \) -print0 | while IFS= read -r -d '' source; do 
         # progress_current
         local progress_current="[${progress_start}/${progress_total}]"
         # Isolate the operation extension
@@ -1078,7 +1116,7 @@ opt_patch() {
 
         case "$extension" in
             "delta")
-                msg "${progress_current} (*) Patching: ${formatted##*/}"
+                msg -o "${progress_current} (*) Patching: ${formatted##*/}"
                 hpatchz "${output}" "${source}" "${target}" 1>/dev/null || return 1
 
                 # Remove old file and replace with .decoded file
@@ -1087,17 +1125,17 @@ opt_patch() {
                 mv "${target}" "${output}" || return 1
             ;;
             "del")
-                msg "${progress_current} (-) Deleting: ${formatted##*/}"
+                msg -o "${progress_current} (-) Deleting: ${formatted##*/}"
                 m_rm "${output}" || return 1
                 if [[ -z "$( m_ls -A "${dir_path}" )" ]]; then
-                    msg "${progress_current} (-) Deleting directory: ${dir_path##*/}"
+                    msg -o "${progress_current} (-) Deleting directory: ${dir_path##*/}"
                     m_rmdir "${dir_path}" || return 1
                 fi
             ;;
             "new")
-                msg "${progress_current} (+) Adding: ${formatted##*/}"
+                msg -o "${progress_current} (+) Adding: ${formatted##*/}"
                 if [[ ! -d "${dir_path}" ]]; then
-                    msg "${progress_current} (+) Adding directory: ${dir_path##*/}"
+                    msg -o "${progress_current} (+) Adding directory: ${dir_path##*/}"
                     mkdir -p "${dir_path}"
                 fi
                 cp "${source}" "${output}" || return 1
@@ -1112,7 +1150,7 @@ opt_patch() {
     if [[ "$?" -ne "0" ]]; then
         # Failed patching
         m_rmdir "${SPT_DIR}"
-        err "Patching failed"
+        err "Failed to patch game files"
     fi
     
     # Clean up patcher files
@@ -1169,10 +1207,10 @@ opt_uninstall() {
 
 opt_guided_install() {
     local input
-
     # Overview
     opt_version
     msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
+    msg
     msg "This CLI installer will perform the following steps:"
     msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not installed already)"
     msg "   - Setup the wine prefix, install dependencies & apply workarounds"
@@ -1187,21 +1225,26 @@ opt_guided_install() {
         msg "(ctrl-c to cancel action)"
         input="$(read_input)"
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
+
         # Install UMU if needed
         [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+
         # Install EFT
         opt_install eft
         msg "The \"BSG Launcher\" has been installed successfully!"
+
         # Interactive - Users need to manually install the game client inside the BSG Launcher
         msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
         opt_run bsg-launcher
+
         # Update EFT path
         EFT_DIR="$( get_eft_path )"
+
         # Install SPT
         opt_install spt
+
         # Ask to add Faugus shortcuts
         if check_faugus; then
-            msg
             msg "Looks like you have \"Faugus-Launcher\" installed on your system."
             yesno "${BOLD}${BLUE}Do you want to add EFT/SPT shortcuts to it?${RESET}"
             case $? in
@@ -1209,14 +1252,13 @@ opt_guided_install() {
                 *) ;;
             esac
         fi
+
+        # All done!
+        msg "${BOLD}${BLUE}You need help or just wanna hang out with ${GREEN}THE NERDS${RESET}?:${RESET}"
+        msg "   ${URL[discord]}"
         msg
-        msg "${BOLD}${BLUE}Install successful!${RESET}"
-        msg
-        msg "${BOLD}${BLUE}Do you need help or just wanna hang out with the nerds? Go here:${RESET}"
-        msg "   > ${URL[discord]}"
-        msg
-        msg "${BOLD}${BLUE}Get your favorite mods from ${GREEN}THE FORGE${RESET}:"
-        msg "   > ${URL[forge]}"
+        msg "${BOLD}${BLUE}Get your mods from ${GREEN}THE FORGE${RESET}:"
+        msg "   ${URL[forge]}"
         return 0
     done
 }
@@ -1292,18 +1334,22 @@ add_app_shortcut() {
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "app-shortcut" ]] && err "Failed to load shortcut data from cache array"
     msg "Updating \"${CACHE[name]}\" shortcut..."
+
     # Get env string
     local env="$( get_env_string )"
     env+="WINEPREFIX=${CONFIG[pfx_dir]}"
     [[ "${env}" != *"PROTONPATH"* ]] && env+=" PROTONPATH=GE-Proton"
+
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
+
     # Generate the exec string
     local exec_string
     case "${CACHE[executable]}" in
         *exe*|*bat*|*msi*) exec_string="Exec=env $env "${UMU_PATH}" \"${CACHE[executable]}\" ${ARGS[*]}" ;;
         *) exec_string="Exec=\"${CACHE[working_dir]}/${CACHE[executable]}\" ${ARGS[*]}" ;;
     esac
+
     # Write desktop file
     {   echo "[Desktop Entry]"
         echo "Categories=Game;ActionGame;Simulation"
@@ -1473,7 +1519,7 @@ opt_selfupdate() {
         yesno "Do you want to continue?" || m_exit 0
     fi
     msg "Updating script..."
-    cd "${SCRIPT_PATH}" && m_curl -LO "${URL[installer-script]}"
+    cd "${SCRIPT_PATH}" && m_curl -s -LO "${URL[installer-script]}"
     m_chmod +x "${SCRIPT_PATH}"
 }
 
@@ -1574,6 +1620,7 @@ opt_version() {
 # # # # # # # # # # #
 
 handle_opts() {
+    # Handle switches
     while getopts ":p:e:a:m:h-:" subopt; do
         case ${subopt} in
             p) set_prefix "${OPTARG}" ;;
@@ -1596,7 +1643,6 @@ handle_opts() {
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
             *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
-        # Shift for the switch and it's value
         shift 2
     done
 
@@ -1609,6 +1655,7 @@ handle_opts() {
         ;;
     esac
 
+    # Handle options
     case "${option}" in
         install) opt_install "$@" ;;
         uninstall) opt_uninstall "$@" ;;
@@ -1639,7 +1686,7 @@ handle_opts() {
 main() {
     # Remove tmp files
     if [[ -d "${TMP_DIR}" ]] && [[ -n $( m_ls "${TMP_DIR}" ) ]]; then
-        m_rmdir "${TMP_DIR}/"
+        m_rmdir "${TMP_DIR}"
     fi
     
     # Create dirs
@@ -1674,17 +1721,15 @@ main() {
     EFT_DIR="$( get_eft_path )"
 
     # Export paths
+    export WINEDEBUG="${WINEDEBUG:-"-all,err+all,debugstr+all"}"
     export PROTONPATH="GE-Proton"
     export WINEPREFIX="${CONFIG[pfx_dir]}"
     export PATH=$RUNTIME_DIR:$PATH
 
-    # HACK: Just for debugging purposes rn
-    export WINEDEBUG="-all,err+all,fixme+all,debugstr+all"
-
     # Handle command line arguments
     handle_opts "$@"
+    m_exit 0
 }
 
 # Main entry
 main "$@"
-m_exit 0
