@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.4"; DATE="2025-09-17"
+VERSION="0.6.4a"; DATE="2025-09-17"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1621,8 +1621,8 @@ handle_opts() {
             :) err "Switch \"${OPTARG}\" requires an argument" ;;
             *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
-        shift 2
     done
+    shift $((OPTIND-1))
 
     local option="${1}" && shift
 
