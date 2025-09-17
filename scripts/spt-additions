@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.4a"; DATE="2025-09-17"
+VERSION="0.6.4b"; DATE="2025-09-17"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -216,7 +216,7 @@ msg() {
         -o) mode="o"; shift ;;
     esac
 
-    local output="${GRAY}[$TITLE]${RESET} $@"
+    local output="${GRAY}[$TITLE]${RESET} $*"
     filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
 
     # Print to terminal
@@ -1324,7 +1324,7 @@ add_app_shortcut() {
     # Generate the exec string
     local exec_string
     case "${CACHE[executable]}" in
-        *exe*|*bat*|*msi*) exec_string="Exec=env $env "${UMU_PATH}" \"${CACHE[executable]}\" ${ARGS[*]}" ;;
+        *exe*|*bat*|*msi*) exec_string="Exec=env ${env} ${UMU_PATH} \"${CACHE[executable]}\" ${ARGS[*]}" ;;
         *) exec_string="Exec=\"${CACHE[working_dir]}/${CACHE[executable]}\" ${ARGS[*]}" ;;
     esac
 
