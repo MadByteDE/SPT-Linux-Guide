@@ -68,4 +68,5 @@ Before lowering graphics settings in the game, here are some tips on how to impr
     Check out the mod pages on the [Forge](https://forge.sp-tarkov.com/) to get more details!
 
 ***
-<a href="javascript:history.back()">Back</a> | [Back to landing page](../README.md)
+
+[Back to landing page](../README.md)

@@ -38,4 +38,4 @@ Still having issues? Visit our [issues section](../../docs/issues.md).
 
 ***
 
-<a href="javascript:history.back()">Back</a> | [Back to landing page](../../README.md)
+[Back to landing page](../../README.md)

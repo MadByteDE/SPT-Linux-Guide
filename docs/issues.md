@@ -259,4 +259,4 @@ By default Bottles should install the following dependencies when using the `Gam
 
 ***
 
-<a href="javascript:history.back()">Back</a> | [Back to landing page](../README.md)
+[Back to landing page](../README.md)

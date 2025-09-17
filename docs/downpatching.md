@@ -93,4 +93,4 @@ We provide two methods to patch the game files on Linux.
 
 ***
 
-<a href="javascript:history.back()">Back</a> | [Back to landing page](../README.md)
+[Back to landing page](../README.md)
