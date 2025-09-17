@@ -22,7 +22,7 @@ Additions CLI installer ✨
   - 
 
   > [!NOTE]
-  > - Standalone installer using umu-Launcher / GE-Proton directly (Lutris/Bottles)
+  > - Standalone installer using umu-Launcher / GE-Proton directly (without Lutris/Bottles)
   > - Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
   1. Install `aspnetcore-runtime-9.0` ([how to install](docs/aspnet.md))
