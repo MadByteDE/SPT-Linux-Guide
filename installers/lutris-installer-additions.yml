@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.9-1
+##                 v2025.9-2
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
@@ -30,7 +30,7 @@ script:
         dst: $GAMEDIR
     - chmodx: ./spt-additions
     - execute:
-        command: ./spt-additions install spt -m lutris -p "$GAMEDIR" --no-ansi
+        command: ./spt-additions -m lutris -p "$GAMEDIR" --no-ansi install spt
         description: Installing SPT ...
 
     # Installation complete
