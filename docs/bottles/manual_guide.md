@@ -29,7 +29,7 @@
 
 1. Install new runner `wine-ge-proton`
 2. Create new bottle using the `Gaming` preset
-3. Install `dotnet48`, `dotnetcoredesktop8`, `dotnetcoredesktop9` and `vcredist2022` from the `Dependencies` section
+3. Install `dotnet48`, `dotnetcoredesktop6`, `dotnetcoredesktop8`, `dotnetcoredesktop9` and `vcredist2022` from the `Dependencies` section
 4. In `Settings`, select `wine-ge-proton` as runner for the bottle
 5. In `Settings` → `DLL Overrides`, add `winhttp` as `Native, then Builtin`
 6. In `Settings`, set `Windows Version` to `Windows 8.1`
