@@ -37,4 +37,5 @@ The images will automatically be saved in the correct Lutris directory.
 Still having issues? Visit our [issues section](../../docs/issues.md).
 
 ***
-[Back to landing page](../../README.md)
+
+<a href="javascript:history.back()">Back</a> | [Back to landing page](../../README.md)

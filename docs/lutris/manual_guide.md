@@ -13,31 +13,8 @@
 - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
-### - [.NET / ASP.NET Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+### - ASP.NET Runtime 9.0 ([How to install](../aspnet.md))
 
-- To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
-
-**Ubuntu / Debian (based)**
-```
-sudo apt install aspnetcore-runtime-9.0
-```
-
-> [!NOTE]
-> On some distributions you might need to add the `dotnet/backports` PPA:
-
-```
-sudo add-apt-repository ppa:dotnet/backports
-sudo apt update
-```
-**Fedora (based)**
-```
-sudo dnf install aspnetcore-runtime-9.0
-```
-
-**Arch (based)**
-```
-sudo pacman -S install aspnet-runtime
-```
 
 ## Installation
 
@@ -117,6 +94,7 @@ Have fun!
 ***
 Still having issues? Visit our [issues section](../../docs/issues.md).
 ***
-[Back to landing page](../../README.md)
+
+<a href="javascript:history.back()">Back</a> | [Back to landing page](../../README.md)
 
 

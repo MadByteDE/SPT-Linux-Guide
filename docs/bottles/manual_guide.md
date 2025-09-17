@@ -18,30 +18,8 @@
 
 ### - **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
 
-### - [.NET / ASP.NET Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-- To run the native Linux server you need to install the .NET 9 runtime (ASP.NET):
+### - ASP.NET Runtime 9.0 ([How to install](../aspnet.md))
 
-**Ubuntu / Debian (based)**
-```
-sudo apt install aspnetcore-runtime-9.0
-```
-
-> [!NOTE]
-> On some distributions you might need to add the `dotnet/backports` PPA:
-
-```
-sudo add-apt-repository ppa:dotnet/backports
-sudo apt update
-```
-**Fedora (based)**
-```
-sudo dnf install aspnetcore-runtime-9.0
-```
-
-**Arch (based)**
-```
-sudo pacman -S install aspnet-runtime
-```
 
 ## Installation
 
@@ -128,4 +106,4 @@ Have fun!
 Still having issues? Visit our [issues section](../../docs/issues.md).
 ***
 
-[Back to landing page](../../README.md)
+<a href="javascript:history.back()">Back</a> | [Back to landing page](../../README.md)

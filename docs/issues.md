@@ -163,7 +163,7 @@ To debug issues that might be caused by Wine, you also need to enable debug logg
 That should enable wine logs in the console / output added to the `lutris.log` file.
 
 
-[Back](#table-of-content)
+[Back to top](#table-of-content)
 
 ***
 
@@ -189,7 +189,7 @@ You can try to `disable` your iGPU in your bios settings if possible. The corres
 
 This should make sure that Lutris is seeing your discrete GPU only.
 
-[Back](#table-of-content)
+[Back to top](#table-of-content)
 
 ***
 
@@ -233,7 +233,7 @@ Unfortunately, this can mean a bunch of things. Here's a check-list:
     - Bottles: `Settings` → `DLL overrides`: Add key `icu`, select `disabled` as value & save the changes.
     - Lutris: `Configure` → `Runner options` → `DLL overrides`: Add key `icu`, value `d` & save the changes.
 
-[Back](#table-of-content)
+[Back to top](#table-of-content)
 
 ***
 
@@ -255,10 +255,8 @@ By default Bottles should install the following dependencies when using the `Gam
 
 - Make sure all dependencies are listed as installed at the bottom of `Options` → `Dependencies`. If not, install them manually and try again.
 
-***
-
-[Back](#table-of-content)
+[Back to top](#table-of-content)
 
 ***
 
-[Up](#table-of-content) | [Back to landing page](../README.md)
+<a href="javascript:history.back()">Back</a> | [Back to landing page](../README.md)
