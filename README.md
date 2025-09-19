@@ -32,14 +32,14 @@ Additions CLI installer ✨
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions)"
 ```
 
-[Lutris installer (Additions)](docs/lutris/installer_additions.md)
+[Lutris installer](docs/lutris/installer_additions.md) (Additions)
   - 
 
   > [!NOTE]
   > - Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
   > - Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
-[Lutris installer (Official)](docs/lutris/installer_official.md)
+[Lutris installer](docs/lutris/installer_official.md) (Official)
   -
 
   > [!NOTE]
