@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.4c"; DATE="2025-09-19"
+VERSION="0.6.4-4"; DATE="2025-09-19"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -270,7 +270,7 @@ yesno() {
 
 read_input() {
     local input
-    read -r -p "> " input
+    read -e -r -p "> " input
     printf "$input\n"
 }
 
