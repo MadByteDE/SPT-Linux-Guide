@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.4-4"; DATE="2025-09-19"
+VERSION="0.6.5"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -119,11 +119,10 @@ m_chmod() {
 
 m_cp() {
     local source_path="${1}"; local target_path="${2}"
-    [[ ! -d "${source_path}" ]] && err "Source \"${source_path}\" does not exist"
 
     # Check if the target path is inside a valid directory
     case "${target_path}" in
-        *"${CONFIG[pfx_dir]}"* | *"${CACHE_DIR}"*) ;;
+        *"${CONFIG[pfx_dir]}"* | *"${CACHE_DIR}"* | *"${DATA_DIR}"* | *"${HOME}/bin"* | *"${HOME}/.local/bin"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
 
@@ -134,17 +133,20 @@ m_cp() {
     local progress=1
     files_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
 
-    # Iterate files & copy to target directory
-    echo; find "${source_path}" \( -type f \) -print0 | while IFS= read -r -d '' source; do
-        local formatted="${source/#$source_path}"
-        local output="${target_path}/${formatted}"
-        local progress_string="[${progress}/${files_total}]"
-        msg -o "${progress_string} Copying: ${formatted##*/}"
-        [[ ! -d "${output%/*}" ]] && mkdir -p "${output%/*}"
-        cp --reflink=auto "${source}" "${output}" \
-        || err "Command \"cp $*\" failed (status code $?)"
-        progress=$((progress+1))
-    done
+    if [[ -d "${source_path}" ]]; then
+        # Iterate files & copy to target directory
+        echo; find "${source_path}" \( -type f \) -print0 | while IFS= read -r -d '' source; do
+            local formatted="${source/#$source_path}"
+            local output="${target_path}/${formatted}"
+            local progress_string="[${progress}/${files_total}]"
+            msg -o "${progress_string} Copying: ${formatted##*/}"
+            [[ ! -d "${output%/*}" ]] && mkdir -p "${output%/*}"
+            cp --reflink=auto "${source}" "${output}" || err "Command \"cp $*\" failed (status code $?)"
+            progress=$((progress+1))
+        done
+    elif [[ -f "${source_path}" ]]; then
+        cp --reflink=auto "${source_path}" "${target_path}" || err "Command \"cp $*\" failed (status code $?)"
+    fi
 }
 
 
@@ -177,7 +179,7 @@ m_rmdir() {
 m_7z() {
     local archive_path="$(realpath -m "${1%/}")"; local target_path="$(realpath -m "${2%/}")"
     local filename="${archive_path##*/}"
-    msg "Extracting \"${filename}\""
+    msg "Extracting \"${filename}\"..."
     7z x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null; local status=$?
     [[ "$status" != 0 ]] && err "Failed to extract \"${filename}\" (status code $status)"
 }
@@ -216,7 +218,7 @@ msg() {
         -o) mode="o"; shift ;;
     esac
 
-    local output="${GRAY}[$TITLE]${RESET} $*"
+    local output="$*"
     filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
 
     # Print to terminal
@@ -224,15 +226,15 @@ msg() {
         1) echo "${filtered_str}" ;;
         *)
             case ${mode} in
-                o) echo -e "\r\033[1A\033[0K${output}" ;;
-                *) echo -e "${output}" ;;
+                o) echo -e "\r\033[1A\033[0K| ${output}" ;;
+                *) echo -e "| ${output}" ;;
             esac
         ;;
     esac
 
     # Write to log file
     if [[ -d "${CACHE_DIR}" ]] && [[ "${mode}" != "o" ]] ; then
-        echo "${filtered_str}" &>> "${LOG_PATH}"
+        echo "[$TITLE] ${filtered_str}" &>> "${LOG_PATH}"
     fi
 }
 
@@ -257,9 +259,9 @@ err() {
 
 
 yesno() {
-    printf "${GRAY}[${TITLE}]${RESET} $* [y/n] "
+    msg "${BOLD}${BLUE}[Q] $*${RESET} [y/n] "
     while true; do
-        read -r -p "> " yn
+        read -r -p "| > " yn
         case $yn in
             [Yy]*) return 0 ;;  
             [Nn]*) return 1 ;;
@@ -270,7 +272,7 @@ yesno() {
 
 read_input() {
     local input
-    read -e -r -p "> " input
+    read -e -r -p "| > " input
     printf "$input\n"
 }
 
@@ -777,7 +779,7 @@ install_eft() {
 install_spt() {
     local install_mode="${1:-"${INSTALL_MODE}"}"
     
-    msg "Installing SPTarkov..."
+    msg "Launching \"SPTarkov\" setup..."
     msg "Selected install mode is \"${install_mode}\"..."
 
     check_eft_running
@@ -1046,7 +1048,7 @@ uninstall_spt() {
 uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
     [[ ! -d "${CONFIG[pfx_dir]}" ]] && msg "Prefix directory does not exist" && return 0
-    msg "Removing Prefix directory..."
+    msg "Removing Prefix directory: \"${CONFIG[pfx_dir]}\""
     m_rmdir "${CONFIG[pfx_dir]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
@@ -1203,7 +1205,7 @@ opt_guided_install() {
 
     while true; do
         # Choose a custom prefix install location
-        msg "${BOLD}${BLUE}Where do you want to install the wine prefix (Leave blank for \"${CONFIG[pfx_dir]}\")${RESET}"
+        msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${CONFIG[pfx_dir]}\")${RESET}"
         msg "(ctrl-c to cancel action)"
         input="$(read_input)"
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
@@ -1212,15 +1214,23 @@ opt_guided_install() {
         [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
 
         # Install EFT
-        opt_install eft
-        msg "The \"BSG Launcher\" has been installed successfully!"
-
-        # Interactive - Users need to manually install the game client inside the BSG Launcher
-        msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
-        opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
-
-        # Update EFT path
         EFT_DIR="$( get_eft_path )"
+        local install_eft=0
+         # Ask to skip EFT installation if it's already installed
+        if [[ -n "${EFT_DIR}" ]]; then
+            yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
+            [[ "$?" == 0 ]] && install_eft=1
+        fi
+
+        if [[ "$install_eft" == 0 ]]; then
+            opt_install eft
+            msg "The \"BSG Launcher\" has been installed successfully!"
+            # Interactive - Users need to manually install the game client inside the BSG Launcher
+            msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
+            opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
+            # Update EFT path
+            EFT_DIR="$( get_eft_path )"
+        fi
 
         # Install SPT
         opt_install spt
@@ -1228,18 +1238,45 @@ opt_guided_install() {
         # Ask to add Faugus shortcuts
         if check_faugus; then
             msg "Looks like you have \"Faugus-Launcher\" installed on your system."
+            yesno "Do you want to add EFT/SPT shortcuts to it?"
+            [[ "$?" == 0 ]] && opt_shortcut faugus
+        fi
+
+        # Ask to install script to local bin directory
+        local bin_paths=( "${HOME}/bin" "${HOME}/.local/bin" )
+        local bin_path script_exists
+        for path in "${bin_paths[@]}"; do
+            [[ "${PATH}" == *"${bin_path}"* ]] && bin_path="${path}"
+            if [[ -f "${path}/spt-additions" ]]; then
+                script_exists="true"
+                break
+            fi
+        done
+
+        if [[ -n "${bin_path}" ]] && [[ -z "${script_exists}" ]]; then
+            msg "${BOLD}${BLUE}The additions script provides useful CLI commands to manage/customize your wine prefix.${RESET}"
+            yesno "${BOLD}${BLUE}Do you want to install the script into your local bin directory (\"${bin_path}\")?${RESET}"
+            if [[ "$?" == 0 ]]; then
+                [[ ! -d "${bin_path}" ]] && mkdir -p "${bin_path}"
+                m_cp "${SCRIPT_PATH}/spt-additions" "${bin_path}"
+                m_chmod +x "${bin_path}/spt-additions"
+                msg "Successfully installed the script into \"${bin_path}\"!"
+                msg "Run \"spt-additions -h\" for more details."
+            fi
+        fi
+        
+        # If Faugus Launcher is installed, aske to add shortcuts to it
+        if check_faugus; then
+            msg "Looks like you have \"Faugus-Launcher\" installed on your system."
             yesno "${BOLD}${BLUE}Do you want to add EFT/SPT shortcuts to it?${RESET}"
-            case $? in
-                0) opt_shortcut faugus ;;
-                *) ;;
-            esac
+            [[ "$?" == 0 ]] && opt_shortcut faugus
         fi
 
         # All done!
         msg "${BOLD}${BLUE}You need help or just wanna hang out with ${GREEN}THE NERDS${RESET}?:${RESET}"
         msg "   ${URL[discord]}"
         msg
-        msg "${BOLD}${BLUE}Get your mods from ${GREEN}THE FORGE${RESET}:"
+        msg "${BOLD}${BLUE}Get your favorite mods from ${GREEN}THE FORGE${RESET}:"
         msg "   ${URL[forge]}"
         return 0
     done
@@ -1254,20 +1291,26 @@ opt_run() {
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
             set_arg "--disable-software-rasterizer"
+            msg "Launching BSG Launcher..."
             cd "${BSG_DIR}/BsgLauncher" && m_umu -q "BsgLauncher.exe" "${ARGS[@]}"
         ;;
         spt-launcher|launcher)
             check_eft_running
+            msg "Launching SPT Launcher..."
             cd "${SPT_DIR}" && m_umu -q SPT.Launcher.exe "${ARGS[@]}"
         ;;
         spt-server|server)
             check_eft_running
+            msg "Launching SPT Server..."
             cd "${SPT_DIR}" && "./launch-server.sh" "${ARGS[@]}"
         ;;
         winetricks) m_umu winetricks -q "$*" ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
-        *) cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "${ARGS[@]}" ;;
+        *)
+            msg "Running custom command: \"${option} "$@"\"..."
+            cd "${CONFIG[pfx_dir]}" && m_umu "${option}" "$@"
+        ;;
     esac
 }
 
@@ -1454,17 +1497,17 @@ opt_clean() {
 
     case "${option}" in
         cache)
-            msg "Removing Cache directory..."
+            msg "Removing Cache directory: \"${CACHE_DIR}\"..."
             [[ -d "${CACHE_DIR}" ]] && m_rmdir "${CACHE_DIR}"
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         config)
-            msg "Removing config directory..."
+            msg "Removing config directory: \"${CONFIG_DIR}\"..."
             [[ -d "${CONFIG_DIR}" ]] && m_rmdir "${CONFIG_DIR}"
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         data)
-            msg "Removing data directory..."
+            msg "Removing data directory: \"${DATA_DIR}\"..."
             [[ -d "${DATA_DIR}" ]] && m_rmdir "${DATA_DIR}"
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
@@ -1562,7 +1605,7 @@ opt_help() {
         switches)
             msg
             msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"proton\")"
+            msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"${INSTALL_MODE}\")"
             msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
             msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
             msg "${BOLD}-a${RESET}              - Add a custom launch argument"
@@ -1575,7 +1618,7 @@ opt_help() {
             msg "${BOLD}Example usage:${RESET}  ${YELLOW}spt-additions -p ~/Games/tarkov install eft ${RESET}"
             msg "                ${YELLOW}spt-additions -e MANGOHUD=1 shortcut spt-launcher ${RESET}"
             msg
-            msg "${BOLD}OPTIONS:${RESET}"
+            msg "${BOLD}Available options:${RESET}"
             msg "${BOLD}install${RESET}          - Install EFT/SPT into a prefix"
             msg "${BOLD}uninstall${RESET}        - Uninstall EFT/SPT from a prefix"
             msg "${BOLD}patch${RESET}            - Downpatch EFT game files"
@@ -1586,6 +1629,7 @@ opt_help() {
             msg "${BOLD}--self-update${RESET}    - Updates this installer script"
             msg "${BOLD}-h | --help${RESET}     - Print the help message"
             msg "${BOLD}-v | --VERSION${RESET}  - Print the VERSION info message"
+            opt_help switches
         ;;
         *) msg "Invalid option: ${option}" ;;
     esac
@@ -1593,7 +1637,7 @@ opt_help() {
 
 
 opt_version() {
-    msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
+    msg "${BOLD}[${TITLE}] Version: ${RESET}${VERSION} (${DATE})"
 }
 
 
@@ -1614,7 +1658,7 @@ handle_opts() {
                     *) err "Invalid value: ${OPTARG}" ;;
                 esac
             ;;
-            h) opt_help "${option}" ;;
+            h) opt_help "${option}";;
             -*)
                 case "${OPTARG}" in
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
@@ -1659,7 +1703,7 @@ handle_opts() {
                 *) err "Invalid option: ${option}" ;;
             esac
         ;;
-        "") opt_guided_install ;;
+        "") [[ $OPTIND -eq 1 ]] && opt_guided_install ;;
         *) err "Invalid option: ${option}" ;;
     esac
 }
