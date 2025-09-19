@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.4b"; DATE="2025-09-17"
+VERSION="0.6.4c"; DATE="2025-09-19"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -533,13 +533,16 @@ check_prefix_path() {
 
         # Check for write permissions
         local recursive_path="${pfx_path}"
-        while [[ ! -d "${recursive_path}" ]]; do recursive_path="${recursive_path%/*}"; done
-        [[ ! -w "${recursive_path}" ]] && status=3 && break
+        while [[ ! -d "${recursive_path}" ]]; do
+            recursive_path="${recursive_path%/*}"
+            [[ "${recursive_path}" == "" ]] && status=3 && break
+        done
+        [[ ! -w "${recursive_path}" ]] && status=4 && break
 
         # Check directory content
         if [[ -d "${pfx_path}" ]] && [[ -n "$( m_ls -A "${pfx_path}" )" ]]; then
             for path in "${check_paths[@]}"; do
-                [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=4 && break
+                [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=5 && break
             done
         fi
         break
@@ -551,8 +554,9 @@ check_prefix_path() {
         case $status in
             1) err "Missing leading \"/\" character: \"${pfx_path}\"" ;;
             2) err "Given path is a file: \"${pfx_path}\"" ;;
-            3) err "No write permission for directory: \"${pfx_path}\"" ;;
-            4) err "Given path is not a valid wine prefix: \"${pfx_path}\"" ;;
+            3) err "Failed to resolve prefix path: \"${pfx_path}\"" ;;
+            4) err "No write permission for directory: \"${pfx_path}\"" ;;
+            5) err "Given path is not a valid wine prefix: \"${pfx_path}\"" ;;
         esac
     fi
 }
