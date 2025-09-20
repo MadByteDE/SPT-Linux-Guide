@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.7"; DATE="2025-09-20"
+VERSION="0.6.7-1"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1722,6 +1722,7 @@ main() {
     # Set default environment variables
     if [[ ! -f "$ENV_PATH" ]]; then
         set_value env "DOTNET_ROOT="
+        set_value env "PROTON_USE_XALIA=0"
         set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
     fi
 
