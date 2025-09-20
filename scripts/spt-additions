@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.6"; DATE="2025-09-20"
+VERSION="0.6.6-1"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -614,7 +614,7 @@ check_native_deps() {
         if ! command -v "${cmd}" &> /dev/null; then
             case ${cmd} in
                 jq|hpatchz|xxd) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
-                7z) msg "\"${cmd}\" is not installed on your system." && status=1 ;;
+                7z) warn "\"${cmd}\" is not installed on your system."; status=1 ;;
             esac
         fi
     done
