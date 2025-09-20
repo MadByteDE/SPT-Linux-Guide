@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.5"; DATE="2025-09-20"
+VERSION="0.6.5-1"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -308,8 +308,8 @@ set_value() {
 
     # Filter for invalid keys/values
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
-    [[ ! "${key}" =~ ^[A-Za-z0-9_] ]] && err "Key contains invalid characters: \"${key}\""
-    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/_=] ]] && err "Value contains invalid characters: \"${value}\""
+    [[ ! "${key}" =~ ^[A-Za-z0-9_]+$ ]] && err "Key contains invalid characters: \"${key}\""
+    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/_=]+$ ]] && err "Value contains invalid characters: \"${value}\""
 
     # Set value
     case "${array_name}" in
@@ -1587,14 +1587,15 @@ opt_help() {
             msg "Set/unset environment variables"
             msg 
             msg "${BOLD}Usage:${RESET}"
-            msg "$TITLE env [set|unset] [key|key=value]"
+            msg "${YELLOW}$TITLE [SWITCHES] env [set|unset] [key|key=value]${RESET}"
             opt_help switches
+            msg "${BOLD}list|-l${RESET}         - List active environment variables"
         ;;
         patch)
             msg "Patch game files using hpatchz"
             msg 
             msg "${BOLD}Usage:${RESET}"
-            msg "$TITLE patch [target dir][source dir]"
+            msg "${YELLOW}$TITLE patch [SWITCHES] [TARGET_DIR] [SOURCE_DIR]${RESET}"
             opt_help switches
         ;;
         clean)
@@ -1615,6 +1616,7 @@ opt_help() {
         "")
             msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
             msg
+            msg "SYNTAX: ${YELLOW}spt-additions [SWITCHES] [OPTION] [...] ${RESET}"
             msg "${BOLD}Example usage:${RESET}  ${YELLOW}spt-additions -p ~/Games/tarkov install eft ${RESET}"
             msg "                ${YELLOW}spt-additions -e MANGOHUD=1 shortcut spt-launcher ${RESET}"
             msg
@@ -1623,6 +1625,7 @@ opt_help() {
             msg "${BOLD}uninstall${RESET}        - Uninstall EFT/SPT from a prefix"
             msg "${BOLD}patch${RESET}            - Downpatch EFT game files"
             msg "${BOLD}shortcut${RESET}         - Create/update EFT/SPT shortcuts"
+            msg "${BOLD}env${RESET}              - Set, unset and list active environment variables"
             msg "${BOLD}run${RESET}              - Run EFT/SPT or custom commands inside the prefix"
             msg "${BOLD}clean${RESET}            - Clean installer and prefix files"
             msg "${BOLD}help${RESET}             - Get help for a command (e.g. 'help install')"
