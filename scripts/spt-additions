@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.6-1"; DATE="2025-09-20"
+VERSION="0.6.6-2"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1239,10 +1239,10 @@ opt_guided_install() {
         # Install SPT
         opt_install spt
 
-        # Ask to add Faugus shortcuts
+        # If Faugus Launcher is installed, aske to add shortcuts to it
         if check_faugus; then
             msg "Looks like you have \"Faugus-Launcher\" installed on your system."
-            yesno "Do you want to add EFT/SPT shortcuts to it?"
+            yesno "${BOLD}${BLUE}Do you want to add EFT/SPT shortcuts to it?${RESET}"
             [[ "$?" == 0 ]] && opt_shortcut faugus
         fi
 
@@ -1250,7 +1250,7 @@ opt_guided_install() {
         local bin_paths=( "${HOME}/bin" "${HOME}/.local/bin" )
         local bin_path script_exists
         for path in "${bin_paths[@]}"; do
-            [[ "${PATH}" == *"${bin_path}"* ]] && bin_path="${path}"
+            [[ $( echo "$PATH" | grep "${path}" ) ]] && bin_path="${path}"
             if [[ -f "${path}/spt-additions" ]]; then
                 script_exists="true"
                 break
@@ -1268,13 +1268,6 @@ opt_guided_install() {
                 msg "Successfully installed the script into \"${bin_path}\"!"
                 msg "Run \"spt-additions -h\" for more details."
             fi
-        fi
-        
-        # If Faugus Launcher is installed, aske to add shortcuts to it
-        if check_faugus; then
-            msg "Looks like you have \"Faugus-Launcher\" installed on your system."
-            yesno "${BOLD}${BLUE}Do you want to add EFT/SPT shortcuts to it?${RESET}"
-            [[ "$?" == 0 ]] && opt_shortcut faugus
         fi
 
         # All done!
