@@ -31,7 +31,7 @@ rpm-ostree install aspnetcore-runtime-9.0
 
 **Arch (based)**
 ```
-sudo pacman -S install aspnet-runtime
+sudo pacman -S aspnet-runtime
 ```
 
 ***
