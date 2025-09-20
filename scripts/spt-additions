@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.5-1"; DATE="2025-09-20"
+VERSION="0.6.5-2"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1258,7 +1258,8 @@ opt_guided_install() {
             yesno "${BOLD}${BLUE}Do you want to install the script into your local bin directory (\"${bin_path}\")?${RESET}"
             if [[ "$?" == 0 ]]; then
                 [[ ! -d "${bin_path}" ]] && mkdir -p "${bin_path}"
-                m_cp "${SCRIPT_PATH}/spt-additions" "${bin_path}"
+                msg "Downloading \"spt-additions\"..."
+                cd "${bin_path}" && m_curl -LO "${URL[installer-script]}"
                 m_chmod +x "${bin_path}/spt-additions"
                 msg "Successfully installed the script into \"${bin_path}\"!"
                 msg "Run \"spt-additions -h\" for more details."
