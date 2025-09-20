@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.5-2"; DATE="2025-09-20"
+VERSION="0.6.6"; DATE="2025-09-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -226,8 +226,8 @@ msg() {
         1) echo "${filtered_str}" ;;
         *)
             case ${mode} in
-                o) echo -e "\r\033[1A\033[0K| ${output}" ;;
-                *) echo -e "| ${output}" ;;
+                o) echo -e "\r\033[1A\033[0K│ ${output}" ;;
+                *) echo -e "│ ${output}" ;;
             esac
         ;;
     esac
@@ -261,7 +261,11 @@ err() {
 yesno() {
     msg "${BOLD}${BLUE}[Q] $*${RESET} [y/n] "
     while true; do
-        read -r -p "| > " yn
+        if [[ $NO_PROMPT == 1 ]]; then
+            msg "NO_PROMPT variable set - returning 0" 
+            return 0
+        fi
+        read -r -p "│ > " yn
         case $yn in
             [Yy]*) return 0 ;;  
             [Nn]*) return 1 ;;
@@ -272,7 +276,7 @@ yesno() {
 
 read_input() {
     local input
-    read -e -r -p "| > " input
+    read -e -r -p "│ > " input
     printf "$input\n"
 }
 
@@ -1500,28 +1504,23 @@ opt_clean() {
         cache)
             msg "Removing Cache directory: \"${CACHE_DIR}\"..."
             [[ -d "${CACHE_DIR}" ]] && m_rmdir "${CACHE_DIR}"
-            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         config)
             msg "Removing config directory: \"${CONFIG_DIR}\"..."
             [[ -d "${CONFIG_DIR}" ]] && m_rmdir "${CONFIG_DIR}"
-            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         data)
             msg "Removing data directory: \"${DATA_DIR}\"..."
             [[ -d "${DATA_DIR}" ]] && m_rmdir "${DATA_DIR}"
-            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         all)
-            if [[ "${NO_PROMPT}" != 1 ]]; then
-                # Warn user before continuing
-                msg "${BOLD}This action will remove all configs & cached files!${RESET}"
-                msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
-                msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
-                msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
-                yesno "Do you want to continue?" || m_exit 0
-            fi
+            # Warn user before continuing
+            msg "${BOLD}This action will remove all configs & cached files!${RESET}"
+            msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
+            msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
+            msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
+            msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
+            yesno "Do you want to continue?" || m_exit 0
             export NO_PROMPT=1
             opt_clean data
             opt_clean config
