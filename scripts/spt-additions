@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.8"; DATE="2025-09-21"
+VERSION="0.6.8-1"; DATE="2025-09-21"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -395,6 +395,7 @@ get_env() {
 get_eft_path() {
     local entry path
     # get windows formatted path
+    [[ ! -f "${CONFIG[pfx_dir]}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[prefix_dir]}/system.reg" )
     path=$( echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
     [[ -z "${path}" ]] && exit 12
