@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.8-2"; DATE="2025-09-21"
+VERSION="0.6.8-3"; DATE="2025-09-21"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -661,7 +661,7 @@ install_dep() {
     [[ -z "${file_path}" ]] && err "Cannot find \"${cmd_name}\" in \"${source_path}\""
 
     # Change permissions
-    chmod +x "${file_path}" || err "Failed to set permissions for \"${cmd_name}\""
+    m_chmod +x "${file_path}"
 
     # Move to target directory
     mv -f "${file_path}" "$target_path/${cmd_name}" || err "Failed to move \"${cmd_name}\" into \"${target_path}\""
@@ -1130,16 +1130,17 @@ opt_uninstall() {
 opt_guided_install() {
     local input
     # Overview
-    opt_version
-    msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
-    msg
-    msg "${YELLOW}This CLI installer will perform the following steps:${RESET}"
-    msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not installed already)"
-    msg "   - Setup the wine prefix, install dependencies & apply workarounds"
-    msg "   - Install the BSG Launcher"
-    msg "   - Install SPTarkov"
-    msg "   - Add application menu shortcuts"
-    msg
+    {   opt_version
+        msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
+        msg
+        msg "${YELLOW}This CLI installer will perform the following steps:${RESET}"
+        msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not installed already)"
+        msg "   - Setup the wine prefix, install dependencies & apply workarounds"
+        msg "   - Install the BSG Launcher"
+        msg "   - Install SPTarkov"
+        msg "   - Add application menu shortcuts"
+        msg
+    } | more
 
     while true; do
         # Choose a custom prefix install location
@@ -1433,11 +1434,12 @@ opt_clean() {
         ;;
         all)
             # Warn user before continuing
-            msg "${BOLD}This action will remove all configs & cached files!${RESET}"
-            msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-            msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
-            msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
-            msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
+            {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
+                msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
+                msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
+                msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
+                msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
+            } | more
             yesno "Do you want to continue?" || m_exit 0
             export NO_PROMPT=1
             opt_clean data
@@ -1471,55 +1473,63 @@ opt_help() {
     local option="${1}"
     case "${option}" in
         install)
-            msg "${BOLD}Available options:${RESET}"
-            msg "[eft|bsg|tarkov]               - Install the BSG Launcher"
-            msg "[spt|sptarkov]                 - Install SPTarkov"
-            msg
-            msg "${BOLD}SPT Install modes:${RESET}"
-            msg "native|proton"
-            opt_help switches
+            {   msg "${BOLD}Available options:${RESET}"
+                msg "[eft|bsg|tarkov]               - Install the BSG Launcher"
+                msg "[spt|sptarkov]                 - Install SPTarkov"
+                msg
+                msg "${BOLD}SPT Install modes:${RESET}"
+                msg "native|proton"
+                opt_help switches
+            } | more
         ;;
         uninstall)
-            msg "${BOLD}Available options:${RESET}"
-            msg "eft|spt|all"
-            opt_help switches
+            {   msg "${BOLD}Available options:${RESET}"
+                msg "eft|spt|all"
+                opt_help switches
+            } | more
         ;;
         shortcut)
-            msg "${BOLD}Available options:${RESET}"
-            msg "[eft|bsg|bsg-launcher]         - Update BSG-Launcher shortcut"
-            msg "[spt|sptarkov]                 - Update SPT.Server and SPT.Launcher shortcut"
-            msg "spt-launcher|spt-server        - Update SPT.Server or SPT.Launcher shortcut"
-            msg "all                            - Update all shortcuts"
-            opt_help switches
+            {
+                msg "${BOLD}Available options:${RESET}"
+                msg "[eft|bsg|bsg-launcher]         - Update BSG-Launcher shortcut"
+                msg "[spt|sptarkov]                 - Update SPT.Server and SPT.Launcher shortcut"
+                msg "spt-launcher|spt-server        - Update SPT.Server or SPT.Launcher shortcut"
+                msg "all                            - Update all shortcuts"
+                opt_help switches
+            } | more
         ;;
         run)
-            msg "${BOLD}Available options:${RESET}"
-            msg "[eft|bsg|bsg-launcher]         - Run the BSG Launcher"
-            msg "[spt-launcher|launcher]        - Run the SPT Launcher"
-            msg "[spt-server|server]            - Run the native SPT Server"
-            msg "winetricks [*]                 - Run \"winetricks -q [VERBS]\" inside the prefix"
-            msg "[*]                            - Run a custom command/executable inside the prefix"
-            opt_help switches
+            {   msg "${BOLD}Available options:${RESET}"
+                msg "[eft|bsg|bsg-launcher]         - Run the BSG Launcher"
+                msg "[spt-launcher|launcher]        - Run the SPT Launcher"
+                msg "[spt-server|server]            - Run the native SPT Server"
+                msg "winetricks [*]                 - Run \"winetricks -q [VERBS]\" inside the prefix"
+                msg "[*]                            - Run a custom command/executable inside the prefix"
+                opt_help switches
+            } | more
         ;;
         env)
-            msg "Set/unset environment variables"
-            msg 
-            msg "${BOLD}Usage:${RESET}"
-            msg "${YELLOW}$TITLE [SWITCHES] env [set|unset] [key|key=value]${RESET}"
-            opt_help switches
-            msg "${BOLD}list|-l${RESET}         - List active environment variables"
+            {   msg "Set/unset environment variables"
+                msg 
+                msg "${BOLD}Usage:${RESET}"
+                msg "${YELLOW}$TITLE [SWITCHES] env [set|unset] [key|key=value]${RESET}"
+                opt_help switches
+                msg "${BOLD}list|-l${RESET}         - List active environment variables"
+            } | more
         ;;
         patch)
-            msg "Patch game files using hpatchz"
-            msg 
-            msg "${BOLD}Usage:${RESET}"
-            msg "${YELLOW}$TITLE patch [SWITCHES] [TARGET_DIR] [SOURCE_DIR]${RESET}"
-            opt_help switches
+            {   msg "Patch game files using hpatchz"
+                msg 
+                msg "${BOLD}Usage:${RESET}"
+                msg "${YELLOW}$TITLE patch [SWITCHES] [TARGET_DIR] [SOURCE_DIR]${RESET}"
+                opt_help switches
+            } | more
         ;;
         clean)
-            msg "${BOLD}Available options:${RESET}"
-            msg "cache|config|data|all"
-            opt_help switches
+            {   msg "${BOLD}Available options:${RESET}"
+                msg "cache|config|data|all"
+                opt_help switches
+            } | more
         ;;
         switches)
             msg
@@ -1529,27 +1539,28 @@ opt_help() {
             msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
             msg "${BOLD}--no-prompt${RESET}     - Disable interactive prompt messages"
             msg "${BOLD}--no-ansi${RESET}       - Disable ansi codes in messages"
-            msg "${BOLD}--self-update${RESET}   - Updates this installer script"
             msg "${BOLD}-h | --help${RESET}     - Print the help message"
             msg "${BOLD}-v | --version${RESET}  - Print the VERSION info message"
         ;;
         "")
-            msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
-            msg
-            msg "SYNTAX: ${YELLOW}${TITLE} [SWITCHES] [OPTION] [...] ${RESET}"
-            msg "${BOLD}Example usage:${RESET}  ${YELLOW}${TITLE} -p ~/Games/tarkov install eft ${RESET}"
-            msg "                ${YELLOW}${TITLE} -e MANGOHUD=1 shortcut spt-launcher ${RESET}"
-            msg
-            msg "${BOLD}Available options:${RESET}"
-            msg "${BOLD}install${RESET}         - Install EFT/SPT into a prefix"
-            msg "${BOLD}uninstall${RESET}       - Uninstall EFT/SPT from a prefix"
-            msg "${BOLD}patch${RESET}           - Downpatch EFT game files"
-            msg "${BOLD}shortcut${RESET}        - Create/update EFT/SPT shortcuts"
-            msg "${BOLD}env${RESET}             - Set, unset and list active environment variables"
-            msg "${BOLD}run${RESET}             - Run EFT/SPT or custom commands inside the prefix"
-            msg "${BOLD}clean${RESET}           - Clean installer and prefix files"
-            msg "${BOLD}help${RESET}            - Get help for a command (e.g. 'help install')"
-            opt_help switches
+            {   msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
+                msg
+                msg "SYNTAX: ${YELLOW}${TITLE} [SWITCHES] [OPTION] [...]${RESET}"
+                msg "${BOLD}Example usage:${RESET}  ${YELLOW}${TITLE} -p ~/Games/tarkov install eft${RESET}"
+                msg "                ${YELLOW}${TITLE} -e MANGOHUD=1 shortcut spt${RESET}"
+                msg
+                msg "${BOLD}Available options:${RESET}"
+                msg "${BOLD}install${RESET}         - Install EFT/SPT into a prefix"
+                msg "${BOLD}uninstall${RESET}       - Uninstall EFT/SPT from a prefix"
+                msg "${BOLD}patch${RESET}           - Downpatch EFT game files"
+                msg "${BOLD}shortcut${RESET}        - Create/update EFT/SPT shortcuts"
+                msg "${BOLD}self-update${RESET}     - Updates this installer script"
+                msg "${BOLD}env${RESET}             - Set, unset and list active environment variables"
+                msg "${BOLD}run${RESET}             - Run EFT/SPT or custom commands inside the prefix"
+                msg "${BOLD}clean${RESET}           - Clean installer and prefix files"
+                msg "${BOLD}help${RESET}            - Get help for a command (e.g. 'help install')"
+                opt_help switches
+            } | more
         ;;
         *) msg "Invalid option: ${option}" ;;
     esac
