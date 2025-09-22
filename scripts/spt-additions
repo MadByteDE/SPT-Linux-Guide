@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.8-3"; DATE="2025-09-21"
+VERSION="0.6.9-1"; DATE="2025-09-22"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -38,7 +38,7 @@ readonly DATA_DIR="${DATA_HOME}/${TITLE}"
 readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 readonly RUNTIME_DIR="${DATA_DIR}/runtime"
-readonly TMP_DIR="${CACHE_DIR}/tmp"
+readonly TMP_DIR="$(mktemp -d)"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
 
@@ -106,8 +106,32 @@ m_exit() {
 }
 
 
-m_chmod() {
-    chmod "$@" &>> "${LOG_PATH}" || err "Command \"chmod $*\" failed"
+m_chmod() { chmod "$@" &>> "${LOG_PATH}" || err "Command \"chmod $*\" failed" "$?"; }
+m_mkdir() { mkdir -p "$@" &>> "${LOG_PATH}" || err "Command \"mkdir $*\" failed" "$?"; }
+m_ls() { ls "$@" 2>> "${LOG_PATH}" || err "Command \"ls $*\" failed" "$?"; }
+m_mv() { mv "$@" &>> "${LOG_PATH}" || err "Command \"mv $*\" failed" "$?"; }
+m_curl() { curl --connect-timeout 30 -f "$@" 2>> "${LOG_PATH}" || err "Command \"curl $*\" failed" "$?"; }
+m_umu() { "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed" "$?"; }
+
+
+m_rm() {
+    local path="$(realpath -m "${1%/}")" && shift
+    [[ -d "${path}" ]] && err "Cannot remove directories. Use \"m_rmdir\" instead."
+    rm "${path}" "$@" &>> "${LOG_PATH}" || err "Command \"rm $*\" failed"
+}
+
+
+m_rmdir() {
+    local path="$(realpath -m "${1%/}")" && shift
+    [[ -f "${path}" ]] && warn "Cannot remove single files. Use \"m_rm\" instead." && exit 1
+    case "${path}" in
+        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/tmp"*)
+            if [[ -d "${path}" ]]; then
+                rm -r "${path}" "$@" || exit 1
+            fi
+        ;;
+        *) warn "Failed to remove \"${path}\": Invalid directory path"; exit 1 ;;
+    esac
 }
 
 
@@ -121,7 +145,7 @@ m_cp() {
     esac
 
     # Create missing directories
-    mkdir -p "${target_path}"
+    m_mkdir "${target_path}"
 
     local files_total progress=1
     files_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
@@ -133,37 +157,13 @@ m_cp() {
             local output="${target_path}/${formatted}"
             local progress_string="[${progress}/${files_total}]"
             msg -o "${progress_string} Copying: ${formatted##*/}"
-            [[ ! -d "${output%/*}" ]] && mkdir -p "${output%/*}"
-            cp --reflink=auto "${source}" "${output}" || err "Command \"cp $*\" failed"
+            [[ ! -d "${output%/*}" ]] && m_mkdir "${output%/*}"
+            cp --reflink=auto "${source}" "${output}"
             progress=$((progress+1))
         done
     elif [[ -f "${source_path}" ]]; then
-        cp --reflink=auto "${source_path}" "${target_path}" || err "Command \"cp $*\" failed"
+        cp --reflink=auto "${source_path}" "${target_path}"
     fi
-}
-
-
-m_ls() {
-    ls "$@" 2>/dev/null || err "Command \"ls $*\" failed"
-}
-
-
-m_rm() {
-    local path="$(realpath -m "${1%/}")"
-    [[ -d "${path}" ]] && err "Cannot remove directories. Use \"m_rmdir\" instead."
-    rm "$1" || err "Command \"rm $*\" failed"
-}
-
-
-m_rmdir() {
-    local path="$(realpath -m "${1%/}")"
-    [[ -f "${path}" ]] && warn "Cannot remove single files. Use \"m_rm\" instead." && exit 1
-    case "$path" in
-        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*)
-            rm -rf "$1" || exit 1
-        ;;
-        *) warn "Failed to remove \"${path}\": Invalid directory path"; exit 1 ;;
-    esac
 }
 
 
@@ -173,16 +173,6 @@ m_7z() {
     msg "Extracting \"${filename}\"..."
     7zzs x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null
     [[ "$?" != 0 ]] && err "Failed to extract \"${filename}\""
-}
-
-
-m_curl() {
-    curl --connect-timeout 30 -f "$@" || err "Command \"curl $*\" failed"
-}
-
-
-m_umu() {
-    "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed"
 }
 
 
@@ -228,7 +218,7 @@ msg() {
 
 
 warn() {
-    msg "${BLUE}Warn ${FUNCNAME[1]}: ${RESET}$1"
+    msg "${YELLOW}Warn: ${RESET}$1"
 }
 
 
@@ -263,8 +253,7 @@ read_input() {
 
 
 wrap_run() {
-    local status
-    printf "%s\n" "$( "$@" )"; status=$?
+    printf "%s\n" "$( "$@" )"; local status=$?
     return $status
 }
 
@@ -347,15 +336,13 @@ save_array() {
         config)
             [[ -f "${CONFIG_PATH}" ]] && m_rm "${CONFIG_PATH}"
             for key in "${!CONFIG[@]}"; do
-                echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}"\
-                || err "Failed to write \"${CONFIG_PATH}\""
+                echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}"
             done
         ;;
         env)
             [[ -f "${ENV_PATH}" ]] && m_rm "${ENV_PATH}"
             for key in "${!ENV[@]}"; do
-                echo "${key}=${ENV[$key]}" >> "${ENV_PATH}"\
-                || err "Failed to write \"${ENV_PATH}\""
+                echo "${key}=${ENV[$key]}" >> "${ENV_PATH}"
             done
         ;;
         *) ;;
@@ -377,7 +364,7 @@ set_prefix() {
     # Update prefix paths
     SPT_DIR="${CONFIG[prefix_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[prefix_dir]%/}/drive_c/Battlestate Games"
-    EFT_DIR="$( get_eft_path )"
+    EFT_DIR=$( get_eft_path )
 
     msg "Prefix path has been set to \"${CONFIG[prefix_dir]}\""
 }
@@ -540,14 +527,8 @@ check_faugus() {
 
 
 check_aspnet() {
-    local status
-    if ! dotnet --list-runtimes | grep "AspNet" | grep "9.0" &>/dev/null; then
-        msg "${YELLOW}> \"ASP.NET Runtime 9.0\" is not installed on your system${RESET}"
-        status=1
-    fi
-    if [ "$status" = 1 ]; then
-        msg "${YELLOW}> Please install all missing dependencies & try again.${RESET}"
-        err "Missing dependencies"
+    if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
+        err "\"ASP.NET Runtime 9.0\" is not installed on your system"
     fi
 }
 
@@ -557,7 +538,7 @@ check_native_deps() {
     local cmds=( "7zzs" "xxd" "hpatchz" "jq" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
-        if ! command -v "${cmd}" &> /dev/null; then
+        if ! command -v "${cmd}" &>/dev/null; then
             case ${cmd} in
                 jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
             esac
@@ -664,7 +645,7 @@ install_dep() {
     m_chmod +x "${file_path}"
 
     # Move to target directory
-    mv -f "${file_path}" "$target_path/${cmd_name}" || err "Failed to move \"${cmd_name}\" into \"${target_path}\""
+    m_mv -f "${file_path}" "$target_path/${cmd_name}"
     msg "Installed \"${cmd_name}\" successfully"
 }
 
@@ -684,7 +665,7 @@ install_eft() {
     m_winetricks "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
 
     # Add prefix update pop-up workaround
-    msg "Adding \"rundll32\" pop-up workaround..."
+    msg "Adding \"RUNDLL32\" pop-up workaround..."
     m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
 
     # Add mouse focus workaround
@@ -773,7 +754,7 @@ install_spt() {
             if [[ -d "${cache_dir}" ]]; then
                 [[ $(readlink "${cache_dir}") != "${CACHE_DIR}" ]] && m_rmdir "${cache_dir}"
             fi
-            [[ ! -d "${cache_dir}" ]] && mkdir -p "${cache_dir%/*}"
+            [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
             ln -s -n "${CACHE_DIR}" "${cache_dir}" 2>/dev/null
             
             # Run SPT Installer
@@ -822,13 +803,13 @@ install_spt_native() {
     # Fetch some juicy data
     local installed_eft patcher_eft mod_eft mod_version
     local mod_url mod_hash patcher_hash
-    installed_eft=$( get_eft_version ) || err "Failed to get EFT version info"
-    mod_eft="$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" )" || err "Failed to get required EFT version for SPT"
-    mod_version="$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" )" || err "Failed to get SPT version"
-    mod_url="$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" )" || err "Failed to get SPT download url"
-    mod_hash="$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" )" || err "Failed to get mod hash"
-    patcher_hash="$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 )" || err "Failed to get patcher hash"
-    patcher_eft="$( get_patcher_eft_version )" || err "Failed to get required EFT version for patcher"
+    installed_eft=$( get_eft_version ) || err "Failed to get EFT version" "$?"
+    mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
+    mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
+    mod_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
+    mod_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get mod hash" "$?"
+    patcher_hash=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
+    patcher_eft=$( get_patcher_eft_version ) || err "Failed to get required EFT version for patcher" "$?"
     
     # Check for cached mod archive
     if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
@@ -849,19 +830,15 @@ install_spt_native() {
         if [[ "${patcher_eft}" -lt "${installed_eft}" ]]; then
             # No patcher available yet!
             warn "Looks like there's no patcher available for your EFT version"
-            msg
             msg "    > This usually happens when EFT has been updated recently."
             msg "    > Please wait for the SPT team to generate a new patcher."
             msg "    > Usually, this will take less then 24 hours."
-            msg
             err "No patcher available"
             
         elif [[ "${patcher_eft}" -gt "${installed_eft}" ]]; then
             # EFT is outdated!
             warn "Looks like your installed EFT version is out-of-date"
-            msg
             msg "    > Please update your live EFT installation & try again"
-            msg
             err "EFT is out-of-date"
 
         elif [[ "${patcher_eft}" -eq "${installed_eft}" ]]; then
@@ -872,7 +849,7 @@ install_spt_native() {
             if ! check_cached "${PATCHER_PATH}" "${patcher_hash}"; then
                 # Set global variable for patcher mirror urls
                 local urls
-                urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors"
+                urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors" "$?"
 
                 # Try to download from first to last
                 echo "${urls}" | while read -r url; do
@@ -915,7 +892,7 @@ install_launch_script() {
     local path="${SPT_DIR}/launch-server.sh"
     cat <<'EOF' > "${path}"
 #!/usr/bin/env bash
-root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 terms=( "foot" "alacritty" "ptyxis" "kgx" "konsole"
 "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
 # NOTE: When Flatpak Lutris is used, we don't have access to `dotnet-runtime` and
@@ -1041,11 +1018,11 @@ opt_patch() {
         case "$extension" in
             "delta")
                 msg -o "${progress_string} (*) Patching: ${formatted##*/}"
-                hpatchz "${output}" "${source}" "${target}" 1>/dev/null || return 1
+                hpatchz "${output}" "${source}" "${target}" >/dev/null 2>> "${LOG_PATH}" || return 1
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && return 1
                 m_rm "${output}" || return 1
-                mv "${target}" "${output}" || return 1
+                m_mv "${target}" "${output}" || return 1
             ;;
             "del")
                 msg -o "${progress_string} (-) Deleting: ${formatted##*/}"
@@ -1059,9 +1036,9 @@ opt_patch() {
                 msg -o "${progress_string} (+) Adding: ${formatted##*/}"
                 if [[ ! -d "${dir_path}" ]]; then
                     msg -o "${progress_string} (+) Adding directory: ${dir_path##*/}"
-                    mkdir -p "${dir_path}"
+                    m_mkdir "${dir_path}"
                 fi
-                cp "${source}" "${output}" || return 1
+                m_cp "${source}" "${output}" || return 1
             ;;
             *)
                 return 1
@@ -1070,9 +1047,10 @@ opt_patch() {
         progress=$((progress+1))
     done
 
-    if [[ "$?" -ne "0" ]]; then
+    local status=$?
+    if [[ "$status" -ne "0" ]]; then
         # Failed patching
-        m_rmdir "${SPT_DIR}" && err "Failed to patch game files"
+        m_rmdir "${SPT_DIR}" && err "Failed to patch game files" $status
     fi
     
     # Clean up patcher files
@@ -1162,12 +1140,15 @@ opt_guided_install() {
 
         if [[ "$install_eft" == 0 ]]; then
             opt_install eft
-            msg "The \"BSG Launcher\" has been installed successfully!"
             # Interactive - Users need to manually install the game client inside the BSG Launcher
             msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
             # Update EFT path
-            EFT_DIR="$( get_eft_path )"
+            EFT_DIR=$( get_eft_path ) || {
+                warn "Looks like EFT is not installed."
+                msg "   > Make sure you installed the game & you can see the \"Play\" button inside the BSG Launcher."
+                err "Failed to get EFT install path"
+            }
         fi
 
         # Install SPT
@@ -1176,36 +1157,36 @@ opt_guided_install() {
         # If Faugus Launcher is installed, aske to add shortcuts to it
         if check_faugus; then
             msg "Looks like you have \"Faugus-Launcher\" installed on your system."
-            yesno "${BOLD}${BLUE}Do you want to add EFT/SPT shortcuts to it?${RESET}"
+            yesno "Do you want to add EFT/SPT shortcuts to it?"
             [[ "$?" == 0 ]] && opt_shortcut faugus
         fi
 
         # Ask to install script to local bin directory
-        local bin_paths=( "${HOME}/bin" "${HOME}/.local/bin" )
-        local bin_path script_exists
+        local bin_paths=( "${XDG_BIN_HOME:-${HOME}/.local/bin}" "${HOME}/bin" )
+        local bin_path
         for path in "${bin_paths[@]}"; do
-            [[ $( echo "$PATH" | grep "${path}" ) ]] && bin_path="${path}"
-            if [[ -f "${path}/${TITLE}" ]]; then
-                script_exists="true"
+            if [[ $( echo "$PATH" | grep "${path}" ) ]]; then
+                bin_path="${path}"
                 break
             fi
         done
 
-        if [[ -n "${bin_path}" ]] && [[ -z "${script_exists}" ]]; then
-            msg "Found \"${bin_path}\" in the PATH environment variable."
-            msg "${BOLD}${YELLOW}The additions script provides useful CLI commands to manage the wine prefix.${RESET}"
-            yesno "${BOLD}${BLUE}Do you want to install ${TITLE} into the user bin directory (\"${bin_path}\")?${RESET}"
+        if [[ -n "${bin_path}" ]] && [[ ! -f "${bin_path}/${TITLE}" ]]; then
+            msg "${YELLOW}Found \"${bin_path}\" in the PATH environment variable.${RESET}"
+            msg "   > ${TITLE} provides useful CLI commands to manage your wine prefix."
+            yesno "Do you want to install ${TITLE} into the user bin directory (\"${bin_path}\")?"
             if [[ "$?" == 0 ]]; then
-                [[ ! -d "${bin_path}" ]] && mkdir -p "${bin_path}"
+                [[ ! -d "${bin_path}" ]] && m_mkdir "${bin_path}"
                 msg "Downloading \"${TITLE}\"..."
                 cd "${bin_path}" && m_curl -LO "${URL[installer-script]}"
                 m_chmod +x "${bin_path}/${TITLE}"
-                msg "Successfully installed ${TITLE} into \"${bin_path}\"!"
-                msg "Run \"${TITLE} -h\" for more details."
+                msg "${GREEN}Successfully installed ${TITLE} into \"${bin_path}\"!${RESET}"
+                msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" for more details."
             fi
         fi
 
         # All done!
+        msg
         msg "${BOLD}${BLUE}You need help or just wanna hang out with ${GREEN}THE NERDS${RESET}?:${RESET}"
         msg "   ${URL[discord]}"
         msg
@@ -1323,7 +1304,7 @@ add_faugus_shortcut() {
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "faugus-shortcut" ]] && err "Failed to load shortcut data from cache array"
     # Create Faugus config dir if not already there
-    mkdir -p "${config_dir}"
+    m_mkdir "${config_dir}"
     # Create games.json if it doesn't exist
     [[ ! -f "${json_path}" ]] && jq -n '[]' > "${json_path}"
     # Check if the game ids already exist
@@ -1342,7 +1323,7 @@ add_faugus_shortcut() {
     "launch_arguments": $launch_args,"game_arguments": $game_args,"runner": $runner,
     "lossless_enabled": false,"lossless_performance": false,"lossless_hdr": false }]'\
     "${json_path}" > "${TMP_DIR}/games.json" || err "Failed to add Faugus shortcut"
-    mv "${TMP_DIR}/games.json" "${json_path}"
+    m_mv "${TMP_DIR}/games.json" "${json_path}"
 }
 
 
@@ -1632,9 +1613,6 @@ handle_opts() {
 
 
 main() {
-    # Remove tmp files
-    m_rmdir "${TMP_DIR}"
-
     # Create dirs
     local dirs=( "${DATA_DIR}" "${RUNTIME_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${TMP_DIR}" "${ICO_DIR}" )
     for dir in "${dirs[@]}"; do [[ ! -d "${dir}" ]] && mkdir -p "${dir}"; done
@@ -1665,7 +1643,7 @@ main() {
     check_spt_path "${CONFIG[spt_dir]}"
     SPT_DIR="${CONFIG[prefix_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[prefix_dir]%/}/drive_c/Battlestate Games"
-    EFT_DIR="$( get_eft_path )"
+    EFT_DIR=$( get_eft_path )
 
     # Export paths
     export WINEDEBUG="${WINEDEBUG:-"-all,fixme+all,err+all,debugstr+all"}"
