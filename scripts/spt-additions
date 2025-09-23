@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.9-2"; DATE="2025-09-23"
+VERSION="0.6.10-1"; DATE="2025-09-23"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -176,15 +176,6 @@ m_7z() {
 }
 
 
-m_winetricks() {
-    local verb="${1}"; local text="${2}"
-    # Skip already applied verbs
-    if ! cat "${CONFIG[prefix_dir]}/winetricks.log" 2>/dev/null | grep -q "${verb}"; then
-        msg "${text}..."; m_umu winetricks -q "${verb}"
-    fi
-}
-
-
 # # # # # # # # # # #
 # Helper functions  #
 # # # # # # # # # # #
@@ -248,7 +239,7 @@ yesno() {
 
 
 read_input() {
-    printf "$(read -e -r -p "│ > " input)\n"
+    read -e -r -p "│ > " input; printf "$input\n"
 }
 
 
@@ -445,6 +436,15 @@ get_patcher_eft_version() {
 #  Check functions  #
 # # # # # # # # # # #
 
+check_verb() {
+    local pfx_dir="${CONFIG[prefix_dir]}"
+    [[ ! -d "${pfx_dir}" ]] && err "Prefix directory \"${pfx_dir}\" does not exist"
+    if ! cat "${pfx_dir}/winetricks.log" 2>/dev/null | grep -q "$1"; then
+        return 1
+    fi
+}
+
+
 check_disk_space() {
     local path=${1:-"${CONFIG[prefix_dir]}"}
     [[ -z "${path}" ]] && err "Missing path argument"
@@ -618,6 +618,14 @@ check_ttl() {
 #  Installer functions  #
 # # # # # # # # # # # # #
 
+install_verb() {
+    local verb="${1}"; local text="${2}"
+    if ! check_verb "${verb}"; then
+        msg "${text}..."; m_umu winetricks -q "${verb}"
+    fi
+}
+
+
 install_dep() {
     local cmd_name="$1"; local url="$2"
     local source_path="${3:-$TMP_DIR}"; local target_path="${4:-$RUNTIME_DIR}"
@@ -653,21 +661,27 @@ install_dep() {
 install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
 
-    # HACK: make sure to use UMU-Proton for dotnet48
-    export PROTONPATH="UMU-Latest"
-
     # Initialize prefix
     msg "Initializing wine prefix..."
     m_umu wineboot -u
 
+    # HACK: A fresh prefix created using GE-Proton-10-x contains reg keys for
+    # .NET 4.0, causing the `dotnet40` verb to fail because "v4.0 is already installed".
+    # Removing wine-mono does NOT fix this for some reason, so we delete the keys manually for now.
+    if ! check_verb "dotnet40"; then
+        msg "Workaround Proton \"dotnet40\" installer issue..."
+        $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>/dev/null ) \
+        || warn "Failed to apply \"dotnet40\" installer workaround"
+    fi
+
     # Install game dependencies
-    m_winetricks "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
-    m_winetricks "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
+    install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
+    install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
 
     # Add prefix update pop-up workaround
     msg "Adding \"RUNDLL32\" pop-up workaround..."
     m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
-
+    
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
@@ -681,11 +695,6 @@ install_eft() {
     # Install BSG Launcher
     msg "Installing BSG Launcher..."
     m_umu "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
-
-    # Re-initialize prefix for GE-Proton
-    export PROTONPATH="GE-Proton"
-    msg "Updating wine prefix for \"${PROTONPATH}\"..."
-    m_umu wineboot -u
 
     # Download icon to icons directory
     if [[ ! -f "${ICO_DIR}/bsg_launcher.png" ]]; then
@@ -720,9 +729,9 @@ install_spt() {
     fi
     
     # Install dependencies
-    m_winetricks "dotnetdesktop6" "Installing .NET Desktop 6 Runtime"
-    m_winetricks "dotnetdesktop8" "Installing .NET Desktop 8 Runtime"
-    m_winetricks "dotnetdesktop9" "Installing .NET Desktop 9 Runtime"
+    install_verb "dotnetdesktop6" "Installing .NET Desktop 6 Runtime"
+    install_verb "dotnetdesktop8" "Installing .NET Desktop 8 Runtime"
+    install_verb "dotnetdesktop9" "Installing .NET Desktop 9 Runtime"
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
@@ -1112,11 +1121,11 @@ opt_guided_install() {
         msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
         msg
         msg "${YELLOW}This CLI installer will perform the following steps:${RESET}"
-        msg "   - Install latest Proton-GE / UMU-Proton to the Steam compatibility tool directory (if not installed already)"
-        msg "   - Setup the wine prefix, install dependencies & apply workarounds"
-        msg "   - Install the BSG Launcher"
-        msg "   - Install SPTarkov"
-        msg "   - Add application menu shortcuts"
+        msg "- Install latest Proton-GE / UMU-Proton (if not installed already)"
+        msg "- Setup the wine prefix, install dependencies & apply workarounds"
+        msg "- Install the BSG Launcher"
+        msg "- Install SPTarkov"
+        msg "- Add application menu shortcuts"
         msg
     } | more
 
@@ -1124,7 +1133,7 @@ opt_guided_install() {
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${CONFIG[prefix_dir]}\")${RESET}"
         msg "(ctrl-c to cancel action)"
-        input="$(read_input)"
+        input=$(read_input)
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
 
         # Install UMU if needed
@@ -1647,8 +1656,8 @@ main() {
     EFT_DIR=$( get_eft_path )
 
     # Export paths
-    export WINEDEBUG="${WINEDEBUG:-"-all,fixme+all,err+all,debugstr+all"}"
-    export PROTONPATH="GE-Proton"
+    export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
+    export PROTONPATH="${PROTONPATH:-"GE-Proton"}"
     export WINEPREFIX="${CONFIG[prefix_dir]}"
     export PATH=$RUNTIME_DIR:$PATH
 
