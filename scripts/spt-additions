@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.10-1"; DATE="2025-09-23"
+VERSION="0.6.10-2"; DATE="2025-09-23"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1232,7 +1232,7 @@ opt_run() {
         *)
             local cmd="$( echo "${option} $@" | xargs )"
             msg "Running command: \"${cmd}\"..."
-            cd "${CONFIG[prefix_dir]}" && m_umu "${option}" "$@"
+            m_umu "${option}" "$@"
         ;;
     esac
 }
