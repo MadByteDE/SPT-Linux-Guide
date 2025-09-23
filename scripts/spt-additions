@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.9-1"; DATE="2025-09-22"
+VERSION="0.6.9-2"; DATE="2025-09-23"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -158,11 +158,11 @@ m_cp() {
             local progress_string="[${progress}/${files_total}]"
             msg -o "${progress_string} Copying: ${formatted##*/}"
             [[ ! -d "${output%/*}" ]] && m_mkdir "${output%/*}"
-            cp --reflink=auto "${source}" "${output}"
+            cp --reflink=auto "${source}" "${output}" &>> "${LOG_PATH}" || err "Command \"cp $*\" failed" "$?"
             progress=$((progress+1))
         done
     elif [[ -f "${source_path}" ]]; then
-        cp --reflink=auto "${source_path}" "${target_path}"
+        cp --reflink=auto "${source_path}" "${target_path}" &>> "${LOG_PATH}" || err "Command \"cp $*\" failed" "$?"
     fi
 }
 
@@ -1133,6 +1133,7 @@ opt_guided_install() {
         # Install EFT
         local install_eft=0
          # Ask to skip EFT installation if it's already installed
+        EFT_DIR=$( get_eft_path )
         if [[ -n "${EFT_DIR}" ]]; then
             yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
             [[ "$?" == 0 ]] && install_eft=1
