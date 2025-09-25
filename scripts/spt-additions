@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.10-2"; DATE="2025-09-23"
+VERSION="0.6.10-3"; DATE="2025-09-25"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -49,8 +49,8 @@ readonly DEFAULT_INSTALL_MODE="native"
 
 declare -A FAUGUS CONFIG ENV CACHE URL
 
-FAUGUS[config_dir]="$CONFIG_HOME/faugus-launcher"
-FAUGUS[flatpak_config_dir]="$HOME/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher"
+FAUGUS[config_dir]="${CONFIG_HOME}/faugus-launcher"
+FAUGUS[flatpak_config_dir]="${HOME}/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher"
 FAUGUS[json_path]="${FAUGUS[config_dir]}/games.json"
 FAUGUS[flatpak_json_path]="${FAUGUS[flatpak_config_dir]}/games.json"
 readonly -A FAUGUS
@@ -361,6 +361,13 @@ set_prefix() {
 }
 
 
+init_prefix() {
+    if [[ ! -d "${CONFIG[prefix_dir]}" ]]; then
+        msg "Initializing wine prefix..." && m_umu wineboot -u
+    fi
+}
+
+
 get_env() {
     printf "$(while read line; do printf "$line "; done < "${ENV_PATH}")\n"
 }
@@ -495,7 +502,7 @@ check_prefix_path() {
             2) err "Given path is a file: \"${prefix_path}\"" ;;
             3) err "Failed to resolve prefix path: \"${prefix_path}\"" ;;
             4) err "No write permission for directory: \"${prefix_path}\"" ;;
-            5) err "Given path is not a valid wine prefix: \"${prefix_path}\"" ;;
+            5) err "Given directory is not empty or the prefix is corrupted: \"${prefix_path}\"" ;;
         esac
     fi
 }
@@ -660,10 +667,7 @@ install_dep() {
 
 install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
-
-    # Initialize prefix
-    msg "Initializing wine prefix..."
-    m_umu wineboot -u
+    [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
 
     # HACK: A fresh prefix created using GE-Proton-10-x contains reg keys for
     # .NET 4.0, causing the `dotnet40` verb to fail because "v4.0 is already installed".
@@ -742,7 +746,7 @@ install_spt() {
         native|faugus) install_spt_native ;;
         lutris)
             # Add prefix update pop-up workaround
-            msg "Adding window pop-up workaround..."
+            msg "Adding \"RUNDLL32\" pop-up workaround..."
             m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
 
             # Install SPT
@@ -1211,6 +1215,7 @@ opt_run() {
     # SYNTAX: spt-additions -e MANGOHUD=1 run spt-launcher 
     local option="$1" && shift
     [[ -z "${option}" ]] && err "Option \"run\" requires an argument"
+    [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
     
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
@@ -1569,7 +1574,7 @@ opt_version() {
 
 handle_opts() {
     # Handle switches
-    while getopts ":p:e:a:m:hv-:" subopt; do
+    while getopts ":p:e:a:m:h:v:-:" subopt; do
         case ${subopt} in
             p) set_prefix "${OPTARG}" ;;
             e) opt_env set "${OPTARG}" ;;
@@ -1635,7 +1640,7 @@ main() {
     fi
 
     # Set default environment variables
-    if [[ ! -f "$ENV_PATH" ]]; then
+    if [[ ! -f "${ENV_PATH}" ]]; then
         set_value env "DOTNET_ROOT="
         set_value env "PROTON_USE_XALIA=0"
         set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
