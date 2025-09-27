@@ -18,14 +18,12 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ### Automated install
 
-Additions CLI installer ✨
+Additions CLI installer 🤓
   - 
+  - Standalone installer using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
+  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
-  > [!NOTE]
-  > - Standalone installer using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
-  > - Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
-
-  1. Install `aspnetcore-runtime-9.0` ([how to install](docs/aspnet.md))
+  1. Install the `aspnetcore-runtime-9.0` system package ([how to install](docs/aspnet.md))
   2. Run the following command in a terminal:
 
 ```bash
@@ -34,17 +32,13 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 
 [Lutris installer](docs/lutris/installer_additions.md) (Additions)
   - 
-
-  > [!NOTE]
-  > - Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
-  > - Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
+  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
+  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 [Lutris installer](docs/lutris/installer_official.md) (Official)
   -
-
-  > [!NOTE]
-  > - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
-  > - Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
+  - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
+  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 
 ### Manual install
