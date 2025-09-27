@@ -3,7 +3,7 @@
 
 [Website](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
 
-To run the native Linux server you need to install the native ASP.NET Runtime 9 package.
+To run the native Linux server you need to install the native ASP.NET Runtime 9 system package.
 
 ## How to install
 
