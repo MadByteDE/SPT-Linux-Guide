@@ -1,6 +1,6 @@
 # FAQ
 
-You can find the official SPT FAQ [here](https://hub.sp-tarkov.com/faq/).
+You can find the official SPT FAQ [here](https://wiki.sp-tarkov.com/en/FAQs).
 
 ## Table of content
 

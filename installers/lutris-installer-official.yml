@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.9-1
+##                 v2025.9-2
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using the -OFFICIAL- windows installer.
@@ -68,7 +68,7 @@ script:
                      3. Connect, create a new profile & play\n
                      \n
                      For the latest updates & mods, visit:\n
-                     https://hub.sp-tarkov.com/\n
+                     https://forge.sp-tarkov.com/\n
                      \n
                      Have fun! ('-')7"
                      

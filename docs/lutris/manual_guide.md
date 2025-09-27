@@ -10,7 +10,7 @@
 ### - **[Lutris](https://lutris.net/downloads)**
 - Make sure GPU and vulkan drivers are installed and working.
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-- **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
+- **[SPT mod](https://github.com/sp-tarkov/build/releases) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
 ### - ASP.NET Runtime 9.0 ([How to install](../aspnet.md))

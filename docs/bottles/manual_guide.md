@@ -13,7 +13,7 @@
 ### - **[Bottles](https://usebottles.com/)**
 - Make sure GPU and vulkan drivers are installed and working.
 
-### - **[SPT mod](https://hub.sp-tarkov.com/files/file/16-spt-aki/) (*.7z archive)**
+### - **[SPT mod](https://github.com/sp-tarkov/build/releases) (*.7z archive)**
 - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
 ### - **[BSG Launcher](https://prod.escapefromtarkov.com/launcher/download/) (*.exe installer)**
