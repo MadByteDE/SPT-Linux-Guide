@@ -23,7 +23,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.6.10-3"; DATE="2025-09-25"
+VERSION="0.7.0"; DATE="2025-09-27"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -259,7 +259,7 @@ set_value() {
     # Filter for invalid keys/values
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
     [[ ! "${key}" =~ ^[A-Za-z0-9_]+$ ]] && err "Key contains invalid characters: \"${key}\""
-    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/_=]+$ ]] && err "Value contains invalid characters: \"${value}\""
+    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
 
     # Set value
     case "${array_name}" in
@@ -496,7 +496,7 @@ check_prefix_path() {
 
     if [[ $status != 0 ]]; then
         # Reset to default path
-        set_value config "prefix_path=${DEFAULT_PFX_DIR}"
+        set_value config "prefix_dir=${DEFAULT_PFX_DIR}"
         case $status in
             1) err "Missing leading \"/\" character: \"${prefix_path}\"" ;;
             2) err "Given path is a file: \"${prefix_path}\"" ;;
@@ -1121,12 +1121,17 @@ opt_uninstall() {
 opt_guided_install() {
     local input
     # Overview
-    {   opt_version
+    {
+        msg "░█▀▀░█▀█░▀█▀░░░█▀█░█▀▄░█▀▄░▀█▀░▀█▀░▀█▀░█▀█░█▀█░█▀▀"
+        msg "░▀▀█░█▀▀░░█░░░░█▀█░█░█░█░█░░█░░░█░░░█░░█░█░█░█░▀▀█"
+        msg "░▀▀▀░▀░░░░▀░░░░▀░▀░▀▀░░▀▀░░▀▀▀░░▀░░▀▀▀░▀▀▀░▀░▀░▀▀▀"
+        opt_version
+        msg
         msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
         msg
         msg "${YELLOW}This CLI installer will perform the following steps:${RESET}"
-        msg "- Install latest Proton-GE / UMU-Proton (if not installed already)"
-        msg "- Setup the wine prefix, install dependencies & apply workarounds"
+        msg "- Install latest GE-Proton (if not installed already)"
+        msg "- Setup the wine prefix, install dependencies & apply game specific workarounds"
         msg "- Install the BSG Launcher"
         msg "- Install SPTarkov"
         msg "- Add application menu shortcuts"
@@ -1219,8 +1224,9 @@ opt_run() {
     
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
+            local args="--disable-software-rasterizer"
             msg "Launching BSG Launcher..."
-            cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "--disable-software-rasterizer" "$@"
+            cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "$args" "$@"
         ;;
         spt-launcher|launcher)
             check_eft_running
@@ -1539,7 +1545,7 @@ opt_help() {
             msg "${BOLD}-v | --version${RESET}  - Print the VERSION info message"
         ;;
         "")
-            {   msg "A Standalone EFT/SPT installer script using UMU-Launcher and Proton."
+            {   msg "Standalone EFT/SPT installer & configuration tool using UMU-Launcher and Proton."
                 msg
                 msg "SYNTAX: ${YELLOW}${TITLE} [SWITCHES] [OPTION] [...]${RESET}"
                 msg "${BOLD}Example usage:${RESET}  ${YELLOW}${TITLE} -p ~/Games/tarkov install eft${RESET}"
@@ -1564,7 +1570,7 @@ opt_help() {
 
 
 opt_version() {
-    msg "${BOLD}[${TITLE}] Version: ${RESET}${VERSION} (${DATE})"
+    msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
 }
 
 
