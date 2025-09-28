@@ -5,6 +5,7 @@
 # # # # # # # # # 
 
 # TODO: Think about launching EFT/SPT through the script to avoid updating shortcuts constantly
+# NOTE: New SPT.Launcher can run if webview2 is installed with `win11` set, mouse doesn't render though.
 
 # exit codes:
 # 1: general error | 10: -d check failed | 11: -f check failed | 12: empty string | 13: m_7z failed
@@ -23,7 +24,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.0"; DATE="2025-09-27"
+VERSION="0.7.1"; DATE="2025-09-28"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1602,7 +1603,13 @@ handle_opts() {
                     *) err "Invalid switch: --${OPTARG}" ;;
                 esac
             ;;
-            :) err "Switch \"${OPTARG}\" requires an argument" ;;
+            :)
+                case "${OPTARG}" in
+                    h) opt_help ;;
+                    v) opt_version ;;
+                    *) err "Switch \"${OPTARG}\" requires an argument" ;;
+                esac
+            ;;
             *) err "Invalid switch \"-${OPTARG}\"" ;;
         esac
     done
