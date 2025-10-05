@@ -4,9 +4,6 @@
 # SPT-ADDITIONS #
 # # # # # # # # # 
 
-# TODO: Think about launching EFT/SPT through the script to avoid updating shortcuts constantly
-# NOTE: New SPT.Launcher can run if webview2 is installed with `win11` set, mouse doesn't render though.
-
 # exit codes:
 # 1: general error | 10: -d check failed | 11: -f check failed | 12: empty string | 13: m_7z failed
 # 14: case char mismatch
@@ -24,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.1"; DATE="2025-09-28"
+VERSION="0.7.2"; DATE="2025-10-05"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -111,7 +108,7 @@ m_chmod() { chmod "$@" &>> "${LOG_PATH}" || err "Command \"chmod $*\" failed" "$
 m_mkdir() { mkdir -p "$@" &>> "${LOG_PATH}" || err "Command \"mkdir $*\" failed" "$?"; }
 m_ls() { ls "$@" 2>> "${LOG_PATH}" || err "Command \"ls $*\" failed" "$?"; }
 m_mv() { mv "$@" &>> "${LOG_PATH}" || err "Command \"mv $*\" failed" "$?"; }
-m_curl() { curl --connect-timeout 30 -f "$@" 2>> "${LOG_PATH}" || err "Command \"curl $*\" failed" "$?"; }
+m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl $*\" failed" "$?"; }
 m_umu() { "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed" "$?"; }
 
 
@@ -127,9 +124,8 @@ m_rmdir() {
     [[ -f "${path}" ]] && warn "Cannot remove single files. Use \"m_rm\" instead." && exit 1
     case "${path}" in
         *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/tmp"*)
-            if [[ -d "${path}" ]]; then
-                rm -r "${path}" "$@" || exit 1
-            fi
+            if [[ ! -d "${path}" ]]; then return; fi
+            rm -r "${path}" "$@" || exit 1
         ;;
         *) warn "Failed to remove \"${path}\": Invalid directory path"; exit 1 ;;
     esac
@@ -154,10 +150,10 @@ m_cp() {
     if [[ -d "${source_path}" ]]; then
         # Iterate files & copy to target directory
         echo; find "${source_path}" \( -type f \) -print0 | while IFS= read -r -d '' source; do
-            local formatted="${source/#$source_path}"
-            local output="${target_path}/${formatted}"
+            local filename="${source/#$source_path}"
+            local output="${target_path}/${filename}"
             local progress_string="[${progress}/${files_total}]"
-            msg -o "${progress_string} Copying: ${formatted##*/}"
+            msg -o "${progress_string} Copying: ${filename##*/}"
             [[ ! -d "${output%/*}" ]] && m_mkdir "${output%/*}"
             cp --reflink=auto "${source}" "${output}" &>> "${LOG_PATH}" || err "Command \"cp $*\" failed" "$?"
             progress=$((progress+1))
@@ -169,9 +165,8 @@ m_cp() {
 
 
 m_7z() {
-    local archive_path="$(realpath -m "${1%/}")"; local target_path="$(realpath -m "${2%/}")"
-    local filename="${archive_path##*/}"
-    msg "Extracting \"${filename}\"..."
+    archive_path="$(realpath -m "${1%/}")"; local target_path="$(realpath -m "${2%/}")"
+    filename="${archive_path##*/}"
     7zzs x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null
     [[ "$?" != 0 ]] && err "Failed to extract \"${filename}\""
 }
@@ -266,13 +261,11 @@ set_value() {
     case "${array_name}" in
         config)
             [[ -z "${value}" ]] && err "Missing value for array \"${array_name}\""
-            CONFIG[$key]="${value%/}"
-            save_array config
+            CONFIG[$key]="${value%/}" && save_array config
         ;;
         env)
             ENV[$key]="${value%/}"
-            export "${key}=${value%/}"
-            save_array env  
+            export "${key}=${value%/}" && save_array env  
         ;;
         *) err "Invalid array name: \"${array_name}\""
     esac
@@ -363,14 +356,13 @@ set_prefix() {
 
 
 init_prefix() {
-    if [[ ! -d "${CONFIG[prefix_dir]}" ]]; then
-        msg "Initializing wine prefix..." && m_umu wineboot -u
-    fi
+    if [[ -d "${CONFIG[prefix_dir]}" ]]; then return; fi
+    msg "Initializing wine prefix..." && m_umu wineboot -u
 }
 
 
 get_env() {
-    printf "$(while read line; do printf "$line "; done < "${ENV_PATH}")\n"
+    printf "$( while read line; do printf "$line "; done < "${ENV_PATH}" )\n"
 }
 
 
@@ -380,7 +372,7 @@ get_env() {
 
 get_eft_path() {
     local entry path
-    # get windows formatted path
+    # get windows path
     [[ ! -f "${CONFIG[prefix_dir]}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[prefix_dir]}/system.reg" )
     path=$( echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
@@ -454,15 +446,19 @@ check_verb() {
 
 
 check_disk_space() {
-    local path=${1:-"${CONFIG[prefix_dir]}"}
+    local total_gb=${1}; local path="${CONFIG[prefix_dir]}"
     [[ -z "${path}" ]] && err "Missing path argument"
     # Get required values
-    local free_kb eft_kb free_gb total_gb
+    local free_kb total_kb eft_kb free_gb total_gb
     free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
-    eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
-    local overhead_kb=$((1024*1024*10))
-    local total_kb=$((eft_kb + overhead_kb))
     free_gb=$( echo "${free_kb}" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }' )
+    # If no total size is defined, use size of the EFT game files
+    if [[ -n "${total_gb}" ]]; then
+        total_kb=$(( 1024*1024*total_gb ))
+    else
+        local eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
+        total_kb=$((eft_kb + 1024*1024*10))
+    fi
     total_gb=$( echo "${total_kb}" | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }' )
     # Check if there's enough space
     [[ $free_kb -le $total_kb ]] && err "Not enough free disk space! (${free_gb} free < ${total_gb} needed)"
@@ -536,7 +532,9 @@ check_faugus() {
 
 check_aspnet() {
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
-        err "\"ASP.NET Runtime 9.0\" is not installed on your system"
+        warn "\"ASP.NET Runtime 9.0\" is not installed."
+        msg "> ${YELLOW}Please install it first & retry running this script.${RESET}"
+        err "\"ASP.NET Runtime 9.0\" is not installed"
     fi
 }
 
@@ -546,11 +544,10 @@ check_native_deps() {
     local cmds=( "7zzs" "xxd" "hpatchz" "jq" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
-        if ! command -v "${cmd}" &>/dev/null; then
-            case ${cmd} in
-                jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
-            esac
-        fi
+        if command -v "${cmd}" &>/dev/null; then return; fi
+        case ${cmd} in
+            jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
+        esac
     done
     [ "$status" = 1 ] && err "Please install all missing dependencies & try again."
 }
@@ -559,7 +556,10 @@ check_native_deps() {
 check_eft_running() {
     local apps=( "BsgLauncher.exe" "EscapeFromTarko" )
     for app in "${apps[@]}"; do
-        [[ -n $( pidof "${app}" ) ]] && err "\"${app}\" process found! Please close it to continue."
+        if [[ -z $( pidof "${app}" ) ]]; then return; fi
+        warn "It looks like \"${app}\" is currently running on your system!"
+        msg "> ${YELLOW} Please close the application & retry.${RESET}"
+        err "\"${app}\" process found"
     done
 }
 
@@ -635,16 +635,14 @@ install_verb() {
 
 
 install_dep() {
-    local cmd_name="$1"; local url="$2"
+    local cmd_name="$1"; local url="$2"; local filename="${url##*/}"
     local source_path="${3:-$TMP_DIR}"; local target_path="${4:-$RUNTIME_DIR}"
-    local filename="${url##*/}"
-    cd "${TMP_DIR}" || err "Failed to change directory to \"$TMP_DIR\""
-
+    
     # Download
     msg "Downloading \"${filename}\"..."
-    m_curl -s -L "${url}" -o "${filename}"
+    cd "${TMP_DIR}" && m_curl -s -L "${url}" -o "${filename}"
 
-    # Extract archive if needed
+    # Extract archive
     case "${filename}" in
         *.zip*|*.7z*) m_7z "${filename}" "${TMP_DIR}" ;;
         *.tar*) tar -xf "${filename}" || err "Failed to extract tar archive" ;;
@@ -654,6 +652,8 @@ install_dep() {
         ;;
         *) ;;
     esac
+
+    # Search executable inside the extracted directory
     local file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
     [[ -z "${file_path}" ]] && err "Cannot find \"${cmd_name}\" in \"${source_path}\""
 
@@ -662,7 +662,6 @@ install_dep() {
 
     # Move to target directory
     m_mv -f "${file_path}" "$target_path/${cmd_name}"
-    msg "Installed \"${cmd_name}\" successfully"
 }
 
 
@@ -670,9 +669,10 @@ install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
     [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
 
-    # HACK: A fresh prefix created using GE-Proton-10-x contains reg keys for
-    # .NET 4.0, causing the `dotnet40` verb to fail because "v4.0 is already installed".
-    # Removing wine-mono does NOT fix this for some reason, so we delete the keys manually for now.
+    check_disk_space 60
+
+    # HACK: Fresh prefixes created with GE-Proton-10 contain reg keys for .NET 4.0,
+    # causing the `dotnet40` verb to fail because "v4.0 is already installed".
     if ! check_verb "dotnet40"; then
         msg "Workaround Proton \"dotnet40\" installer issue..."
         $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>/dev/null ) \
@@ -691,15 +691,17 @@ install_eft() {
     msg "Adding mouse focus workaround to registry..."
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
     
-    # Download BSG Launcher if needed
+    # Download BSG Launcher setup file
     if [[ ! -f "${CACHE_DIR}/BsgLauncher.exe" ]]; then
         msg "Downloading BSG Launcher..."
         cd "${CACHE_DIR}" && m_curl -L "${URL[bsg-launcher]}" -o "BsgLauncher.exe"
     fi
 
     # Install BSG Launcher
-    msg "Installing BSG Launcher..."
-    m_umu "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
+    if [[ ! -d "${BSG_DIR}/BsgLauncher" ]]; then
+        msg "Installing BSG Launcher..."
+        m_umu "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
+    fi
 
     # Download icon to icons directory
     if [[ ! -f "${ICO_DIR}/bsg_launcher.png" ]]; then
@@ -720,18 +722,17 @@ install_spt() {
     msg "Launching \"SPTarkov\" setup..."
     msg "Selected install mode is \"${install_mode}\"..."
 
-    check_eft_running
-    check_aspnet
-
     if [[ ! -d "${EFT_DIR}" ]]; then
-        msg "> ${YELLOW}Escape from Tarkov is not installed.${RESET}"
+        warn "Escape from Tarkov is not installed."
         msg "> ${YELLOW}make sure to install the game inside the BSG Launcher & try again!${RESET}"
         err "Escape from Tarkov not found."
     elif [[ -d "${SPT_DIR}" ]]; then
-        msg "> ${YELLOW}SPTarkov directory already exists.${RESET}"
+        warn "SPTarkov directory already exists."
         msg "> ${YELLOW}If you want to reinstall, make sure to remove the old installation first!${RESET}"
         err "SPTarkov directory already exists."
     fi
+
+    check_eft_running;  check_aspnet;  check_disk_space
     
     # Install dependencies
     install_verb "dotnetdesktop6" "Installing .NET Desktop 6 Runtime"
@@ -771,11 +772,15 @@ install_spt() {
             [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
             ln -s -n "${CACHE_DIR}" "${cache_dir}" 2>/dev/null
             
+            # Convert SPT directory path to windows path
+            local path="${CONFIG[spt_dir]//\//\\}"
+            path="${path//drive_c/C:}"
+
             # Run SPT Installer
             msg "Launching SPT Installer..."
-            m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="C:\\${CONFIG[spt_dir]##*/}"
+            m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="${path}"
         ;;
-        ""|*) err "Invalid install mode \"${install_mode}\""
+        ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
     # Install server launch script
@@ -795,7 +800,7 @@ install_spt() {
         ;;
         faugus) opt_shortcut faugus ;;
         lutris) ;;
-        ""|*) err "Invalid install mode \"${install_mode}\""
+        ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
     msg "${GREEN}Done! ※\(^o^)/※${RESET}"
@@ -805,7 +810,6 @@ install_spt() {
 install_spt_native() {
     # Pre-Checks
     check_native_deps
-    check_disk_space
 
     # Get required metadata for mod and patcher releases
     if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
@@ -876,6 +880,7 @@ install_spt_native() {
             fi
 
             # Extract downpatcher to temp directory
+            msg "Extracting \"patcher\" archive..."
             m_7z "${PATCHER_PATH}" "${TMP_DIR}/patcher"
 
             # Copy EFT files
@@ -897,6 +902,7 @@ install_spt_native() {
     fi
 
     # Extract mod archive to install directory
+    msg "Extracting \"mod\" archive..."
     m_7z "${MOD_PATH}" "${SPT_DIR}"
 }
 
@@ -922,7 +928,7 @@ for term in "${terms[@]}"; do
     if m_run command -v $term &>/dev/null; then
         cd "${root_path}"
         m_run $term -e "./SPT.Server.Linux"
-        break
+    break
     fi
 done
 EOF
@@ -1021,17 +1027,17 @@ opt_patch() {
         # Isolate the operation extension
         local extension="${source##*.}"
         # Isolate sub-directories of SPT_Patches
-        local formatted="${source#*SPT_Patches/}"
+        local trimmed="${source#*SPT_Patches/}"
         # Remove operation extension to get actual file name
-        formatted="${formatted%.*}"
+        trimmed="${trimmed%.*}"
 
-        local output="${target_path}/${formatted}"
+        local output="${target_path}/${trimmed}"
         local target="${output}.decoded"
         local dir_path="${output%/*}"
 
         case "$extension" in
             "delta")
-                msg -o "${progress_string} (*) Patching: ${formatted##*/}"
+                msg -o "${progress_string} (*) Patching: ${trimmed##*/}"
                 hpatchz "${output}" "${source}" "${target}" >/dev/null 2>> "${LOG_PATH}" || return 1
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && return 1
@@ -1039,7 +1045,7 @@ opt_patch() {
                 m_mv "${target}" "${output}" || return 1
             ;;
             "del")
-                msg -o "${progress_string} (-) Deleting: ${formatted##*/}"
+                msg -o "${progress_string} (-) Deleting: ${trimmed##*/}"
                 m_rm "${output}" || return 1
                 if [[ -z "$( m_ls -A "${dir_path}" )" ]]; then
                     msg -o "${progress_string} (-) Deleting directory: ${dir_path##*/}"
@@ -1047,7 +1053,7 @@ opt_patch() {
                 fi
             ;;
             "new")
-                msg -o "${progress_string} (+) Adding: ${formatted##*/}"
+                msg -o "${progress_string} (+) Adding: ${trimmed##*/}"
                 if [[ ! -d "${dir_path}" ]]; then
                     msg -o "${progress_string} (+) Adding directory: ${dir_path##*/}"
                     m_mkdir "${dir_path}"
@@ -1105,11 +1111,7 @@ opt_uninstall() {
                 msg "${UNDERLINE}${CONFIG[prefix_dir]}${RESET}"
                 yesno "Do you want to continue?" || m_exit 0
             fi
-
-            uninstall_eft 1
-            uninstall_spt 1
-            uninstall_prefix 1
-
+            uninstall_eft 1;  uninstall_spt 1;  uninstall_prefix 1
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         help|-h|--help) opt_help "uninstall";;
@@ -1138,7 +1140,7 @@ opt_guided_install() {
         msg "- Add application menu shortcuts"
         msg
     } | more
-
+    
     while true; do
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${CONFIG[prefix_dir]}\")${RESET}"
@@ -1146,8 +1148,11 @@ opt_guided_install() {
         input=$(read_input)
         [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
 
-        # Install UMU if needed
-        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+        msg;  check_eft_running;  check_aspnet
+
+        # Install dependencies
+        check_native_deps
+        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"; msg
 
         # Install EFT
         local install_eft=0
@@ -1166,7 +1171,7 @@ opt_guided_install() {
             # Update EFT path
             EFT_DIR=$( get_eft_path ) || {
                 warn "Looks like EFT is not installed."
-                msg "   > Make sure you installed the game & you can see the \"Play\" button inside the BSG Launcher."
+                msg "${YELLOW}> Make sure you installed the game & you can see the \"Play\" button inside the BSG Launcher.${RESET}"
                 err "Failed to get EFT install path"
             }
         fi
@@ -1185,10 +1190,9 @@ opt_guided_install() {
         local bin_paths=( "${XDG_BIN_HOME:-${HOME}/.local/bin}" "${HOME}/bin" )
         local bin_path
         for path in "${bin_paths[@]}"; do
-            if [[ $( echo "$PATH" | grep "${path}" ) ]]; then
-                bin_path="${path}"
-                break
-            fi
+            if [[ ! $( echo "$PATH" | grep "${path}" ) ]]; then return; fi
+            bin_path="${path}"
+            break
         done
 
         if [[ -n "${bin_path}" ]] && [[ ! -f "${bin_path}/${TITLE}" ]]; then
@@ -1384,8 +1388,7 @@ opt_shortcut() {
             add_app_shortcut
         ;; 
         spt|sptarkov)
-            opt_shortcut spt-launcher
-            opt_shortcut spt-server
+            opt_shortcut spt-launcher; opt_shortcut spt-server
         ;;
         faugus)
             if [[ -d "${SPT_DIR}" ]]; then
@@ -1407,9 +1410,7 @@ opt_shortcut() {
             fi
         ;;
         all)
-            opt_shortcut bsg-launcher
-            opt_shortcut spt-launcher
-            opt_shortcut spt-server
+            opt_shortcut bsg-launcher;  opt_shortcut spt-launcher;  opt_shortcut spt-server
         ;;
         help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
@@ -1445,9 +1446,7 @@ opt_clean() {
             } | more
             yesno "Do you want to continue?" || m_exit 0
             export NO_PROMPT=1
-            opt_clean data
-            opt_clean config
-            opt_clean cache
+            opt_clean data;  opt_clean config;  opt_clean cache
             msg "${GREEN}Done!${RESET}"
         ;;
         help|-h|--help) opt_help "clean";;
@@ -1617,7 +1616,7 @@ handle_opts() {
 
     local option="${1}" && shift
 
-    # Install umu if needed
+    # Install umu
     case "${option}" in
         install|run|patch) [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}" ;;
     esac
