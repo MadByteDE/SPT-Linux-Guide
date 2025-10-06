@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.9-3
+##                 v2025.10-1
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
@@ -15,7 +15,7 @@ runner: wine
 script:
     files:
     - spt-additions:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
         filename: spt-additions
     game:
         arch: win64
@@ -24,7 +24,7 @@ script:
     requires: escape-from-tarkov
     installer:
     # Install SPT using the native installer script
-    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions
+    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
     - merge:
         src: spt-additions
         dst: $GAMEDIR
@@ -55,6 +55,7 @@ script:
     wine:
         overrides:
             winhttp: n,b
+            # icu: d
 
 version: spt-additions-latest
 slug: sptarkov
