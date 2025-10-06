@@ -21,7 +21,7 @@ script:
         arch: win64
         exe: drive_c/SPTarkov/SPT.Launcher.exe
         prefix: $GAMEDIR
-        working_dir: $GAMEDIR/SPT
+        working_dir: $GAMEDIR/drive_c/SPTarkov/SPT
     requires: escape-from-tarkov
     installer:
     # Install SPT using the native installer script
