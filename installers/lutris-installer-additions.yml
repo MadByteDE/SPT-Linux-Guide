@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.10-1
+##                 v2025.10-2
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
@@ -21,6 +21,7 @@ script:
         arch: win64
         exe: drive_c/SPTarkov/SPT.Launcher.exe
         prefix: $GAMEDIR
+        working_dir: $GAMEDIR/SPT
     requires: escape-from-tarkov
     installer:
     # Install SPT using the native installer script
