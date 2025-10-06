@@ -27,7 +27,7 @@ We provide two methods to patch the game files on Linux.
           ./spt-linux-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
 
 > [!TIP]
-> For more details, run `./spt-linux-additions` without any commands.
+> For more details, run `./spt-additions help patch`.
 
 
 ## Method 2: Official downgrade patcher

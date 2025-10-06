@@ -27,7 +27,7 @@ Additions CLI installer 🤓
   2. Run the following command in a terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/SPTv4-dev/scripts/spt-additions)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
 ```
 
 [Lutris installer](docs/lutris/installer_additions.md) (Additions)
