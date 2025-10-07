@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { err "Interrupt received"; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.3"; DATE="2025-10-06"
+VERSION="0.7.4"; DATE="2025-10-07"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -784,7 +784,7 @@ install_spt() {
     esac
 
     # Install server launch script
-    install_launch_script
+    install_server_script
 
     # Create launcher shortcut inside the root directory
     ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" || warn "Failed to create link for \"SPT.Launcher.exe\""
@@ -910,28 +910,30 @@ install_spt_native() {
 }
 
 
-install_launch_script() {
+install_server_script() {
     # Server launch script
     local path="${SPT_DIR}/launch-server.sh"
     cat <<'EOF' > "${path}"
 #!/usr/bin/env bash
-root_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
-terms=( "foot" "alacritty" "ptyxis" "kgx" "konsole"
-"gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
-# NOTE: When Flatpak Lutris is used, we don't have access to `dotnet-runtime` and
-# `aspnet-runtime` packages on the host system. To work around this limitation,
+ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
+TERMINALS=( "alacritty" "foot" "ptyxis"  "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
+
+# NOTE: When Flatpak Lutris is used, we don't have access to `aspnetcore-runtime`
+# packages on the host system. To work around this limitation,
 # we use `flatpak-spawn --host` to launch the server outside of the sandboxed
-# environment. (not supported with some desktop portals in Wayland e.g. cinnemon/xapp)
+# environment. (not supported with some desktop portals on Wayland e.g. `cinnamon/xapp`)
 m_run() {
     if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
     else flatpak-spawn --host "$@"; fi
 }
-[[ $( m_run pidof "SPT.Server.Linux" ) != "" ]] && exit 0
-for term in "${terms[@]}"; do
-    if m_run command -v $term &>/dev/null; then
-        cd "${root_path}/SPT" && m_run $term -e "./SPT.Server.Linux"
-    break
-    fi
+
+# Skip launch if another instance is already running
+[[ -n $( m_run pidof "SPT.Server.Linux" ) ]] && exit 0
+
+for term in "${TERMINALS[@]}"; do
+    if ! m_run command -v $term &>/dev/null; then continue; fi
+    cd "${ROOT_PATH}/SPT"
+    m_run $term -e "./SPT.Server.Linux"; break
 done
 EOF
     m_chmod +x "${path}"
