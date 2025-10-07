@@ -5,7 +5,7 @@
 #                v2025.10-1                   #
 # # # # # # # # # # # # # # # # # # # # # # # #
 
-ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 TERMINALS=( "alacritty" "foot" "ptyxis"  "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
 
 # NOTE: When Flatpak Lutris is used, we don't have access to `aspnetcore-runtime`
