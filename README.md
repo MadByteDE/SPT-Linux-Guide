@@ -33,7 +33,6 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 [Lutris installer](docs/lutris/installer_additions.md) (Additions)
   - 
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
-  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 [Lutris installer](docs/lutris/installer_official.md) (Official)
   -
