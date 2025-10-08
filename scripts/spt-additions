@@ -18,10 +18,10 @@ fi
 shopt -s extglob
 
 # Make sure to throw an error and exit on SIGINT
-trap int INT; int() { err "Interrupt received"; }
+trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.4"; DATE="2025-10-07"
+VERSION="0.7.5"; DATE="2025-10-08"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -336,9 +336,9 @@ save_array() {
 
 
 set_prefix() {
-    local path="$(realpath -m "${1%/}")"
-    # Check if it's valid
-    check_prefix_path "${path}"
+    # Check if it's valid path
+    check_prefix_path "${1%/}"
+    local path="$( realpath -m "${1%/}" )"
 
     # Update WINEPREFIX environment variable
     export WINEPREFIX="${path}"
@@ -468,24 +468,26 @@ check_disk_space() {
 
 check_prefix_path() {
     local status=0 path
-    local prefix_path="$(realpath -m "${1%/}")"
+    local prefix_path="${1%/}"
+    [[ ! "${prefix_path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path: \"${prefix_path}\""
+    prefix_path="$(realpath -m "${prefix_path}")"
     local check_paths=("${prefix_path}/system.reg" "${prefix_path}/dosdevices" "${prefix_path}/drive_c")
+
     while true; do
-        [[ "${prefix_path:0:1}" != "/" ]] && status=1 && break
-        [[ -f "${prefix_path}" ]] && status=2 && break
+        [[ -f "${prefix_path}" ]] && status=1 && break
 
         # Check for write permissions
         local recursive_path="${prefix_path}"
         while [[ ! -d "${recursive_path}" ]]; do
             recursive_path="${recursive_path%/*}"
-            [[ "${recursive_path}" == "" ]] && status=3 && break
+            [[ "${recursive_path}" == "" ]] && status=2 && break
         done
-        [[ ! -w "${recursive_path}" ]] && status=4 && break
+        [[ ! -w "${recursive_path}" ]] && status=3 && break
 
         # Check directory content
         if [[ -d "${prefix_path}" ]] && [[ -n "$( m_ls -A "${prefix_path}" )" ]]; then
             for path in "${check_paths[@]}"; do
-                [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=5 && break
+                [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=4 && break
             done
         fi
         break
@@ -495,11 +497,10 @@ check_prefix_path() {
         # Reset to default path
         set_value config "prefix_dir=${DEFAULT_PFX_DIR}"
         case $status in
-            1) err "Missing leading \"/\" character: \"${prefix_path}\"" ;;
-            2) err "Given path is a file: \"${prefix_path}\"" ;;
-            3) err "Failed to resolve prefix path: \"${prefix_path}\"" ;;
-            4) err "No write permission for directory: \"${prefix_path}\"" ;;
-            5) err "Given directory is not empty or the prefix is corrupted: \"${prefix_path}\"" ;;
+            1) err "Given path is a file: \"${prefix_path}\"" ;;
+            2) err "Failed to resolve prefix path: \"${prefix_path}\"" ;;
+            3) err "No write permission for directory: \"${prefix_path}\"" ;;
+            4) err "Given directory is not empty or the prefix is corrupted: \"${prefix_path}\"" ;;
         esac
     fi
 }
@@ -1148,15 +1149,19 @@ opt_guided_install() {
     while true; do
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${CONFIG[prefix_dir]}\")${RESET}"
-        msg "(ctrl-c to cancel action)"
+        msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel action)"
         input=$(read_input)
-        [[ -n "$input" ]] && set_prefix "${input//[~]/"$HOME"}"
+        if [[ -n "$input" ]]; then
+            # HACK: Special input check for canceling the action
+            [[ "${input:0:1}" =~ ^[Qq]+$ ]] && m_exit
+            # Set the prefix
+            set_prefix "${input//[~]/"$HOME"}"
+        fi
 
-        msg;  check_eft_running;  check_aspnet
-
-        # Install dependencies
+        # Perform some checks
+        check_eft_running;  check_aspnet
         check_native_deps
-        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"; msg
+        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
 
         # Install EFT
         local install_eft=0
