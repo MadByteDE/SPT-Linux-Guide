@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.5"; DATE="2025-10-08"
+VERSION="0.7.6"; DATE="2025-10-09"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -212,8 +212,8 @@ warn() {
 err() {
     local message="$1"; local status="${2:-"1"}"
     local pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
-    msg "${pfx}${message} (Exit code: ${status})"
-    msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}"
+    msg "${pfx}${message} (Exit code: ${status})" 1>&2
+    msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}" 1>&2
     m_exit "$status"
 }
 
@@ -347,6 +347,7 @@ set_prefix() {
     set_value config "prefix_dir=${path}"
 
     # Update prefix paths
+    check_spt_path "${CONFIG[spt_dir]}"
     SPT_DIR="${CONFIG[prefix_dir]%/}/${CONFIG[spt_dir]%/}"
     BSG_DIR="${CONFIG[prefix_dir]%/}/drive_c/Battlestate Games"
     EFT_DIR=$( get_eft_path )
@@ -469,7 +470,7 @@ check_disk_space() {
 check_prefix_path() {
     local status=0 path
     local prefix_path="${1%/}"
-    [[ ! "${prefix_path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path: \"${prefix_path}\""
+    [[ ! "${prefix_path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path format: \"${prefix_path}\""
     prefix_path="$(realpath -m "${prefix_path}")"
     local check_paths=("${prefix_path}/system.reg" "${prefix_path}/dosdevices" "${prefix_path}/drive_c")
 
@@ -494,8 +495,6 @@ check_prefix_path() {
     done
 
     if [[ $status != 0 ]]; then
-        # Reset to default path
-        set_value config "prefix_dir=${DEFAULT_PFX_DIR}"
         case $status in
             1) err "Given path is a file: \"${prefix_path}\"" ;;
             2) err "Failed to resolve prefix path: \"${prefix_path}\"" ;;
@@ -545,7 +544,7 @@ check_native_deps() {
     local cmds=( "7zzs" "xxd" "hpatchz" "jq" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
-        if command -v "${cmd}" &>/dev/null; then return; fi
+        if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
             jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
         esac
@@ -557,7 +556,7 @@ check_native_deps() {
 check_eft_running() {
     local apps=( "BsgLauncher.exe" "EscapeFromTarko" )
     for app in "${apps[@]}"; do
-        if [[ -z $( pidof "${app}" ) ]]; then return; fi
+        if [[ -z $( pidof "${app}" ) ]]; then continue; fi
         warn "It looks like \"${app}\" is currently running on your system!"
         msg "> ${YELLOW} Please close the application & retry.${RESET}"
         err "\"${app}\" process found"
@@ -668,8 +667,6 @@ install_dep() {
 
 install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
-    [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
-
     check_disk_space 60
 
     # HACK: Fresh prefixes created with GE-Proton-10 contain reg keys for .NET 4.0,
@@ -807,7 +804,7 @@ install_spt() {
         ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
-    msg "${GREEN}Done! ※\(^o^)/※${RESET}"
+    msg "${GREEN}Done!${RESET}"
 }
 
 
@@ -1002,8 +999,10 @@ uninstall_prefix() {
 opt_patch() {
     msg "Patching game files..."
     local files_total
-    local target_path=$(realpath -m "${1%/:-"${SPT_DIR}"}")
-    local source_path=$(realpath -q -m "${2%/:-"${SPT_DIR}"}")
+    local target_path="${1:-"${SPT_DIR}"}"
+    local source_path="${2:-"${SPT_DIR}"}"
+    target_path=$( realpath -m "${target_path%/}" )
+    source_path=$( realpath -m "${source_path%/}" )
 
     # Fail if the target director does not exist
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
@@ -1127,7 +1126,7 @@ opt_uninstall() {
 
 
 opt_guided_install() {
-    local input
+    local input prefix_path
     # Overview
     {
         msg "░█▀▀░█▀█░▀█▀░░░█▀█░█▀▄░█▀▄░▀█▀░▀█▀░▀█▀░█▀█░█▀█░█▀▀"
@@ -1137,38 +1136,42 @@ opt_guided_install() {
         msg
         msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
         msg
-        msg "${YELLOW}This CLI installer will perform the following steps:${RESET}"
-        msg "- Install latest GE-Proton (if not installed already)"
-        msg "- Setup the wine prefix, install dependencies & apply game specific workarounds"
-        msg "- Install the BSG Launcher"
-        msg "- Install SPTarkov"
-        msg "- Add application menu shortcuts"
+        msg "${BOLD}${YELLOW}This CLI installer will perform the following steps:${RESET}"
+        msg " ~> Install latest GE-Proton (if not installed already)"
+        msg " ~> Setup the wine prefix, install dependencies & apply game specific workarounds"
+        msg " ~> Install the BSG Launcher"
+        msg " ~> Install SPTarkov"
+        msg " ~> Add application menu shortcuts"
         msg
     } | more
     
     while true; do
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${CONFIG[prefix_dir]}\")${RESET}"
-        msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel action)"
+        msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
         input=$(read_input)
         if [[ -n "$input" ]]; then
             # HACK: Special input check for canceling the action
             [[ "${input:0:1}" =~ ^[Qq]+$ ]] && m_exit
-            # Set the prefix
-            set_prefix "${input//[~]/"$HOME"}"
+            prefix_path="${input//[~]/"$HOME"}"
         fi
 
+        # Set and check the prefix path
+        set_prefix "${prefix_path:-${CONFIG[prefix_dir]}}"
+
         # Perform some checks
-        check_eft_running;  check_aspnet
-        check_native_deps
+        check_eft_running;  check_aspnet;  check_native_deps
         [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+
+        # Initialize the prefix if needed
+        [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
 
         # Install EFT
         local install_eft=0
          # Ask to skip EFT installation if it's already installed
         EFT_DIR=$( get_eft_path )
         if [[ -n "${EFT_DIR}" ]]; then
-            yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
+            msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
             [[ "$?" == 0 ]] && install_eft=1
         fi
 
@@ -1190,35 +1193,43 @@ opt_guided_install() {
 
         # If Faugus Launcher is installed, aske to add shortcuts to it
         if check_faugus; then
-            msg "Looks like you have \"Faugus-Launcher\" installed on your system."
+            msg; msg "${BOLD}${YELLOW}Looks like you have \"Faugus-Launcher\" installed on your system.${RESET}"
             yesno "Do you want to add EFT/SPT shortcuts to it?"
             [[ "$?" == 0 ]] && opt_shortcut faugus
         fi
 
         # Ask to install script to local bin directory
-        local bin_paths=( "${XDG_BIN_HOME:-${HOME}/.local/bin}" "${HOME}/bin" )
+        local bin_paths=( "${HOME}/.local/bin" "${HOME}/bin" "${XDG_BIN_HOME}" )
         local bin_path
         for path in "${bin_paths[@]}"; do
-            if [[ ! $( echo "$PATH" | grep "${path}" ) ]]; then return; fi
+            if [[ -z $( echo "$PATH" | grep "${path}" ) ]]; then continue; fi
             bin_path="${path}"
             break
         done
 
-        if [[ -n "${bin_path}" ]] && [[ ! -f "${bin_path}/${TITLE}" ]]; then
-            msg "${YELLOW}Found \"${bin_path}\" in the PATH environment variable.${RESET}"
-            msg "   > ${TITLE} provides useful CLI commands to manage your wine prefix."
-            yesno "Do you want to install ${TITLE} into the user bin directory (\"${bin_path}\")?"
-            if [[ "$?" == 0 ]]; then
-                [[ ! -d "${bin_path}" ]] && m_mkdir "${bin_path}"
-                msg "Downloading \"${TITLE}\"..."
-                cd "${bin_path}" && m_curl -LO "${URL[installer-script]}"
-                m_chmod +x "${bin_path}/${TITLE}"
-                msg "${GREEN}Successfully installed ${TITLE} into \"${bin_path}\"!${RESET}"
-                msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" for more details."
+        if [[ -z "${bin_path}" ]]; then
+            if [[ ! -f "${bin_path}/${TITLE}" ]]; then
+                msg; msg "${BOLD}${YELLOW}Found \"${bin_path}\" in the PATH environment variable.${RESET}"
+                msg "   > ${GREEN}${TITLE}${RESET} provides useful CLI commands to manage your wine prefix."
+                msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" after installing it for more details."
+                yesno "Do you want to install ${TITLE} into the user bin directory (\"${bin_path}\")?"
+
+                if [[ "$?" == 0 ]]; then
+                    [[ ! -d "${bin_path}" ]] && m_mkdir "${bin_path}"
+                    msg "Downloading \"${TITLE}\"..."
+                    cd "${bin_path}" && m_curl -LO "${URL[installer-script]}"
+                    m_chmod +x "${bin_path}/${TITLE}"
+                    msg "${GREEN}Successfully installed ${TITLE} into \"${bin_path}\"!${RESET}"
+                fi
             fi
+        else
+            msg; msg "${BOLD}${GREEN}${TITLE}${YELLOW} provides useful CLI commands for managing your wine prefix!${RESET}"
+            msg "   > Consider adding the script to your PATH variable for ease of use!"
+            msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" after installing it for more details."
         fi
 
         # All done!
+        msg; msg "${BOLD}${GREEN}All done! ※\(^o^)/※${RESET}"
         msg
         msg "${BOLD}${BLUE}You need help or just wanna hang out with ${GREEN}THE NERDS${RESET}?:${RESET}"
         msg "   ${URL[discord]}"
@@ -1234,7 +1245,6 @@ opt_run() {
     # SYNTAX: spt-additions -e MANGOHUD=1 run spt-launcher 
     local option="$1" && shift
     [[ -z "${option}" ]] && err "Option \"run\" requires an argument"
-    [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
     
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
@@ -1624,10 +1634,16 @@ handle_opts() {
     shift $((OPTIND-1))
 
     local option="${1}" && shift
-
-    # Install umu
+    
     case "${option}" in
-        install|run|patch) [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}" ;;
+        install|run)
+            # Install umu if it's missing
+            [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+            # Check & set the prefix path
+            set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
+            # Initialize the prefix if it doesn't exist yet
+            [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
+        ;;
     esac
 
     # Handle options
@@ -1673,13 +1689,6 @@ main() {
     # Load config files
     [[ -f "${CONFIG_PATH}" ]] && load_array config
     [[ -f "${ENV_PATH}" ]] && load_array env
-
-    # Update prefix paths
-    check_prefix_path "${CONFIG[prefix_dir]}"
-    check_spt_path "${CONFIG[spt_dir]}"
-    SPT_DIR="${CONFIG[prefix_dir]%/}/${CONFIG[spt_dir]%/}"
-    BSG_DIR="${CONFIG[prefix_dir]%/}/drive_c/Battlestate Games"
-    EFT_DIR=$( get_eft_path )
 
     # Export paths
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
