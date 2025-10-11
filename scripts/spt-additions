@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.7"; DATE="2025-10-11"
+VERSION="0.7.8"; DATE="2025-10-11"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -336,7 +336,7 @@ save_array() {
 
 
 set_prefix() {
-    # Check if it's valid path
+    # Validate path
     check_prefix_path "${1%/}"
     local path="$( realpath -m "${1%/}" )"
 
@@ -672,7 +672,7 @@ install_eft() {
     # HACK: Fresh prefixes created with GE-Proton-10 contain reg keys for .NET 4.0,
     # causing the `dotnet40` verb to fail because "v4.0 is already installed".
     if ! check_verb "dotnet40"; then
-        msg "Workaround Proton \"dotnet40\" installer issue..."
+        msg "Apply Proton \"dotnet48\" installer workaround..."
         $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>> "${LOG_PATH}" ) \
         || warn "Failed to apply \"dotnet40\" installer workaround"
     fi
@@ -680,7 +680,7 @@ install_eft() {
     # Install game dependencies
     # HACK: PowerShell is required for the SPTInstaller, but we have to install it
     # before `dotnet48` because otherwise the installation will fail
-    install_verb "powershell" "Installing Microsoft PowerShell"
+    # install_verb "powershell" "Installing Microsoft PowerShell"
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
     
@@ -689,7 +689,7 @@ install_eft() {
     m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
     
     # Add mouse focus workaround
-    msg "Adding mouse focus workaround to registry..."
+    msg "Adding mouse focus workaround..."
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
     
     # Download BSG Launcher setup file
@@ -713,7 +713,7 @@ install_eft() {
     # Create application shortcut
     opt_shortcut bsg-launcher
 
-    msg "${GREEN}Done! ※\(^o^)/※${RESET}"
+    msg "${GREEN}Done!${RESET}"
 }
 
 
@@ -741,7 +741,7 @@ install_spt() {
     install_verb "dotnetdesktop9" "Installing .NET Desktop 9 Runtime"
 
     # Add DLL overrides
-    msg "Adding DLL overrides to registry..."
+    msg "Adding \"winhttp\" DLL override..."
     m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f 1>> "${LOG_PATH}"
 
     # Install SPT
@@ -788,7 +788,8 @@ install_spt() {
     install_server_script
 
     # Create launcher shortcut inside the root directory
-    ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
+    ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" &>> "${LOG_PATH}"\
+    || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
 
     case "${install_mode}" in
         native|proton)
@@ -1284,7 +1285,7 @@ opt_env() {
     value=$( echo "${keyval}" | cut -d "=" -f 2- )
     [[ "${key}" == "${value}" ]] && unset value
 
-    # If the key begins with a - we actually wanna unset it!
+    # If the key begins with a '-' we actually wanna unset it!
     if [[ $key == -* ]]; then
         key="${key:1}"
         opt_env unset "${key}"
