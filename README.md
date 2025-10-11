@@ -16,6 +16,10 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ## Overview
 
+> [!NOTE]
+> SPT 4.0 has been released! Please check out [my write up](./docs/news/spt40-release.md) about Linux support & the [official release announcement](https://github.com/sp-tarkov/build/releases/tag/4.0.0)!
+
+
 ### Automated install
 
 Additions CLI installer 🤓
