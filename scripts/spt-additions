@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.8"; DATE="2025-10-11"
+VERSION="0.7.9"; DATE="2025-10-11"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -74,6 +74,7 @@ URL[xxd]="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.1.1230-2_amd64.d
 # Installers
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
 URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
+URL[aspnet-windows]="https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.9/aspnetcore-runtime-9.0.9-win-x64.exe"
 
 # Scripts
 URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions"
@@ -678,9 +679,6 @@ install_eft() {
     fi
 
     # Install game dependencies
-    # HACK: PowerShell is required for the SPTInstaller, but we have to install it
-    # before `dotnet48` because otherwise the installation will fail
-    # install_verb "powershell" "Installing Microsoft PowerShell"
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
     
@@ -759,6 +757,16 @@ install_spt() {
             # The SPTInstaller needs GE-Proton instead of UMU-Latest
             export PROTONPATH="GE-Proton"
 
+            # Download ASP.NET Runtime
+            if ! [[ -f "${CACHE_DIR}/aspnetcore-runtime.exe" ]]; then
+                msg "Downloading Microsoft ASP.NET Runtime 9..."
+                cd "${CACHE_DIR}" && m_curl -L "${URL[aspnet-windows]}" -o "aspnetcore-runtime.exe"
+            fi
+
+            # Install ASP.NET Runtime
+            msg "Installing Microsoft ASP.NET Runtime 9..."
+            m_umu "${CACHE_DIR}/aspnetcore-runtime.exe" /q
+
             # Download SPT Installer
             if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
                 msg "Downloading SPTInstaller.exe..."
@@ -780,6 +788,9 @@ install_spt() {
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="${path}"
+
+            # Make the Linux server executable
+            m_chmod +x "${SPT_DIR}/SPT/SPT.Server.Linux"
         ;;
         ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
