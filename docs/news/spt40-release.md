@@ -39,8 +39,8 @@ If you're a developer yourself & know C# - I'm sure many mod authors are open fo
 
 
 ***
-Still having issues? Visit our [issues section](../../docs/issues.md).
+Still having issues? Visit our [issues section](../issues.md).
 
 ***
 
-[Back to landing page](../README.md)
+[Back to landing page](../../README.md)
