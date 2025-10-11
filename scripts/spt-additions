@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.6"; DATE="2025-10-09"
+VERSION="0.7.7"; DATE="2025-10-11"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -109,7 +109,7 @@ m_mkdir() { mkdir -p "$@" &>> "${LOG_PATH}" || err "Command \"mkdir $*\" failed"
 m_ls() { ls "$@" 2>> "${LOG_PATH}" || err "Command \"ls $*\" failed" "$?"; }
 m_mv() { mv "$@" &>> "${LOG_PATH}" || err "Command \"mv $*\" failed" "$?"; }
 m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl $*\" failed" "$?"; }
-m_umu() { "${UMU_PATH}" "$@" &>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed" "$?"; }
+m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed" "$?"; }
 
 
 m_rm() {
@@ -629,7 +629,7 @@ check_ttl() {
 install_verb() {
     local verb="${1}"; local text="${2}"
     if ! check_verb "${verb}"; then
-        msg "${text}..."; m_umu winetricks -q "${verb}"
+        msg "${text}..."; m_umu winetricks -q "${verb}" 1>> "${LOG_PATH}"
     fi
 }
 
@@ -673,21 +673,24 @@ install_eft() {
     # causing the `dotnet40` verb to fail because "v4.0 is already installed".
     if ! check_verb "dotnet40"; then
         msg "Workaround Proton \"dotnet40\" installer issue..."
-        $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>/dev/null ) \
+        $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>> "${LOG_PATH}" ) \
         || warn "Failed to apply \"dotnet40\" installer workaround"
     fi
 
     # Install game dependencies
+    # HACK: PowerShell is required for the SPTInstaller, but we have to install it
+    # before `dotnet48` because otherwise the installation will fail
+    install_verb "powershell" "Installing Microsoft PowerShell"
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
-
+    
     # Add prefix update pop-up workaround
     msg "Adding \"RUNDLL32\" pop-up workaround..."
-    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
+    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
     
     # Add mouse focus workaround
     msg "Adding mouse focus workaround to registry..."
-    m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f
+    m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
     
     # Download BSG Launcher setup file
     if [[ ! -f "${CACHE_DIR}/BsgLauncher.exe" ]]; then
@@ -739,7 +742,7 @@ install_spt() {
 
     # Add DLL overrides
     msg "Adding DLL overrides to registry..."
-    m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f
+    m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f 1>> "${LOG_PATH}"
 
     # Install SPT
     case "$install_mode" in
@@ -747,7 +750,7 @@ install_spt() {
         lutris)
             # Add prefix update pop-up workaround
             msg "Adding \"RUNDLL32\" pop-up workaround..."
-            m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f
+            m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
 
             # Install SPT
             install_spt_native
@@ -768,7 +771,7 @@ install_spt() {
                 [[ $(readlink "${cache_dir}") != "${CACHE_DIR}" ]] && m_rmdir "${cache_dir}"
             fi
             [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
-            ln -s -n "${CACHE_DIR}" "${cache_dir}" 2>/dev/null
+            ln -s -n "${CACHE_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
             
             # Convert SPT directory path to windows path
             local path="${CONFIG[spt_dir]//\//\\}"
@@ -785,7 +788,7 @@ install_spt() {
     install_server_script
 
     # Create launcher shortcut inside the root directory
-    ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" || warn "Failed to create link for \"SPT.Launcher.exe\""
+    ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
 
     case "${install_mode}" in
         native|proton)
