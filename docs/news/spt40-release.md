@@ -13,7 +13,7 @@ And with this *huge* update, there's also some good news for us Linux nerds:
         - `spt-additions run winetricks win11`
         - `spt-additions run winecfg`
         - `spt-additions env set MANGOHUD=1`
-    - For a full list of commands, [get the script](https://github.com/MadByteDE/SPT-Linux-Guide/scripts/spt-additions) & run `spt-additions -h` from a terminal
+    - For a full list of commands, [get the script](https://github.com/MadByteDE/SPT-Linux-Guide/blob/main/scripts/spt-additions) & run `spt-additions -h` from a terminal
 - Lutris installations now automatically launch & close the server with the launcher!
 
 There also is a [new install method](https://github.com/MadByteDE/SPT-Linux-Guide/tree/SPTv4-Release?tab=readme-ov-file#overview) available, utilizing the new capabilities of the `spt-additions` script - check it out!
