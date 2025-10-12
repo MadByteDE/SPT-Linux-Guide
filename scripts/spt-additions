@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.9"; DATE="2025-10-11"
+VERSION="0.7.10"; DATE="2025-10-12"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -929,7 +929,8 @@ install_server_script() {
     cat <<'EOF' > "${path}"
 #!/usr/bin/env bash
 ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
-TERMINALS=( "alacritty" "foot" "ptyxis"  "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
+TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
+            "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
 
 # NOTE: When Flatpak Lutris is used, we don't have access to `aspnetcore-runtime`
 # packages on the host system. To work around this limitation,
@@ -1022,10 +1023,8 @@ opt_patch() {
     # Fail if the target director does not exist
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
 
-    # Make sure hpatchz is installed
-    if ! command -v "hpatchz" &>/dev/null; then
-        install_dep "hpatchz" "${URL[hpatchz]}" || err "Missing dependency \"hpatchz\". Please install it & try again"
-    fi
+    # Make sure all native dependencies are installed
+    check_native_deps
 
     # Search in optional SOURCE directory
     if [ "$( find "${source_path}" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
@@ -1456,20 +1455,12 @@ opt_shortcut() {
 opt_clean() {
     # SYNTAX: spt-additions clean all --no-prompt
     local option="$1" && shift
+    local dir_path
 
     case "${option}" in
-        cache)
-            msg "Removing Cache directory: \"${CACHE_DIR}\"..."
-            [[ -d "${CACHE_DIR}" ]] && m_rmdir "${CACHE_DIR}"
-        ;;
-        config)
-            msg "Removing config directory: \"${CONFIG_DIR}\"..."
-            [[ -d "${CONFIG_DIR}" ]] && m_rmdir "${CONFIG_DIR}"
-        ;;
-        data)
-            msg "Removing data directory: \"${DATA_DIR}\"..."
-            [[ -d "${DATA_DIR}" ]] && m_rmdir "${DATA_DIR}"
-        ;;
+        cache) dir_path="${CACHE_DIR}" ;;
+        config) dir_path="${CONFIG_DIR}" ;;
+        data) dir_path="${DATA_DIR}" ;;
         all)
             # Warn user before continuing
             {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
@@ -1482,11 +1473,22 @@ opt_clean() {
             export NO_PROMPT=1
             opt_clean data;  opt_clean config;  opt_clean cache
             msg "${GREEN}Done!${RESET}"
+            m_exit 0
         ;;
-        help|-h|--help) opt_help "clean";;
+        help|-h|--help) opt_help "clean"; m_exit 0 ;;
         "") err "Option \"clean\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
+
+    # Warn user before continuing
+    if [[ -n "${dir_path}" ]] && [[ "${NO_PROMPT}" != 1 ]]; then
+        {   msg "${BOLD}This action will remove the following directory:${RESET}"
+            msg "    > ${UNDERLINE}${dir_path}${RESET}"
+        } | more
+        yesno "Do you want to continue?" || m_exit 0
+        msg "Removing ${option} directory: \"${dir_path}\"..."
+        [[ -d "${dir_path}" ]] && m_rmdir "${dir_path}"
+    fi
 }
 
 
@@ -1651,7 +1653,7 @@ handle_opts() {
     local option="${1}" && shift
     
     case "${option}" in
-        install|run)
+        install|run|patch)
             # Install umu if it's missing
             [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
             # Check & set the prefix path
