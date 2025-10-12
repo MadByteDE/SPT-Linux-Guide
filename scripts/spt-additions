@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.10"; DATE="2025-10-12"
+VERSION="0.7.11"; DATE="2025-10-12"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -78,6 +78,7 @@ URL[aspnet-windows]="https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runti
 
 # Scripts
 URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions"
+URL[server-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/launch-server.sh"
 
 # Icons
 URL[bsg-launcher-ico]="https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png"
@@ -795,8 +796,10 @@ install_spt() {
         ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
-    # Install server launch script
-    install_server_script
+    # Install the latest server launch script
+    msg "Downloading latest \"launch-server.sh\" script..."
+    cd "${SPT_DIR}" && m_curl -s -LO "${URL[server-script]}"
+    m_chmod +x "${SPT_DIR}/launch-server.sh"
 
     # Create launcher shortcut inside the root directory
     ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" &>> "${LOG_PATH}"\
@@ -920,37 +923,6 @@ install_spt_native() {
     # Extract mod archive to install directory
     msg "Extracting \"mod\" archive..."
     m_7z "${MOD_PATH}" "${SPT_DIR}"
-}
-
-
-install_server_script() {
-    # Server launch script
-    local path="${SPT_DIR}/launch-server.sh"
-    cat <<'EOF' > "${path}"
-#!/usr/bin/env bash
-ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
-TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
-            "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
-
-# NOTE: When Flatpak Lutris is used, we don't have access to `aspnetcore-runtime`
-# packages on the host system. To work around this limitation,
-# we use `flatpak-spawn --host` to launch the server outside of the sandboxed
-# environment. (not supported with some desktop portals on Wayland e.g. `cinnamon/xapp`)
-m_run() {
-    if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
-    else flatpak-spawn --host "$@"; fi
-}
-
-# Skip launch if another instance is already running
-[[ -n $( m_run pidof "SPT.Server.Linux" ) ]] && exit 0
-
-for term in "${TERMINALS[@]}"; do
-    if ! m_run command -v $term &>/dev/null; then continue; fi
-    cd "${ROOT_PATH}/SPT"
-    m_run $term -e "./SPT.Server.Linux"; break
-done
-EOF
-    m_chmod +x "${path}"
 }
 
 
