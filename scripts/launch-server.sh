@@ -2,11 +2,12 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 #       SPT - Server pre-launch script        #
-#                v2025.10-1                   #
+#                v2025.10-2                   #
 # # # # # # # # # # # # # # # # # # # # # # # #
 
 ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
-TERMINALS=( "alacritty" "foot" "ptyxis"  "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
+TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
+            "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
 
 # NOTE: When Flatpak Lutris is used, we don't have access to `aspnetcore-runtime`
 # packages on the host system. To work around this limitation,
