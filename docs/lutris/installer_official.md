@@ -13,7 +13,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - Tested wine versions:
     - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
     - **[wine-10.x-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-    - **[wine-kron4ek-10.8 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.8)** (install & play)
+    - **[wine-kron4ek-10.16 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.16)** (install & play)
         
 ### - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 

@@ -42,7 +42,7 @@ We provide two methods to patch the game files on Linux.
 
 - **Wine**
     - Tested wine versions:
-        - **[wine-kron4ek-10.10 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.10)**
+        - **[wine-kron4ek-10.16 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.16)**
         - **[wine-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)**
 
 ### Installation
