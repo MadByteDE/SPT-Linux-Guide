@@ -2,27 +2,38 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 #       SPT - Server pre-launch script        #
-#                v2025.10-2                   #
+#                v2025.10-3                   #
 # # # # # # # # # # # # # # # # # # # # # # # #
 
 ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
             "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
 
-# NOTE: When Flatpak Lutris is used, we don't have access to `aspnetcore-runtime`
-# packages on the host system. To work around this limitation,
-# we use `flatpak-spawn --host` to launch the server outside of the sandboxed
-# environment. (not supported with some desktop portals on Wayland e.g. `cinnamon/xapp`)
-m_run() {
-    if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
-    else flatpak-spawn --host "$@"; fi
+err() {
+    local msg="${1}"  status=${2:-1}
+    if [[ status != 0 ]]; then
+        echo "ERROR: $msg (Exit code: $status)"
+        exit $status
+    fi
 }
 
-# Skip launch if another instance is already running
-[[ -n $( m_run pidof "SPT.Server.Linux" ) ]] && exit 0
+# NOTE: `aspnetcore-runtime` on the host system is not available from a sandboxed environment.
+# Theirfore we use `flatpak-spawn --host` to launch the server on the host system.
+# This might not work with some Wayland desktop portals e.g. `cinnamon/xapp`
+m_run() {
+    if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
+    else flatpak-spawn --host "$@" || err "Command \"flatpak-spawn --host $@\" failed"; fi
+}
+
+if [[ -n $( m_run pidof "SPT.Server.Linux" ) ]]; then
+    err "Another instance of the server is already running"
+fi
 
 for term in "${TERMINALS[@]}"; do
     if ! m_run command -v $term &>/dev/null; then continue; fi
     cd "${ROOT_PATH}/SPT"
-    m_run $term -e "./SPT.Server.Linux"; break
+    m_run $term -e "./SPT.Server.Linux" || err "Failed to run \"SPT.Server.Linux\""
+    exit
 done
+
+err "Failed to find a terminal emulator"
