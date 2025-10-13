@@ -36,7 +36,7 @@ readonly DATA_DIR="${DATA_HOME}/${TITLE}"
 readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 readonly RUNTIME_DIR="${DATA_DIR}/runtime"
-readonly TMP_DIR="$(mktemp -d)"
+readonly TMP_DIR="$( mktemp -d "/tmp/spt-XXXXX" )"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
 
@@ -102,7 +102,8 @@ readonly -A URL
 
 m_exit() {
     local status=${1:-$?}
-    m_rmdir "${TMP_DIR}"; exit "${status}"
+    m_rmdir "${TMP_DIR}"
+    exit "${status}"
 }
 
 
@@ -125,7 +126,7 @@ m_rmdir() {
     local path="$(realpath -m "${1%/}")" && shift
     [[ -f "${path}" ]] && warn "Cannot remove single files. Use \"m_rm\" instead." && exit 1
     case "${path}" in
-        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/tmp"*)
+        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/spt"*)
             if [[ ! -d "${path}" ]]; then return; fi
             rm -r "${path}" "$@" || exit 1
         ;;
@@ -644,14 +645,16 @@ install_dep() {
     msg "Downloading \"${filename}\"..."
     cd "${TMP_DIR}" && m_curl -s -L "${url}" -o "${filename}"
 
-    # Extract archive
     case "${filename}" in
+        # Extract archive
         *.zip*|*.7z*) m_7z "${filename}" "${TMP_DIR}" ;;
         *.tar*) tar -xf "${filename}" || err "Failed to extract tar archive" ;;
         *.deb*)
             m_7z "${filename}" "${TMP_DIR}"
             tar -xf "data.tar" || err "Failed to extract tar archive"
         ;;
+        # Single file workarounds
+        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" ;;
         *) ;;
     esac
 
