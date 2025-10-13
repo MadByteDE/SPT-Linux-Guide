@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.7.11"; DATE="2025-10-12"
+VERSION="0.7.12"; DATE="2025-10-13"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -36,7 +36,7 @@ readonly DATA_DIR="${DATA_HOME}/${TITLE}"
 readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 readonly RUNTIME_DIR="${DATA_DIR}/runtime"
-readonly TMP_DIR="$(mktemp -d)"
+readonly TMP_DIR="$( mktemp -d "/tmp/spt-XXXXX" )"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
 
@@ -65,7 +65,7 @@ readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
 # Libraries / Tools
-URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
+URL[umu-run]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[7zzs]="https://github.com/ip7z/7zip/releases/download/25.01/7z2501-linux-x64.tar.xz"
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
 URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
@@ -102,7 +102,8 @@ readonly -A URL
 
 m_exit() {
     local status=${1:-$?}
-    m_rmdir "${TMP_DIR}"; exit "${status}"
+    m_rmdir "${TMP_DIR}"
+    exit "${status}"
 }
 
 
@@ -125,7 +126,7 @@ m_rmdir() {
     local path="$(realpath -m "${1%/}")" && shift
     [[ -f "${path}" ]] && warn "Cannot remove single files. Use \"m_rm\" instead." && exit 1
     case "${path}" in
-        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/tmp"*)
+        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/spt"*)
             if [[ ! -d "${path}" ]]; then return; fi
             rm -r "${path}" "$@" || exit 1
         ;;
@@ -543,12 +544,17 @@ check_aspnet() {
 
 check_native_deps() {
     local status
-    local cmds=( "7zzs" "xxd" "hpatchz" "jq" )
+    local cmds=( "python3" "curl" "7zzs" "xxd" "hpatchz" "jq" "umu-run" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
         if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
-            jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
+            # Required tools / libraries
+            python3|curl) warn "Cannot find \"${cmd}\"!"; status=1 ;;
+            # Downloadable tools / libraries
+            jq|hpatchz|xxd|7zzs|umu-run) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
+            # Optional tools / libraries
+            flatpak) warn "Cannot find \"${cmd}\"!" ;;
         esac
     done
     [ "$status" = 1 ] && err "Please install all missing dependencies & try again."
@@ -644,14 +650,16 @@ install_dep() {
     msg "Downloading \"${filename}\"..."
     cd "${TMP_DIR}" && m_curl -s -L "${url}" -o "${filename}"
 
-    # Extract archive
     case "${filename}" in
+        # Extract archive
         *.zip*|*.7z*) m_7z "${filename}" "${TMP_DIR}" ;;
         *.tar*) tar -xf "${filename}" || err "Failed to extract tar archive" ;;
         *.deb*)
             m_7z "${filename}" "${TMP_DIR}"
             tar -xf "data.tar" || err "Failed to extract tar archive"
         ;;
+        # Single file workarounds
+        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" || err "Failed to re-name \"${filename}\"" ;;
         *) ;;
     esac
 
@@ -670,14 +678,6 @@ install_dep() {
 install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
     check_disk_space 60
-
-    # HACK: Fresh prefixes created with GE-Proton-10 contain reg keys for .NET 4.0,
-    # causing the `dotnet40` verb to fail because "v4.0 is already installed".
-    if ! check_verb "dotnet40"; then
-        msg "Apply Proton \"dotnet48\" installer workaround..."
-        $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>> "${LOG_PATH}" ) \
-        || warn "Failed to apply \"dotnet40\" installer workaround"
-    fi
 
     # Install game dependencies
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
@@ -1147,7 +1147,6 @@ opt_guided_install() {
 
         # Perform some checks
         check_eft_running;  check_aspnet;  check_native_deps
-        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
 
         # Initialize the prefix if needed
         [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
@@ -1626,8 +1625,7 @@ handle_opts() {
     
     case "${option}" in
         install|run|patch)
-            # Install umu if it's missing
-            [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+            check_native_deps
             # Check & set the prefix path
             set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
             # Initialize the prefix if it doesn't exist yet
