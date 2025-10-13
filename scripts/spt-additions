@@ -65,7 +65,7 @@ readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
 # Libraries / Tools
-URL[umu-launcher]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
+URL[umu-run]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
 URL[7zzs]="https://github.com/ip7z/7zip/releases/download/25.01/7z2501-linux-x64.tar.xz"
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
 URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
@@ -544,7 +544,7 @@ check_aspnet() {
 
 check_native_deps() {
     local status
-    local cmds=( "python3" "curl" "7zzs" "xxd" "hpatchz" "jq" )
+    local cmds=( "python3" "curl" "7zzs" "xxd" "hpatchz" "jq" "umu-run" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
         if command -v "${cmd}" &>/dev/null; then continue; fi
@@ -552,7 +552,7 @@ check_native_deps() {
             # Required tools / libraries
             python3|curl) warn "Cannot find \"${cmd}\"!"; status=1 ;;
             # Downloadable tools / libraries
-            jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
+            jq|hpatchz|xxd|7zzs|umu-run) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
             # Optional tools / libraries
             flatpak) warn "Cannot find \"${cmd}\"!" ;;
         esac
@@ -1147,7 +1147,6 @@ opt_guided_install() {
 
         # Perform some checks
         check_eft_running;  check_aspnet;  check_native_deps
-        [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
 
         # Initialize the prefix if needed
         [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
@@ -1626,8 +1625,7 @@ handle_opts() {
     
     case "${option}" in
         install|run|patch)
-            # Install umu if it's missing
-            [[ ! -f "${UMU_PATH}" ]] && install_dep "umu-run" "${URL[umu-launcher]}"
+            check_native_deps
             # Check & set the prefix path
             set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
             # Initialize the prefix if it doesn't exist yet
