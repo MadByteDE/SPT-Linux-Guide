@@ -659,7 +659,7 @@ install_dep() {
             tar -xf "data.tar" || err "Failed to extract tar archive"
         ;;
         # Single file workarounds
-        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" ;;
+        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" || err "Failed to re-name \"${filename}\"" ;;
         *) ;;
     esac
 
