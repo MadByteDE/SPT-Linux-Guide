@@ -544,12 +544,17 @@ check_aspnet() {
 
 check_native_deps() {
     local status
-    local cmds=( "7zzs" "xxd" "hpatchz" "jq" )
+    local cmds=( "python3" "curl" "7zzs" "xxd" "hpatchz" "jq" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
         if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
+            # Required tools / libraries
+            python3|curl) warn "Cannot find \"${cmd}\"!"; status=1 ;;
+            # Downloadable tools / libraries
             jq|hpatchz|xxd|7zzs) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
+            # Optional tools / libraries
+            flatpak) warn "Cannot find \"${cmd}\"!" ;;
         esac
     done
     [ "$status" = 1 ] && err "Please install all missing dependencies & try again."
