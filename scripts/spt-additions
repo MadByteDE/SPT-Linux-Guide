@@ -674,14 +674,6 @@ install_eft() {
     msg "Starting \"Escape from Tarkov\" setup..."
     check_disk_space 60
 
-    # HACK: Fresh prefixes created with GE-Proton-10 contain reg keys for .NET 4.0,
-    # causing the `dotnet40` verb to fail because "v4.0 is already installed".
-    if ! check_verb "dotnet40"; then
-        msg "Apply Proton \"dotnet48\" installer workaround..."
-        $( m_umu reg delete "HKLM\\Software\\Wow6432Node\\Microsoft\\NET Framework Setup\\NDP\\v4" /f 1>> "${LOG_PATH}" ) \
-        || warn "Failed to apply \"dotnet40\" installer workaround"
-    fi
-
     # Install game dependencies
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
