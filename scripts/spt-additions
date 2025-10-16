@@ -1380,7 +1380,6 @@ add_faugus_shortcut() {
 
 opt_shortcut() {
     # SYNTAX: spt-additions -p "" -e "" -a "" shortcut spt-launcher
-    local name executable working_dir path icon
     local option="$1" && shift
 
     case "${option}" in
