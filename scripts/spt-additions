@@ -258,7 +258,7 @@ set_value() {
     # Filter for invalid keys/values
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
     [[ ! "${key}" =~ ^[A-Za-z0-9_]+$ ]] && err "Key contains invalid characters: \"${key}\""
-    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
+    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[\ A-Za-z0-9/_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
 
     # Set value
     case "${array_name}" in
@@ -330,7 +330,7 @@ save_array() {
         env)
             [[ -f "${ENV_PATH}" ]] && m_rm "${ENV_PATH}"
             for key in "${!ENV[@]}"; do
-                echo "${key}=${ENV[$key]}" >> "${ENV_PATH}"
+                echo "${key}=\"${ENV[$key]}\"" >> "${ENV_PATH}"
             done
         ;;
         *) ;;
@@ -1319,8 +1319,8 @@ add_app_shortcut() {
 
     # Get env string
     local env="$( get_env )"
-    env+="WINEPREFIX=${CONFIG[prefix_dir]}"
-    [[ "${env}" != *"PROTONPATH"* ]] && env+=" PROTONPATH=GE-Proton"
+    env+="WINEPREFIX=\"${CONFIG[prefix_dir]}\""
+    [[ "${env}" != *"PROTONPATH"* ]] && env+=" PROTONPATH=\"GE-Proton\""
 
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
