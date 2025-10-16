@@ -1183,35 +1183,8 @@ opt_guided_install() {
             [[ "$?" == 0 ]] && opt_shortcut faugus
         fi
 
-        # Ask to install script to local bin directory
-        local bin_paths=( "${HOME}/.local/bin" "${HOME}/bin" "${XDG_BIN_HOME}" )
-        local bin_path
-        for path in "${bin_paths[@]}"; do
-            if [[ -z $( echo "$PATH" | grep "${path}" ) ]]; then continue; fi
-            bin_path="${path}"
-            break
-        done
-
-        if [[ -z "${bin_path}" ]]; then
-            if [[ ! -f "${bin_path}/${TITLE}" ]]; then
-                msg; msg "${BOLD}${YELLOW}Found \"${bin_path}\" in the PATH environment variable.${RESET}"
-                msg "   > ${GREEN}${TITLE}${RESET} provides useful CLI commands to manage your wine prefix."
-                msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" after installing it for more details."
-                yesno "Do you want to install ${TITLE} into the user bin directory (\"${bin_path}\")?"
-
-                if [[ "$?" == 0 ]]; then
-                    [[ ! -d "${bin_path}" ]] && m_mkdir "${bin_path}"
-                    msg "Downloading \"${TITLE}\"..."
-                    cd "${bin_path}" && m_curl -LO "${URL[installer-script]}"
-                    m_chmod +x "${bin_path}/${TITLE}"
-                    msg "${GREEN}Successfully installed ${TITLE} into \"${bin_path}\"!${RESET}"
-                fi
-            fi
-        else
-            msg; msg "${BOLD}${GREEN}${TITLE}${YELLOW} provides useful CLI commands for managing your wine prefix!${RESET}"
-            msg "   > Consider adding the script to your PATH variable for ease of use!"
-            msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" after installing it for more details."
-        fi
+        # Ask to install the script for ease of use
+        msg; opt_selfinstall
 
         # All done!
         msg; msg "${BOLD}${GREEN}All done! ※\(^o^)/※${RESET}"
@@ -1222,6 +1195,53 @@ opt_guided_install() {
         msg "${BOLD}${BLUE}Get your favorite mods from ${GREEN}THE FORGE${RESET}:"
         msg "   ${URL[forge]}"
         return 0
+    done
+}
+
+
+opt_selfinstall() {
+    local bin_paths=( "${HOME}/.local/bin" "${HOME}/bin" )
+    [[ -n "${XDG_BIN_HOME}" ]] && bin_paths+=( "${XDG_BIN_HOME}" )
+
+    # Check if PATH contains any of the user bin paths
+    for path in "${bin_paths[@]}"; do
+        if [[ -n $( echo "${PATH}" | grep "${path}" ) ]]; then break; fi
+        msg "${BOLD}${GREEN}${TITLE}${YELLOW} provides useful CLI commands for managing your wine prefix!${RESET}"
+        msg "   > Consider adding the script to your PATH variable for ease of use!"
+        msg "   > Run \"${GREEN}${TITLE} -h${RESET}\" after installing it for more details."
+        return 0
+    done
+
+    # Check if the script is already installed
+    for path in "${bin_paths[@]}"; do
+        if [[ -f "${path}/${TITLE}" ]]; then
+            msg "${BOLD}${GREEN}${TITLE}${RESET} is already installed in:"
+            msg "   > ${path}"
+            return 0
+        fi
+    done
+
+    # Search for bin paths in the PATH environment variable
+    for path in "${bin_paths[@]}"; do
+        if [[ -z $( echo "${PATH}" | grep "${path}" ) ]]; then continue; fi
+
+        # Found a user bin path
+        msg "${BOLD}${YELLOW}Found \"${path}\" in the PATH environment variable.${RESET}"
+        msg "   > ${GREEN}${TITLE}${RESET} provides useful CLI commands to manage your wine prefix."
+        yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?"
+
+        if [[ "$?" == 0 ]]; then
+            [[ ! -d "${path}" ]] && m_mkdir "${path}"
+            msg "Downloading \"${TITLE}\"..."
+            cd "${path}" && m_curl -LO "${URL[installer-script]}"
+            m_chmod +x "${path}/${TITLE}"
+            msg "${GREEN}Successfully installed ${TITLE} into \"${path}\"!${RESET}"
+            msg "   > Run \"${YELLOW}${TITLE} -h${RESET}\" for more details."
+            installed=1
+            return 0
+        else
+            break
+        fi
     done
 }
 
@@ -1563,7 +1583,8 @@ opt_help() {
                 msg "${BOLD}uninstall${RESET}       - Uninstall EFT/SPT from a prefix"
                 msg "${BOLD}patch${RESET}           - Downpatch EFT game files"
                 msg "${BOLD}shortcut${RESET}        - Create/update EFT/SPT shortcuts"
-                msg "${BOLD}self-update${RESET}     - Updates this installer script"
+                msg "${BOLD}self-install${RESET}    - Install this script to a local bin directory"
+                msg "${BOLD}self-update${RESET}     - Update this installer script"
                 msg "${BOLD}env${RESET}             - Set, unset and list active environment variables"
                 msg "${BOLD}run${RESET}             - Run EFT/SPT or custom commands inside the prefix"
                 msg "${BOLD}clean${RESET}           - Clean installer and prefix files"
@@ -1603,6 +1624,7 @@ handle_opts() {
                 case "${OPTARG}" in
                     no-prompt) export NO_PROMPT=1; msg "\"NO_PROMPT\" option set" ;;
                     no-ansi) export NO_ANSI=1; msg "\"NO_ANSI\" option set" ;;
+                    self-install) opt_selfinstall ;;
                     self-update) opt_selfupdate ;;
                     version) opt_version ;;
                     help) opt_help ;;
@@ -1643,6 +1665,7 @@ handle_opts() {
         env) opt_env "$@" ;;
         clean) opt_clean "$@" ;;
         self-update) opt_selfupdate ;;
+        self-install) opt_selfinstall ;;
         version) opt_version ;;
         help) opt_help "$@";;
         "") [[ $OPTIND -eq 1 ]] && opt_guided_install ;;
