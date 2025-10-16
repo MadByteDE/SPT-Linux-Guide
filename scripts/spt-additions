@@ -342,6 +342,7 @@ set_prefix() {
     # Validate path
     check_prefix_path "${1%/}"
     local path="$( realpath -m "${1%/}" )"
+    [[ -z "${path}" ]] && err "Path argument is not set"
 
     # Update WINEPREFIX environment variable
     export WINEPREFIX="${path}"
@@ -1653,6 +1654,7 @@ handle_opts() {
             # Initialize the prefix if it doesn't exist yet
             [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
         ;;
+        shortcut) set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null ;;
     esac
 
     # Handle options
