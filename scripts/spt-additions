@@ -1624,7 +1624,7 @@ handle_opts() {
     local option="${1}" && shift
     
     case "${option}" in
-        install|run|patch)
+        install|run)
             check_native_deps
             # Check & set the prefix path
             set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
