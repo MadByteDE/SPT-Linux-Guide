@@ -135,10 +135,14 @@ m_rm() {
 
 m_cp() {
     local source_path="${1}"; local target_path="${2}"
+    local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
 
     # Check if the target path is inside a valid directory
     case "${target_path}" in
-        *"${CONFIG[prefix_dir]}"* | *"${CACHE_DIR}"* | *"${DATA_DIR}"* | *"${HOME}/bin"* | *"${HOME}/.local/bin"*) ;;
+        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/bin"* |\
+        *"${HOME}/.local/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*)
+            # path is valid
+        ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
 
