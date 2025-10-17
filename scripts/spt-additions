@@ -122,12 +122,11 @@ m_rm() {
     if [[ -z "${path}" ]]; then msg "${err_pfx} Path variable is empty" && exit 1; fi
 
     local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
-
-    # Catch invalid paths to prevent data loss
     case "${path}" in
+        # Catch invalid paths to prevent data loss
         *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* |\
         *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*)
-            rm "$@" &>> "${LOG_PATH}" || warn "Command \"rm $*\" failed"
+            rm "$@" || warn "Command \"rm $*\" failed"
         ;;
         *) msg "${err_pfx} Cannot remove file or directory at: \"${path}\"" && exit 1 ;;
     esac
