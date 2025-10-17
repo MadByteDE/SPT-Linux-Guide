@@ -1323,7 +1323,7 @@ add_app_shortcut() {
     # Get env string
     local env="$( get_env )"
     env+="WINEPREFIX=\"${CONFIG[prefix_dir]}\""
-    [[ "${env}" != *"PROTONPATH"* ]] && env+=" PROTONPATH=\"GE-Proton\""
+    [[ "${env}" != *"PROTONPATH"* ]] && env+=" PROTONPATH=\"${PROTONPATH}\""
 
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
