@@ -848,6 +848,8 @@ install_spt_native() {
     patcher_hash=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
     patcher_eft=$( get_patcher_eft_version ) || err "Failed to get required EFT version for patcher" "$?"
     
+    msg "Latest SPT release is \"${mod_version}\""
+
     # Check for cached mod archive
     if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
         msg "Downloading mod archive..."
@@ -856,8 +858,6 @@ install_spt_native() {
         # Make sure the file is good to use
         check_hash "${MOD_PATH}" "${mod_hash}" || err "File \"${MOD_PATH}\" is corrupted"
     fi
-
-    msg "Latest SPT release is \"${mod_version}\""
 
     # Check if we need to patch the game files
     msg "Comparing installed EFT <--> required EFT versions"
