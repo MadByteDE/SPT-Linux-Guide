@@ -1657,7 +1657,7 @@ handle_opts() {
             # Initialize the prefix if it doesn't exist yet
             [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
         ;;
-        shortcut) set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null ;;
+        uninstall|shortcut) set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null ;;
     esac
 
     # Handle options
