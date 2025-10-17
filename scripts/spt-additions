@@ -102,7 +102,7 @@ readonly -A URL
 
 m_exit() {
     local status=${1:-$?}
-    m_rmdir "${TMP_DIR}"
+    m_rm -r "${TMP_DIR}"
     exit "${status}"
 }
 
@@ -116,21 +116,20 @@ m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" fa
 
 
 m_rm() {
-    local path="$(realpath -m "${1%/}")" && shift
-    [[ -d "${path}" ]] && err "Cannot remove directories. Use \"m_rmdir\" instead."
-    rm "${path}" "$@" &>> "${LOG_PATH}" || err "Command \"rm $*\" failed"
-}
+    local path="$( realpath -m "${@: -1}" )"
+    #HACK: We cannot use the err function since m_rm is called in m_exit
+    local err_pfx="${BOLD}${RED}ERROR ${FUNCNAME[0]}${RESET}:"
+    if [[ -z "${path}" ]]; then msg "${err_pfx} Path variable is empty" && exit 1; fi
 
+    local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
 
-m_rmdir() {
-    local path="$(realpath -m "${1%/}")" && shift
-    [[ -f "${path}" ]] && warn "Cannot remove single files. Use \"m_rm\" instead." && exit 1
+    # Catch invalid paths to prevent data loss
     case "${path}" in
-        *"${CONFIG[prefix_dir]}"*|*"${DATA_DIR}"*|*"${CACHE_DIR}"*|*"${CONFIG_DIR}"*|*"/tmp/spt"*)
-            if [[ ! -d "${path}" ]]; then return; fi
-            rm -r "${path}" "$@" || exit 1
+        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* |\
+        *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*)
+            rm "$@" &>> "${LOG_PATH}" || warn "Command \"rm $*\" failed"
         ;;
-        *) warn "Failed to remove \"${path}\": Invalid directory path"; exit 1 ;;
+        *) msg "${err_pfx} Cannot remove file or directory at: \"${path}\"" && exit 1 ;;
     esac
 }
 
@@ -778,7 +777,7 @@ install_spt() {
             # Symlink SPTInstaller cache directory to script cache directory
             local cache_dir="${CONFIG[prefix_dir]}/drive_c/users/steamuser/Application Data/spt-installer/cache"
             if [[ -d "${cache_dir}" ]]; then
-                [[ $(readlink "${cache_dir}") != "${CACHE_DIR}" ]] && m_rmdir "${cache_dir}"
+                [[ $(readlink "${cache_dir}") != "${CACHE_DIR}" ]] && m_rm -r "${cache_dir}"
             fi
             [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
             ln -s -n "${CACHE_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
@@ -938,7 +937,7 @@ uninstall_eft() {
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
-    m_rmdir "${BSG_DIR}"
+    m_rm -r "${BSG_DIR}"
 
     msg "Removing \"BSG Launcher\" shortcut..."
     app_path="${APP_DIR}/BSG - Launcher.desktop"
@@ -959,7 +958,7 @@ uninstall_spt() {
     fi
 
     msg "Uninstalling \"SPTarkov\"..."
-    m_rmdir "${SPT_DIR}"
+    m_rm -r "${SPT_DIR}"
 
     msg "Removing \"SPTarkov\" shortcuts..."
     local apps=( "SPT - Launcher.desktop" "SPT - Server.desktop" )
@@ -976,7 +975,7 @@ uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
     [[ ! -d "${CONFIG[prefix_dir]}" ]] && msg "Prefix directory does not exist" && return 0
     msg "Removing Prefix directory: \"${CONFIG[prefix_dir]}\""
-    m_rmdir "${CONFIG[prefix_dir]}"
+    m_rm -r "${CONFIG[prefix_dir]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
@@ -1040,7 +1039,7 @@ opt_patch() {
                 m_rm "${output}" || return 1
                 if [[ -z "$( m_ls -A "${dir_path}" )" ]]; then
                     msg -o "${progress_string} (-) Deleting directory: ${dir_path##*/}"
-                    m_rmdir "${dir_path}" || return 1
+                    m_rm -r "${dir_path}" || return 1
                 fi
             ;;
             "new")
@@ -1061,14 +1060,14 @@ opt_patch() {
     local status=$?
     if [[ "$status" -ne "0" ]]; then
         # Failed patching
-        m_rmdir "${SPT_DIR}" && err "Failed to patch game files" $status
+        m_rm -r "${SPT_DIR}" && err "Failed to patch game files" $status
     fi
     
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         msg "Cleaning up patch files..."
-        [[ -d "${source_path}/SPT_Patches" ]] && m_rmdir "${source_path}/SPT_Patches"
-        [[ -f "${source_path}/patcher.exe" ]] && m_rmdir "${source_path}/patcher.exe"
+        [[ -d "${source_path}/SPT_Patches" ]] && m_rm -r "${source_path}/SPT_Patches"
+        [[ -f "${source_path}/patcher.exe" ]] && m_rm -r "${source_path}/patcher.exe"
     fi
 
     msg "Done patching game files!"
@@ -1478,7 +1477,7 @@ opt_clean() {
         } | more
         yesno "Do you want to continue?" || m_exit 0
         msg "Removing ${option} directory: \"${dir_path}\"..."
-        [[ -d "${dir_path}" ]] && m_rmdir "${dir_path}"
+        [[ -d "${dir_path}" ]] && m_rm -r "${dir_path}"
     fi
 }
 
