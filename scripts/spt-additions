@@ -1474,11 +1474,13 @@ opt_clean() {
     esac
 
     # Warn user before continuing
-    if [[ -n "${dir_path}" ]] && [[ "${NO_PROMPT}" != 1 ]]; then
-        {   msg "${BOLD}This action will remove the following directory:${RESET}"
-            msg "    > ${UNDERLINE}${dir_path}${RESET}"
-        } | more
-        yesno "Do you want to continue?" || m_exit 0
+    if [[ -n "${dir_path}" ]]; then
+        if [[ "${NO_PROMPT}" != 1 ]]; then
+            {   msg "${BOLD}This action will remove the following directory:${RESET}"
+                msg "    > ${UNDERLINE}${dir_path}${RESET}"
+            } | more
+            yesno "Do you want to continue?" || m_exit 0
+        fi
         msg "Removing ${option} directory: \"${dir_path}\"..."
         [[ -d "${dir_path}" ]] && m_rm -r "${dir_path}"
     fi
