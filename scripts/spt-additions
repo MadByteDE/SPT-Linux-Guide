@@ -84,6 +84,7 @@ URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
 URL[mod-json]="https://spt-releases.modd.in/release.json"
 
 # Links
+URL[spt-release]="https://github.com/sp-tarkov/build/releases"
 URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
 URL[discord]="https://discord.com/invite/Xn9msqQZan"
 URL[forge]="https://forge.sp-tarkov.com"
@@ -367,9 +368,13 @@ get_env() {
 }
 
 
-# # # # # # # # # # # # #
-# EFT Helper functions  #
-# # # # # # # # # # # # #
+get_product_version() {
+    local filepath
+    filepath="${1}"
+    [[ ! -f "${filepath}" ]] && exit 11
+    7zzs l "${filepath}" | grep -o "FileVersion:[^}]*" | head -1 | cut -d " " -f2
+}
+
 
 get_eft_path() {
     local entry path
@@ -384,23 +389,6 @@ get_eft_path() {
     printf "%s/%s\n" "${CONFIG[prefix_dir]}" "${path//C:/drive_c}"
 }
 
-
-get_eft_version() {
-    local version
-    [[ ! -d "${EFT_DIR}" ]] && exit 10
-    [[ ! -f "${EFT_DIR}/EscapeFromTarkov.exe" ]] && exit 11
-    # Extract metadata
-    m_7z "${EFT_DIR}/EscapeFromTarkov.exe" "${TMP_DIR}" 1>/dev/null
-    # Get the EFT version from the version.txt file
-    version=$( cat "${TMP_DIR}/.rsrc/0/version.txt" | head -1 | tr -d '\0\r' | cut -d "," -f4 2>/dev/null )
-    [[ -z "${version}" ]] && exit 12
-    printf "%s\n" "${version}"
-}
-
-
-# # # # # # # # # # # # # # #
-# Patcher Helper functions  #
-# # # # # # # # # # # # # # #
 
 get_patcher_urls() {
     local urls
@@ -830,7 +818,7 @@ install_spt_native() {
     # Fetch some juicy data
     local installed_eft patcher_eft mod_eft mod_version
     local mod_url mod_hash patcher_hash
-    installed_eft=$( get_eft_version ) || err "Failed to get EFT version" "$?"
+    installed_eft=$( get_product_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4 ) || err "Failed to get EFT version" "$?"
     mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
     mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
     mod_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
@@ -1096,6 +1084,115 @@ opt_uninstall() {
         ;;
         help|-h|--help) opt_help "uninstall";;
         "") err "Option \"uninstall\" requires an argument" ;;
+        *) err "Invalid option \"${option}\"" ;;
+    esac
+}
+
+
+opt_update() {
+    # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
+    # TODO: Gotta check somehow if a BLEEDING EDGE version is installed!
+    # TODO: Add a `-f / --force` switch to force updates
+    local option="$1" && shift
+    case "${option}" in
+        spt|sptarkov)
+            local installed_eft
+            local update_eft update_version update_url update_hash
+            local major minor hotfix
+
+            # Check installed EFT
+            if ! check_eft_installed; then
+                warn "Escape from Tarkov is not installed"
+            fi
+            
+            installed_eft=$( get_product_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4 ) \
+            || err "Failed to get installed EFT version" "$?"
+
+            # Check installed SPT
+            if [[ -z "${SPT_DIR}" ]] || [[ ! -d "${SPT_DIR}" ]]; then
+                msg "SPTarkov is not installed"
+                m_exit 0
+            fi
+
+            # Get required metadata for mod release
+            if ! check_ttl "${MOD_JSON_PATH}"; then
+                msg "Downloading metadata..."
+                m_curl -s -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+            fi
+
+            # - Check installed and available SPT version strings
+            installed_version=$( get_product_version "${SPT_DIR}/SPT/SPT.Server.exe" | cut -d "." -f1-3 ) \
+            || err "Failed to get installed SPT version" "$?"
+
+            inst_major=$( echo "${installed_version}" | cut -d "." -f1 )
+            inst_minor=$( echo "${installed_version}" | cut -d "." -f2 )
+            inst_hotfix=$( echo "${installed_version}" | cut -d "." -f3 )
+
+            update_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
+            update_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
+            update_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
+            update_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get mod hash" "$?"
+            
+            upd_major=$( echo "${update_version}" | cut -d "." -f1 )
+            upd_minor=$( echo "${update_version}" | cut -d "." -f2 )
+            upd_hotfix=$( echo "${update_version}" | cut -d "." -f3 )
+
+            msg "Installed SPT version is \"${installed_version}\""
+            msg "Latest SPT version is \"${update_version}\""
+
+            if [[ "${update_version}" == "${installed_version}" ]]; then
+                # Nothing to do, we are up-to-date!
+                msg "SPT is up-to-date." && m_exit 0
+            elif [[ "${installed_eft}" != "${update_eft}" ]]; then
+                # Incompatible EFT version
+                msg "${BOLD}${YELLOW}Incompatible EFT version found on your system!${RESET}"
+                msg "   > Installed: ${installed_eft}"
+                msg "   > Required: ${update_eft}"
+                msg "   > Please check out the release notes for this build & re-install SPT manually."
+                msg "   > ${BOLD}Release notes${RESET}: ${URL[spt-release]}/tag/${update_version}"
+                err "Incompatible EFT version"
+            elif [[ "${upd_major}" -gt "${inst_major}" ]]; then
+                msg "${BOLD}${YELLOW}Major SPT update detected!${RESET}"
+                msg "   > Please follow the install instructions found in the release notes"
+                msg "   > for this version & re-install SPT manually"
+                msg "   > ${BOLD}Release notes${RESET}: ${URL[spt-release]}/tag/${update_version}"
+                err "Major SPT update detected"
+            elif [[ "${upd_minor}" -gt "${inst_minor}" ]]; then
+                msg "${BOLD}${YELLOW}Minor SPT update detected!${RESET}"
+                msg "   > User profiles & mods might not be compatible."
+                msg "   > Please check out the release notes for this build & update / re-install SPT manually."
+                msg "   > ${BOLD}Release notes${RESET}: ${URL[spt-release]}/tag/${update_version}"
+                err "Minor SPT update detected"
+            elif [[ "${upd_hotfix}" -gt "${inst_hotfix}" ]]; then
+                msg "${BOLD}${YELLOW}A new update is available!${RESET}"
+                msg "   > ${BOLD}Release notes${RESET}: ${URL[spt-release]}/tag/${update_version}"
+                yesno "Do you want to install it?" || m_exit 0
+                msg "${BOLD}Updating SPT to version \"${update_version}\" ...${RESET}"
+                
+                # Check for cached mod archive
+                if ! check_cached "${MOD_PATH}" "${update_hash}"; then
+
+                    # Download archive
+                    msg "Downloading mod archive..."
+                    m_curl -L "${update_url}" -o "${MOD_PATH}"
+
+                    # Make sure the file is good to use
+                    check_hash "${MOD_PATH}" "${update_hash}" || err "File \"${MOD_PATH}\" is corrupted"
+                fi
+
+                # Extract mod archive to install directory
+                msg "Extracting \"mod\" archive..."
+                m_7z "${MOD_PATH}" "${SPT_DIR}"
+
+                msg "${GREEN}Update successful!${RESET}"
+            else
+                # WTH did just happen?!
+                err "Unknown exception"
+            fi
+        ;;
+        additions|script) opt_selfupdate ;;
+        help|-h|--help) opt_help "update";;
+        "") err "Option \"update\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 }
@@ -1448,6 +1545,12 @@ opt_help() {
                 opt_help switches
             } | more
         ;;
+        update)
+            {   msg "${BOLD}Available options:${RESET}"
+                msg "[spt|sptarkov]"
+                opt_help switches
+            } | more
+        ;;
         shortcut)
             {
                 msg "${BOLD}Available options:${RESET}"
@@ -1577,7 +1680,7 @@ handle_opts() {
     local option="${1}" && shift
     
     case "${option}" in
-        install|run)
+        install|run|update)
             check_native_deps
             # Check & set the prefix path
             set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
@@ -1591,6 +1694,7 @@ handle_opts() {
     case "${option}" in
         install) opt_install "$@" ;;
         uninstall) opt_uninstall "$@" ;;
+        update) opt_update "$@" ;;
         run) opt_run "$@" ;;
         patch) opt_patch "$@" ;;
         shortcut) opt_shortcut "$@" ;;
