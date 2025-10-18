@@ -521,6 +521,15 @@ check_spt_path() {
 }
 
 
+check_eft_installed() {
+    EFT_DIR=$( get_eft_path )
+    if [[ -z "${EFT_DIR}" ]] || [[ ! -d "${EFT_DIR}" ]] || [[ -z $( m_ls -A "${EFT_DIR}" ) ]]; then
+        return 1
+    fi
+    return 0
+}
+
+
 check_faugus() {
     if command -v "faugus-launcher" &>/dev/null; then
         # Native
@@ -725,7 +734,7 @@ install_spt() {
     msg "Launching \"SPTarkov\" setup..."
     msg "Selected install mode is \"${install_mode}\"..."
 
-    if [[ -z "${EFT_DIR}" ]] || [[ ! -d "${EFT_DIR}" ]] || [[ -z $( m_ls -A "${EFT_DIR}" ) ]]; then
+    if ! check_eft_installed; then
         warn "Escape from Tarkov is not installed."
         msg "> ${YELLOW}make sure to install the game inside the BSG Launcher & try again!${RESET}"
         err "Escape from Tarkov not found."
@@ -1154,26 +1163,25 @@ opt_guided_install() {
         # Initialize the prefix if needed
         [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
 
-        # Install EFT
         local install_eft=0
          # Ask to skip EFT installation if it's already installed
-        EFT_DIR=$( get_eft_path )
-        if [[ -d "${EFT_DIR}" ]] && [[ -n $( m_ls -A "${EFT_DIR}" ) ]]; then
+        if check_eft_installed; then
             msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
             [[ "$?" == 0 ]] && install_eft=1
         fi
 
+        # Install EFT
         if [[ "$install_eft" == 0 ]]; then
             opt_install eft
             # Interactive - Users need to manually install the game client inside the BSG Launcher
             msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
             # Update EFT path
-            EFT_DIR=$( get_eft_path ) || {
+            if ! check_eft_installed; then
                 warn "Looks like EFT is not installed."
                 msg "${YELLOW}> Make sure you installed the game & you can see the \"Play\" button inside the BSG Launcher.${RESET}"
                 err "Failed to get EFT install path"
-            }
+            fi
         fi
 
         # Install SPT
