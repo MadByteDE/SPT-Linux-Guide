@@ -45,13 +45,7 @@ readonly DEFAULT_PFX_DIR="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 readonly DEFAULT_INSTALL_MODE="native"
 
-declare -A FAUGUS CONFIG ENV CACHE URL
-
-FAUGUS[config_dir]="${CONFIG_HOME}/faugus-launcher"
-FAUGUS[flatpak_config_dir]="${HOME}/.var/app/io.github.Faugus.faugus-launcher/config/faugus-launcher"
-FAUGUS[json_path]="${FAUGUS[config_dir]}/games.json"
-FAUGUS[flatpak_json_path]="${FAUGUS[flatpak_config_dir]}/games.json"
-readonly -A FAUGUS
+declare -A CONFIG ENV CACHE URL
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
@@ -530,21 +524,6 @@ check_eft_installed() {
 }
 
 
-check_faugus() {
-    if command -v "faugus-launcher" &>/dev/null; then
-        # Native
-        config_dir="${FAUGUS[config_dir]}"
-        json_path="${FAUGUS[json_path]}"
-    elif flatpak list 2>/dev/null | grep -q faugus-launcher &>/dev/null; then
-        # Flatpak
-        config_dir="${FAUGUS[flatpak_config_dir]}"
-        json_path="${FAUGUS[flatpak_json_path]}"
-    else
-        return 1
-    fi
-}
-
-
 check_aspnet() {
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
@@ -757,7 +736,7 @@ install_spt() {
 
     # Install SPT
     case "$install_mode" in
-        native|faugus) install_spt_native ;;
+        native) install_spt_native ;;
         lutris)
             # Add prefix update pop-up workaround
             msg "Adding \"RUNDLL32\" pop-up workaround..."
@@ -829,7 +808,6 @@ install_spt() {
             # Create application shortcuts
             opt_shortcut spt
         ;;
-        faugus) opt_shortcut faugus ;;
         lutris) ;;
         ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
@@ -1187,13 +1165,6 @@ opt_guided_install() {
         # Install SPT
         opt_install spt
 
-        # If Faugus Launcher is installed, aske to add shortcuts to it
-        if check_faugus; then
-            msg; msg "${BOLD}${YELLOW}Looks like you have \"Faugus-Launcher\" installed on your system.${RESET}"
-            yesno "Do you want to add EFT/SPT shortcuts to it?"
-            [[ "$?" == 0 ]] && opt_shortcut faugus
-        fi
-
         # Ask to install the script for ease of use
         msg; opt_selfinstall
 
@@ -1355,39 +1326,6 @@ add_app_shortcut() {
 }
 
 
-add_faugus_shortcut() {
-    local config_dir json_path
-
-    if ! check_faugus; then
-        msg "Faugus-Launcher is not installed" && return 0
-    fi
-
-    # Check if our cache array is prepared
-    [[ "${CACHE[_id]}" != "faugus-shortcut" ]] && err "Failed to load shortcut data from cache array"
-    # Create Faugus config dir if not already there
-    m_mkdir "${config_dir}"
-    # Create games.json if it doesn't exist
-    [[ ! -f "${json_path}" ]] && jq -n '[]' > "${json_path}"
-    # Check if the game ids already exist
-    if cat "${json_path}" | grep "${CACHE[gameid]}" &>/dev/null; then
-        warn "A shortcut for \"${CACHE[title]}\" already exists, skipping" && return 0
-    fi
-    # Add shortcut
-    local prefix="${CONFIG[prefix_dir]}"
-    local launch_args="$(get_env)"
-    local game_args="${CACHE[args]}"
-    local runner="GE-Proton"
-    msg "Adding \"${CACHE[title]}\" to Faugus Launcher..."
-    jq --arg gameid "${CACHE[gameid]}" --arg title "${CACHE[title]}" --arg path "${CACHE[path]}" \
-    --arg prefix "${prefix}" --arg launch_args "${launch_args}" --arg game_args "${game_args}" --arg runner "${runner}" \
-    '. += [{ "gameid": $gameid,"title": $title,"path": $path,"prefix": $prefix,
-    "launch_arguments": $launch_args,"game_arguments": $game_args,"runner": $runner,
-    "lossless_enabled": false,"lossless_performance": false,"lossless_hdr": false }]'\
-    "${json_path}" > "${TMP_DIR}/games.json" || err "Failed to add Faugus shortcut"
-    m_mv "${TMP_DIR}/games.json" "${json_path}"
-}
-
-
 opt_shortcut() {
     # SYNTAX: spt-additions -p "" -e "" -a "" shortcut spt-launcher
     local option="$1" && shift
@@ -1423,25 +1361,6 @@ opt_shortcut() {
         ;; 
         spt|sptarkov)
             opt_shortcut spt-launcher; opt_shortcut spt-server
-        ;;
-        faugus)
-            if [[ -d "${SPT_DIR}" ]]; then
-                # SPT - Launcher
-                CACHE[_id]="faugus-shortcut"
-                CACHE[gameid]="spt-launcher"
-                CACHE[title]="SPT Launcher"
-                CACHE[path]="${SPT_DIR}/SPT.Launcher.exe"
-                add_faugus_shortcut
-            fi
-            if [[ -d "${BSG_DIR}" ]]; then
-                # BSG - Launcher
-                CACHE[_id]="faugus-shortcut"
-                CACHE[gameid]="bsg-launcher"
-                CACHE[title]="BSG Launcher"
-                CACHE[args]="--disable-software-rasterizer"
-                CACHE[path]="${BSG_DIR}/BsgLauncher/BsgLauncher.exe"
-                add_faugus_shortcut
-            fi
         ;;
         all)
             opt_shortcut bsg-launcher;  opt_shortcut spt-launcher;  opt_shortcut spt-server
