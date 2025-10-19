@@ -1513,8 +1513,8 @@ opt_selfinstall() {
                 err "Downloaded script is corrupted"
             fi
             msg "Installing ${TITLE}..."
-            m_mv "${TMP_DIR}/${TITLE}" "${SCRIPT_PATH}/${TITLE}"
-            m_chmod +x "${SCRIPT_PATH}/${TITLE}"
+            m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}"
+            m_chmod +x "${path}/${TITLE}"
             msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
             installed=1
             return 0
