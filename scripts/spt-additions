@@ -71,7 +71,7 @@ URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
 URL[aspnet-windows]="https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.9/aspnetcore-runtime-9.0.9-win-x64.exe"
 
 # Scripts
-URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions"
+URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/${TITLE}"
 URL[server-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/launch-server.sh"
 
 # Icons
@@ -1142,10 +1142,10 @@ opt_update() {
                     msg "   ${BOLD}Please check out the release notes & re-install SPT manually:${RESET}"
                     msg "   > ${URL[spt-release]}/tag/${upd_version}"
                     msg
-                    msg "   1. Update the additions script with: ${BOLD}spt-additions self-update${RESET}"
+                    msg "   1. Update the additions script with: ${BOLD}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
                     msg "   3. Update Escape from Tarkov inside the BSG Launcher"
-                    msg "   4. Re-install the latest SPT version with: ${BOLD}spt-additions install spt${RESET}"
+                    msg "   4. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
                 } | more
             elif [[ $minor == 1 ]]; then
                 {   msg "${BOLD}${YELLOW}A new minor release is available!${RESET}"
@@ -1161,7 +1161,7 @@ opt_update() {
                     msg "   ${BOLD}How to re-install:${RESET}"
                     msg "   1. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
                     msg "   2. Update Escape from Tarkov inside the BSG Launcher"
-                    msg "   3. Re-install the latest SPT version with: ${BOLD}spt-additions install spt${RESET}"
+                    msg "   3. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
                 }
             elif [[ $hotfix == 1 ]]; then
                 {   msg "${BOLD}${YELLOW}A new hotfix release is available!${RESET}"
@@ -1547,7 +1547,8 @@ opt_help() {
         ;;
         update)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "[spt|sptarkov]"
+                msg "[spt|sptarkov]                 - Update your SPTarkov installation"
+                msg "[script|additions]             - Alias for \"${TITLE} self-update\""
                 opt_help switches
             } | more
         ;;
