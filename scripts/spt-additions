@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.9.1"
+VERSION="0.9.2"
 DATE="2025-10-19"
 
 # ANSI codes
@@ -1109,7 +1109,7 @@ opt_update() {
         spt|sptarkov)
             local inst_eft inst_mod_eft inst_spt
             local upd_eft upd_version upd_url upd_hash
-            local major minor hotfix
+            local major minor patch
 
             # Check if EFT & SPT are installed
             if ! check_eft_installed; then err "Escape from Tarkov is not installed"; fi
@@ -1138,7 +1138,7 @@ opt_update() {
 
             if [[ $( echo "${upd_version}" | cut -d "." -f1 ) -gt $( echo "${inst_spt}" | cut -d "." -f1 ) ]]; then major=1; fi
             if [[ $( echo "${upd_version}" | cut -d "." -f2 ) -gt $( echo "${inst_spt}" | cut -d "." -f2 ) ]]; then minor=1; fi
-            if [[ $( echo "${upd_version}" | cut -d "." -f3 ) -gt $( echo "${inst_spt}" | cut -d "." -f3 ) ]]; then hotfix=1; fi
+            if [[ $( echo "${upd_version}" | cut -d "." -f3 ) -gt $( echo "${inst_spt}" | cut -d "." -f3 ) ]]; then patch=1; fi
 
             if [[ "${upd_version}" == "${inst_spt}" ]]; then
                 msg "${BOLD}SPT is up-to-date.${RESET}" && m_exit 0
@@ -1170,8 +1170,8 @@ opt_update() {
                     msg "   2. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   3. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
                 }
-            elif [[ $hotfix == 1 ]]; then
-                {   msg "${BOLD}${YELLOW}A new hotfix release is available!${RESET}"
+            elif [[ $patch == 1 ]]; then
+                {   msg "${BOLD}${YELLOW}A new patch release is available!${RESET}"
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
                     msg "   > ${URL[spt-release]}/tag/${upd_version}"
                     yesno "Do you want to install the update?" || m_exit 0
