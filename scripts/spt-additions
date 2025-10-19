@@ -603,7 +603,6 @@ check_ttl() {
     ((e_time = c_time - m_time))
     # If elapsed time >= TTL - fail the check
     if [[ $e_time -ge $ttl ]]; then
-        warn "File \"${file_path}\" is out of date"
         return 1
     fi
 }
@@ -1126,7 +1125,7 @@ opt_update() {
             upd_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
             upd_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
             upd_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get SPT archive hash" "$?"
-            
+
             msg "Installed SPT version is \"${inst_spt}\""
             msg "Latest SPT version is \"${upd_version}\""
 
@@ -1514,7 +1513,7 @@ opt_selfinstall() {
 
 opt_selfupdate() {
     if [[ "${NO_PROMPT}" != 1 ]]; then
-        msg "> The script will attempt to install the latest script from:"
+        msg "> ${BOLD}The script will attempt to download the latest version from:${RESET}"
         msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
         msg
         msg "> This feature is ${BOLD}NOT${RESET} fully implemented yet & won't validate the new script file!"
