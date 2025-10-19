@@ -369,9 +369,9 @@ get_env() {
 
 
 get_product_version() {
-    local filepath
-    filepath="${1}"
+    local filepath="${1}"
     [[ ! -f "${filepath}" ]] && exit 11
+    $( 7zzs l "${filepath}" &>/dev/null ) || exit $?
     7zzs l "${filepath}" | grep -o "FileVersion:[^}]*" | head -1 | cut -d " " -f2
 }
 
@@ -818,7 +818,8 @@ install_spt_native() {
     # Fetch some juicy data
     local installed_eft patcher_eft mod_eft mod_version
     local mod_url mod_hash patcher_hash
-    installed_eft=$( get_product_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4 ) || err "Failed to get EFT version" "$?"
+    installed_eft=$( get_product_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
+    installed_eft=$( echo "${installed_eft}" | cut -d "." -f4 )
     mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
     mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
     mod_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
