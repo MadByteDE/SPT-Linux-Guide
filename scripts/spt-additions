@@ -633,7 +633,7 @@ install_dep() {
     
     # Download
     msg "Downloading \"${filename}\"..."
-    cd "${TMP_DIR}" && m_curl -s -L "${url}" -o "${filename}"
+    cd "${TMP_DIR}" && m_curl -sL "${url}" -o "${filename}"
 
     case "${filename}" in
         # Extract archive
@@ -691,7 +691,7 @@ install_eft() {
     # Download icon to icons directory
     if [[ ! -f "${ICO_DIR}/bsg_launcher.png" ]]; then
         msg "Getting app icon from SteamGridDB..."
-        cd "${ICO_DIR}" && m_curl -s -L "${URL[bsg-launcher-ico]}" -o "bsg_launcher.png"
+        cd "${ICO_DIR}" && m_curl -sL "${URL[bsg-launcher-ico]}" -o "bsg_launcher.png"
     fi
 
     # Create application shortcut
@@ -783,7 +783,7 @@ install_spt() {
 
     # Install the latest server launch script
     msg "Downloading latest \"launch-server.sh\" script..."
-    cd "${SPT_DIR}" && m_curl -s -LO "${URL[server-script]}"
+    cd "${SPT_DIR}" && m_curl -sLO "${URL[server-script]}"
     m_chmod +x "${SPT_DIR}/launch-server.sh"
 
     # Create launcher shortcut inside the root directory
@@ -795,8 +795,8 @@ install_spt() {
             # Download icons to icons directory
             if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
                 msg "Getting app icons from SteamGridDB..."
-                cd "${ICO_DIR}" && m_curl -s -L "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
-                cd "${ICO_DIR}" && m_curl -s -L "${URL[spt-server-ico]}" -o "spt_server.png"
+                cd "${ICO_DIR}" && m_curl -sL "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
+                cd "${ICO_DIR}" && m_curl -sL "${URL[spt-server-ico]}" -o "spt_server.png"
             fi
 
             # Create application shortcuts
@@ -817,8 +817,8 @@ install_spt_native() {
     # Get required metadata for mod and patcher releases
     if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
         msg "Downloading metadata..."
-        m_curl -s -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-        m_curl -s -L "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+        m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+        m_curl -sL "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
     fi
 
     # Fetch some juicy data
@@ -1118,7 +1118,7 @@ opt_update() {
             # Get required metadata for mod release
             if ! check_ttl "${MOD_JSON_PATH}"; then
                 msg "Downloading metadata..."
-                m_curl -s -L "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+                m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
             fi
 
             # Get infos about the current SPT installation
