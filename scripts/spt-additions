@@ -99,7 +99,11 @@ readonly -A URL
 
 m_exit() {
     local status=${1:-$?}
-    [[ ${BASH_SUBSHELL} -eq 0 ]] && m_rm -r "${TMP_DIR}"
+    if [[ ${BASH_SUBSHELL} -eq 0 ]]; then
+        save_array config
+        save_array env
+        m_rm -r "${TMP_DIR}"
+    fi
     exit "${status}"
 }
 
@@ -253,7 +257,7 @@ set_value() {
     key="$( echo "${keyval}" | cut -d '=' -f 1 )"
     value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
 
-    # Filter for invalid keys/values
+    # Filter for invalid keys
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
     [[ ! "${key}" =~ ^[A-Za-z0-9_]+$ ]] && err "Key contains invalid characters: \"${key}\""
 
@@ -262,12 +266,12 @@ set_value() {
         config)
             [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[\ A-Za-z0-9/._-]+$ ]] && err "Value contains invalid characters: \"${value}\""
             [[ -z "${value}" ]] && err "Missing value for array \"${array_name}\""
-            CONFIG[$key]="${value%/}" && save_array config
+            CONFIG[$key]="${value%/}"
         ;;
         env)
             [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/.,_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
             ENV[$key]="${value%/}"
-            export "${key}=${value%/}" && save_array env  
+            export "${key}=${value%/}"  
         ;;
         *) err "Invalid array name: \"${array_name}\""
     esac
@@ -286,8 +290,8 @@ unset_value() {
 
     # Unset key
     case "${array_name}" in
-        config) unset CONFIG[$key]; save_array config ;;
-        env) unset ENV[$key]; unset "${key}"; save_array env ;;
+        config) unset CONFIG[$key] ;;
+        env) unset ENV[$key]; unset "${key}" ;;
         *) err "Invalid array name: \"${array_name}\""
     esac
 }
