@@ -118,18 +118,17 @@ m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" fa
 
 m_rm() {
     local path="$( realpath -m "${@: -1}" )"
-    #HACK: We cannot use the err function since m_rm is called in m_exit
     [[ -z "${path}" ]] && err "${err_pfx} Path variable is empty"
-
     local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
+
+    # Check for valid paths
     case "${path}" in
-        # Catch invalid paths to prevent data loss
-        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* |\
-        *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*)
-            rm "$@" || warn "Command \"rm $*\" failed"
-        ;;
-        *) err "${err_pfx} Cannot remove file or directory at: \"${path}\"" ;;
+        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | \
+        *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
+        *) err "${err_pfx} Cannot remove file or directory \"${path}\"" ;;
     esac
+    
+    rm "$@" || warn "Command \"rm $*\" failed"
 }
 
 
@@ -137,12 +136,10 @@ m_cp() {
     local source_path="${1}"; local target_path="${2}"
     local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
 
-    # Check if the target path is inside a valid directory
+    # Check for valid paths
     case "${target_path}" in
-        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/bin"* |\
-        *"${HOME}/.local/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*)
-            # path is valid
-        ;;
+        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | \
+        *"${HOME}/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
 
@@ -379,7 +376,7 @@ get_hash() {
 }
 
 
-get_product_version() {
+get_file_version() {
     local filepath="${1}"
     [[ ! -f "${filepath}" ]] && exit 11
     $( 7zzs l "${filepath}" &>/dev/null ) || exit $?
@@ -409,7 +406,8 @@ get_patcher_urls() {
     [[ -z "${urls}" ]] && exit 12
     # Return single url
     if [[ -n "${index}" ]]; then
-        echo "${urls}" | sed "${index}q;d" 2>/dev/null; return 0
+        echo "${urls}" | sed "${index}q;d" 2>/dev/null
+        return 0
     fi
     # Return list
     printf "%s\n" "${urls}"
@@ -485,7 +483,7 @@ check_prefix_path() {
         [[ ! -w "${recursive_path}" ]] && status=3 && break
 
         # Check directory content
-        if [[ -d "${prefix_path}" ]] && [[ -n "$( m_ls -A "${prefix_path}" )" ]]; then
+        if [[ -n "$( m_ls -A "${prefix_path}" 2>/dev/null )" ]]; then
             for path in "${check_paths[@]}"; do
                 [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=4 && break
             done
@@ -543,8 +541,6 @@ check_native_deps() {
             python3|curl) warn "Cannot find \"${cmd}\"!"; status=1 ;;
             # Downloadable tools / libraries
             jq|hpatchz|xxd|7zzs|umu-run) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
-            # Optional tools / libraries
-            flatpak) warn "Cannot find \"${cmd}\"!" ;;
         esac
     done
     [ "$status" = 1 ] && err "Please install all missing dependencies & try again."
@@ -651,7 +647,7 @@ install_dep() {
             tar -xf "data.tar" || err "Failed to extract tar archive"
         ;;
         # Single file workarounds
-        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" || err "Failed to re-name \"${filename}\"" ;;
+        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" || err "Failed to rename \"${filename}\"" ;;
         *) ;;
     esac
 
@@ -831,7 +827,7 @@ install_spt_native() {
     # Fetch some juicy data
     local installed_eft patcher_eft mod_eft mod_version
     local mod_url mod_hash patcher_hash
-    installed_eft=$( get_product_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
+    installed_eft=$( get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
     installed_eft=$( echo "${installed_eft}" | cut -d "." -f4 )
     mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
     mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
@@ -1130,9 +1126,9 @@ opt_update() {
             fi
 
             # Get infos about the current SPT installation
-            inst_spt=$( get_product_version "${SPT_DIR}/SPT/SPT.Server.exe" ) || err "Failed to get installed SPT version" "$?"
+            inst_spt=$( get_file_version "${SPT_DIR}/SPT/SPT.Server.exe" ) || err "Failed to get installed SPT version" "$?"
             inst_spt=$( echo "${inst_spt}" | cut -d "." -f1-3 )
-            inst_mod_eft=$( get_product_version "${SPT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get mod EFT version" "$?"
+            inst_mod_eft=$( get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get mod EFT version" "$?"
             inst_mod_eft=$( echo "${inst_mod_eft}" | cut -d "." -f4 )
 
             # Get infos about the latest SPT version
@@ -1304,12 +1300,12 @@ opt_run() {
             msg "Launching BSG Launcher..."
             cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "$args" "$@"
         ;;
-        spt-launcher|launcher)
+        launcher)
             check_eft_running
             msg "Launching SPT Launcher..."
             cd "${SPT_DIR}" && m_umu "SPT.Launcher.exe" "$@"
         ;;
-        spt-server|server)
+        server)
             check_eft_running
             msg "Launching SPT Server..."
             cd "${SPT_DIR}" && "./launch-server.sh" "$@"
@@ -1423,7 +1419,7 @@ opt_shortcut() {
             CACHE[icon]="bsg_launcher"
             add_app_shortcut
         ;;
-        spt-launcher)
+        launcher)
             CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Launcher"
             CACHE[executable]="SPT.Launcher.exe"
@@ -1432,7 +1428,7 @@ opt_shortcut() {
             CACHE[icon]="spt_launcher"
             add_app_shortcut
         ;;
-        spt-server)
+        server)
             CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Server"
             CACHE[executable]="launch-server.sh"
@@ -1442,10 +1438,10 @@ opt_shortcut() {
             add_app_shortcut
         ;; 
         spt|sptarkov)
-            opt_shortcut spt-launcher; opt_shortcut spt-server
+            opt_shortcut launcher; opt_shortcut server
         ;;
         all)
-            opt_shortcut bsg-launcher;  opt_shortcut spt-launcher;  opt_shortcut spt-server
+            opt_shortcut bsg-launcher;  opt_shortcut launcher;  opt_shortcut server
         ;;
         help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
