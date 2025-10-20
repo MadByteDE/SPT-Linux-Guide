@@ -624,10 +624,13 @@ check_ttl() {
 # # # # # # # # # # # # #
 
 install_verb() {
-    local verb="${1}"; local text="${2}"
-    if ! check_verb "${verb}"; then
-        msg "${text}..."; m_umu winetricks -q "${verb}" 1>> "${LOG_PATH}"
+    local verb="${1}"; local text="${2:-"Installing \"${verb}\""}"
+    if check_verb "${verb}"; then
+        msg "\"${verb}\" is already installed"
+        return 1
     fi
+    msg "${text}..."
+    m_umu winetricks -q "${verb}" 1>> "${LOG_PATH}"
 }
 
 
