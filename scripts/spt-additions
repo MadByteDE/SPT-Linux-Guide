@@ -1584,44 +1584,55 @@ opt_help() {
     case "${option}" in
         install)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "[eft|bsg|tarkov]               - Install the BSG Launcher"
-                msg "[spt|sptarkov]                 - Install SPTarkov"
-                msg
-                msg "${BOLD}SPT Install modes:${RESET}"
-                msg "native|proton"
+                msg "eft|bsg|tarkov                 - Install the BSG Launcher"
+                msg "spt|sptarkov                   - Install SPTarkov"
+                msg 
+                msg "Availble install modes for SPTarkov:"
+                msg "${BOLD}native${RESET}          - Uses a native install method (default)"
+                msg "${BOLD}proton${RESET}          - Uses Proton to install SPTarkov"
                 opt_help switches
             } | more
         ;;
         uninstall)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "eft|spt|all"
+                msg "eft|bsg|tarkov                 - Uninstall the BSG Launcher"
+                msg "spt|sptarkov                   - Uninstall SPTarkov"
+                msg "all                            - Uninstall everything (prefix, EFT & SPT)"
                 opt_help switches
             } | more
         ;;
         update)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "[spt|sptarkov]                 - Update your SPTarkov installation"
-                msg "[script|additions]             - Alias for \"${TITLE} self-update\""
+                msg "spt|sptarkov                   - Update SPTarkov"
+                msg "additions|script               - Update this additions script"
                 opt_help switches
             } | more
         ;;
+        self-install)
+            {   msg "Install this additions script to a local bin directory for ease of use"
+                msg 
+            } | more
+        ;;
+        self-update)
+            {   msg "Update this additions script to the latest version"
+                msg
+            } | more
+        ;;
         shortcut)
-            {
-                msg "${BOLD}Available options:${RESET}"
-                msg "[eft|bsg|bsg-launcher]         - Update BSG-Launcher shortcut"
-                msg "[spt|sptarkov]                 - Update SPT.Server and SPT.Launcher shortcut"
-                msg "spt-launcher|spt-server        - Update SPT.Server or SPT.Launcher shortcut"
-                msg "all                            - Update all shortcuts"
+            {   msg "${BOLD}Available options:${RESET}"
+                msg "eft|bsg|bsg-launcher           - Create/update BSG Launcher shortcut"
+                msg "launcher                       - Create/update SPT Launcher shortcut"
+                msg "server                         - Create/update SPT Server shortcut"
+                msg "spt|sptarkov                   - Create/update all SPT shortcuts"
+                msg "all                            - Create/update all available shortcuts"
                 opt_help switches
             } | more
         ;;
         run)
-            {   msg "${BOLD}Available options:${RESET}"
-                msg "[eft|bsg|bsg-launcher]         - Run the BSG Launcher"
-                msg "[spt-launcher|launcher]        - Run the SPT Launcher"
-                msg "[spt-server|server]            - Run the native SPT Server"
-                msg "winetricks [*]                 - Run \"winetricks -q [VERBS]\" inside the prefix"
-                msg "[*]                            - Run a custom command/executable inside the prefix"
+            {   msg "Run EFT/SPT or custom commands inside the prefix"
+                msg 
+                msg "${BOLD}Usage:${RESET}"
+                msg "${YELLOW}$TITLE [SWITCHES] run [eft|launcher|server|custom_command] [ARGS...]${RESET}"
                 opt_help switches
             } | more
         ;;
@@ -1647,16 +1658,26 @@ opt_help() {
             } | more
         ;;  
         patch)
-            {   msg "Patch game files using hpatchz"
+            {   msg "Downpatch EFT game files to a supported version for SPTarkov"
                 msg 
                 msg "${BOLD}Usage:${RESET}"
-                msg "${YELLOW}$TITLE patch [SWITCHES] [TARGET_DIR] [SOURCE_DIR]${RESET}"
+                msg "${YELLOW}$TITLE patch [target_path] [source_path]${RESET}"
+                msg
+                msg "target_path - Destination install directory (defaults to \"${SPT_DIR}\")"
+                msg "source_path - Directory containing SPT_Patches (defaults to target_path)"
+                msg
+                msg "Example: ${YELLOW}$TITLE patch \"${SPT_DIR}\" \"~/Downloads/patcher\"${RESET}"
                 opt_help switches
             } | more
         ;;
         clean)
-            {   msg "${BOLD}Available options:${RESET}"
-                msg "cache|config|data|all"
+            {   msg "Clean installer and prefix files"
+                msg
+                msg "${BOLD}Available options:${RESET}"
+                msg "cache                          - Remove cached files"
+                msg "config                         - Remove configuration files"
+                msg "data                           - Remove installer data files"
+                msg "all                            - Remove all of the above"
                 opt_help switches
             } | more
         ;;
@@ -1671,25 +1692,28 @@ opt_help() {
             msg "${BOLD}-h | --help${RESET}     - Print the help message"
             msg "${BOLD}-v | --version${RESET}  - Print the VERSION info message"
         ;;
-        "")
-            {   msg "Standalone EFT/SPT installer & configuration tool using UMU-Launcher and Proton."
+        "") 
+            {   msg "${BOLD}${TITLE} - Standalone EFT/SPTarkov installer & configuration tool${RESET}"
                 msg
-                msg "SYNTAX: ${YELLOW}${TITLE} [SWITCHES] [OPTION] [...]${RESET}"
-                msg "${BOLD}Example usage:${RESET}  ${YELLOW}${TITLE} -p ~/Games/tarkov install eft${RESET}"
-                msg "                ${YELLOW}${TITLE} -e MANGOHUD=1 shortcut spt${RESET}"
+                msg "${BOLD}Usage:${RESET}"
+                msg "${YELLOW}$TITLE [SWITCHES] <option> [ARGS...]${RESET}"
                 msg
                 msg "${BOLD}Available options:${RESET}"
-                msg "${BOLD}install${RESET}         - Install EFT/SPT into a prefix"
-                msg "${BOLD}uninstall${RESET}       - Uninstall EFT/SPT from a prefix"
-                msg "${BOLD}patch${RESET}           - Downpatch EFT game files"
-                msg "${BOLD}shortcut${RESET}        - Create/update EFT/SPT shortcuts"
-                msg "${BOLD}self-install${RESET}    - Install this script to a local bin directory"
-                msg "${BOLD}self-update${RESET}     - Update this installer script"
-                msg "${BOLD}env${RESET}             - Set, unset and list active environment variables"
-                msg "${BOLD}run${RESET}             - Run EFT/SPT or custom commands inside the prefix"
-                msg "${BOLD}clean${RESET}           - Clean installer and prefix files"
-                msg "${BOLD}help${RESET}            - Get help for a command (e.g. 'help install')"
-                opt_help switches
+                msg "install                        - Install EFT/SPT"
+                msg "uninstall                      - Uninstall EFT/SPT"
+                msg "update                         - Update EFT/SPT or this script"
+                msg "run                            - Run EFT/SPT or custom commands inside the prefix"
+                msg "dlloverride                    - Add a DLL override to the wine prefix"
+                msg "env                            - Set, unset and list environment variables for the wine prefix"
+                msg "shortcut                       - Create application menu shortcuts"
+                msg "patch                          - Downpatch EFT game files to a supported version for SPTarkov"
+                msg "clean                          - Clean installer and prefix files"
+                msg "self-install                   - Install this script to a local bin directory for ease of use"
+                msg "self-update                    - Update this script to the latest version"
+                msg "version                        - Print the VERSION info message"
+                msg "help                           - Print this help message or help for a specific option"
+                msg
+                msg "Run \"${BOLD}$TITLE help <option>${RESET}\" for more information about a specific option."
             } | more
         ;;
         *) msg "Invalid option: ${option}" ;;
