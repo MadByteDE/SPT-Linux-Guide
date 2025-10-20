@@ -1748,7 +1748,7 @@ handle_opts() {
     local option="${1}" && shift
     
     case "${option}" in
-        install|run|update)
+        install|run|update|dlloverride)
             check_native_deps
             # Check & set the prefix path
             set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
@@ -1764,6 +1764,7 @@ handle_opts() {
         uninstall) opt_uninstall "$@" ;;
         update) opt_update "$@" ;;
         run) opt_run "$@" ;;
+        dlloverride) opt_dlloverride "$@" ;;
         patch) opt_patch "$@" ;;
         shortcut) opt_shortcut "$@" ;;
         env) opt_env "$@" ;;
