@@ -984,11 +984,12 @@ opt_patch() {
     msg "Patching game files..."
     local files_total
     local target_path="${1:-"${SPT_DIR}"}"
-    local source_path="${2:-"${SPT_DIR}"}"
+    local source_path="${2:-"${target_path}"}"
     target_path=$( realpath -m "${target_path%/}" )
     source_path=$( realpath -m "${source_path%/}" )
 
     # Fail if the target director does not exist
+    [[ -z "${target_path}" ]] && err "Target path is not set"
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
 
     # Make sure all native dependencies are installed
@@ -1027,15 +1028,15 @@ opt_patch() {
                 hpatchz "${output}" "${source}" "${target}" >/dev/null 2>> "${LOG_PATH}" || return 1
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && return 1
-                m_rm "${output}" || return 1
+                rm "${output}" || return 1
                 m_mv "${target}" "${output}" || return 1
             ;;
             "del")
                 msg -o "${progress_string} (-) Deleting: ${trimmed##*/}"
-                m_rm "${output}" || return 1
+                rm "${output}" || return 1
                 if [[ -z "$( m_ls -A "${dir_path}" )" ]]; then
                     msg -o "${progress_string} (-) Deleting directory: ${dir_path##*/}"
-                    m_rm -r "${dir_path}" || return 1
+                    rm -r "${dir_path}" || return 1
                 fi
             ;;
             "new")
@@ -1044,7 +1045,7 @@ opt_patch() {
                     msg -o "${progress_string} (+) Adding directory: ${dir_path##*/}"
                     m_mkdir "${dir_path}"
                 fi
-                m_cp "${source}" "${output}" || return 1
+                cp "${source}" "${output}" || return 1
             ;;
             *)
                 return 1
@@ -1062,8 +1063,8 @@ opt_patch() {
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         msg "Cleaning up patch files..."
-        [[ -d "${source_path}/SPT_Patches" ]] && m_rm -r "${source_path}/SPT_Patches"
-        [[ -f "${source_path}/patcher.exe" ]] && m_rm -r "${source_path}/patcher.exe"
+        [[ -d "${source_path}/SPT_Patches" ]] && rm -r "${source_path}/SPT_Patches"
+        [[ -f "${source_path}/patcher.exe" ]] && rm -r "${source_path}/patcher.exe"
     fi
 
     msg "Done patching game files!"
