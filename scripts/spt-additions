@@ -99,7 +99,7 @@ readonly -A URL
 
 m_exit() {
     local status=${1:-$?}
-    m_rm -r "${TMP_DIR}"
+    [[ ${BASH_SUBSHELL} -eq 0 ]] && m_rm -r "${TMP_DIR}"
     exit "${status}"
 }
 
@@ -115,8 +115,7 @@ m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" fa
 m_rm() {
     local path="$( realpath -m "${@: -1}" )"
     #HACK: We cannot use the err function since m_rm is called in m_exit
-    local err_pfx="${BOLD}${RED}ERROR ${FUNCNAME[0]}${RESET}:"
-    if [[ -z "${path}" ]]; then msg "${err_pfx} Path variable is empty" && exit 1; fi
+    [[ -z "${path}" ]] && err "${err_pfx} Path variable is empty"
 
     local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
     case "${path}" in
@@ -125,7 +124,7 @@ m_rm() {
         *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*)
             rm "$@" || warn "Command \"rm $*\" failed"
         ;;
-        *) msg "${err_pfx} Cannot remove file or directory at: \"${path}\"" && exit 1 ;;
+        *) err "${err_pfx} Cannot remove file or directory at: \"${path}\"" ;;
     esac
 }
 
