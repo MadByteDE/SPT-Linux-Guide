@@ -102,7 +102,7 @@ m_exit() {
     if [[ ${BASH_SUBSHELL} -eq 0 ]]; then
         save_array config
         save_array env
-        m_rm -r "${TMP_DIR}"
+        [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
     fi
     exit "${status}"
 }
