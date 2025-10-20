@@ -257,15 +257,16 @@ set_value() {
     # Filter for invalid keys/values
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
     [[ ! "${key}" =~ ^[A-Za-z0-9_]+$ ]] && err "Key contains invalid characters: \"${key}\""
-    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[\ A-Za-z0-9/_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
 
     # Set value
     case "${array_name}" in
         config)
+            [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[\ A-Za-z0-9/._-]+$ ]] && err "Value contains invalid characters: \"${value}\""
             [[ -z "${value}" ]] && err "Missing value for array \"${array_name}\""
             CONFIG[$key]="${value%/}" && save_array config
         ;;
         env)
+            [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/.,_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
             ENV[$key]="${value%/}"
             export "${key}=${value%/}" && save_array env  
         ;;
