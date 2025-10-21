@@ -26,7 +26,7 @@ Additions CLI installer 🤓
   - 
 
   > [!WARNING]
-  > NixOS is currently not supported (#14)
+  > NixOS is currently not supported ([#14](https://github.com/MadByteDE/SPT-Linux-Guide/pull/14))
 
   - Standalone installer using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
