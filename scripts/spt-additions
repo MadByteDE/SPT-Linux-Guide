@@ -991,7 +991,7 @@ opt_install() {
         eft|tarkov|bsg) install_eft ;;
         spt|sptarkov) install_spt "${CONFIG[install_mode]}" ;;
         help|-h|--help) opt_help "install";;
-        "") opt_guided_install ;;
+        "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 }
