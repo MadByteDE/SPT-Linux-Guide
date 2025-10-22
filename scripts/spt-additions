@@ -42,7 +42,8 @@ readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
 
 # Default setting variables
-readonly DEFAULT_PFX_DIR="${HOME}/Games/tarkov"
+readonly DEFAULT_PROTONPATH="GE-Proton"
+readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 readonly DEFAULT_INSTALL_MODE="native"
 
@@ -119,11 +120,10 @@ m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" fa
 m_rm() {
     local path="$( realpath -m "${@: -1}" )"
     [[ -z "${path}" ]] && err "${err_pfx} Path variable is empty"
-    local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
 
     # Check for valid paths
     case "${path}" in
-        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | \
+        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | \
         *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
         *) err "${err_pfx} Cannot remove file or directory \"${path}\"" ;;
     esac
@@ -134,11 +134,10 @@ m_rm() {
 
 m_cp() {
     local source_path="${1}"; local target_path="${2}"
-    local prefix_path="${CONFIG[prefix_dir]:-"${DEFAULT_PFX_DIR}"}"
 
     # Check for valid paths
     case "${target_path}" in
-        *"${prefix_path}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | \
+        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | \
         *"${HOME}/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
@@ -349,21 +348,15 @@ set_prefix() {
     export WINEPREFIX="${path}"
 
     # Update prefix config
-    set_value config "prefix_dir=${path}"
+    set_value env "WINEPREFIX=${path}"
 
     # Update prefix paths
     check_spt_path "${CONFIG[spt_dir]}"
-    SPT_DIR="${CONFIG[prefix_dir]%/}/${CONFIG[spt_dir]%/}"
-    BSG_DIR="${CONFIG[prefix_dir]%/}/drive_c/Battlestate Games"
+    SPT_DIR="${WINEPREFIX%/}/${CONFIG[spt_dir]%/}"
+    BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games"
     EFT_DIR=$( get_eft_path )
 
-    msg "Prefix path has been set to \"${CONFIG[prefix_dir]}\""
-}
-
-
-init_prefix() {
-    if [[ -d "${CONFIG[prefix_dir]}" ]]; then return; fi
-    msg "Initializing wine prefix..." && m_umu wineboot -u
+    msg "Prefix path has been set to \"${WINEPREFIX}\""
 }
 
 
@@ -388,14 +381,14 @@ get_file_version() {
 get_eft_path() {
     local entry path
     # get windows path
-    [[ ! -f "${CONFIG[prefix_dir]}/system.reg" ]] && exit 11
-    entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[prefix_dir]}/system.reg" )
+    [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
+    entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg" )
     path=$( echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
     [[ -z "${path}" ]] && exit 12
     # Replace backslashes with slashes
     path="${path//\\\\/\/}"
     # Finally assemble the full path & return it
-    printf "%s/%s\n" "${CONFIG[prefix_dir]}" "${path//C:/drive_c}"
+    printf "%s/%s\n" "${WINEPREFIX}" "${path//C:/drive_c}"
 }
 
 
@@ -436,16 +429,15 @@ get_patcher_eft_version() {
 # # # # # # # # # # #
 
 check_verb() {
-    local pfx_dir="${CONFIG[prefix_dir]}"
-    [[ ! -d "${pfx_dir}" ]] && err "Prefix directory \"${pfx_dir}\" does not exist"
-    if ! cat "${pfx_dir}/winetricks.log" 2>/dev/null | grep -q "$1"; then
+    [[ ! -d "${WINEPREFIX}" ]] && err "Prefix directory \"${WINEPREFIX}\" does not exist"
+    if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -q "$1"; then
         return 1
     fi
 }
 
 
 check_disk_space() {
-    local total_gb=${1}; local path="${CONFIG[prefix_dir]}"
+    local total_gb=${1}; local path="${WINEPREFIX}"
     [[ -z "${path}" ]] && err "Missing path argument"
     # Get required values
     local free_kb total_kb eft_kb free_gb total_gb
@@ -744,9 +736,6 @@ install_spt() {
             install_spt_native
         ;;
         proton)
-            # The SPTInstaller needs GE-Proton instead of UMU-Latest
-            export PROTONPATH="GE-Proton"
-
             # Download ASP.NET Runtime
             if ! [[ -f "${CACHE_DIR}/aspnetcore-runtime.exe" ]]; then
                 msg "Downloading Microsoft ASP.NET Runtime 9..."
@@ -764,7 +753,7 @@ install_spt() {
             fi
 
             # Symlink SPTInstaller cache directory to script cache directory
-            local cache_dir="${CONFIG[prefix_dir]}/drive_c/users/steamuser/Application Data/spt-installer/cache"
+            local cache_dir="${WINEPREFIX}/drive_c/users/steamuser/Application Data/spt-installer/cache"
             if [[ -d "${cache_dir}" ]]; then
                 [[ $(readlink "${cache_dir}") != "${CACHE_DIR}" ]] && m_rm -r "${cache_dir}"
             fi
@@ -925,7 +914,7 @@ uninstall_eft() {
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
-        msg "Prefix directory: ${UNDERLINE}${CONFIG[prefix_dir]}${RESET}"
+        msg "Prefix directory: ${UNDERLINE}${WINEPREFIX}${RESET}"
         yesno "Do you want to continue?" || m_exit 0
     fi
 
@@ -966,9 +955,9 @@ uninstall_spt() {
 
 uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
-    [[ ! -d "${CONFIG[prefix_dir]}" ]] && msg "Prefix directory does not exist" && return 0
-    msg "Removing Prefix directory: \"${CONFIG[prefix_dir]}\""
-    m_rm -r "${CONFIG[prefix_dir]}"
+    [[ ! -d "${WINEPREFIX}" ]] && msg "Prefix directory does not exist" && return 0
+    msg "Removing Prefix directory: \"${WINEPREFIX}\""
+    m_rm -r "${WINEPREFIX}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
@@ -1001,7 +990,7 @@ opt_uninstall() {
             if ! [ "${NO_PROMPT}" = 1 ]; then
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
-                msg "${UNDERLINE}${CONFIG[prefix_dir]}${RESET}"
+                msg "${UNDERLINE}${WINEPREFIX}${RESET}"
                 yesno "Do you want to continue?" || m_exit 0
             fi
             uninstall_eft 1;  uninstall_spt 1;  uninstall_prefix 1
@@ -1232,7 +1221,7 @@ opt_guided_install() {
     
     while true; do
         # Choose a custom prefix install location
-        msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${CONFIG[prefix_dir]}\")${RESET}"
+        msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${WINEPREFIX}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
         input=$(read_input)
         if [[ -n "$input" ]]; then
@@ -1242,14 +1231,14 @@ opt_guided_install() {
         fi
 
         # Set and check the prefix path
-        set_prefix "${prefix_path:-${CONFIG[prefix_dir]}}"
+        set_prefix "${prefix_path:-${WINEPREFIX}}"
 
         # Perform some checks
         check_eft_running;  check_aspnet;  check_native_deps
 
         # Initialize the prefix if needed
-        [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
-
+        init_prefix
+        
         local install_eft=0
          # Ask to skip EFT installation if it's already installed
         if check_eft_installed; then
@@ -1785,11 +1774,11 @@ handle_opts() {
         install|run|update|dlloverride)
             check_native_deps
             # Check & set the prefix path
-            set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null
+            set_prefix "${WINEPREFIX}" 1>/dev/null
             # Initialize the prefix if it doesn't exist yet
-            [[ ! -d "${CONFIG[prefix_dir]}" ]] && init_prefix
+            init_prefix
         ;;
-        uninstall|shortcut) set_prefix "${CONFIG[prefix_dir]}" 1>/dev/null ;;
+        uninstall|shortcut) set_prefix "${WINEPREFIX}" 1>/dev/null ;;
     esac
 
     # Handle options
@@ -1820,7 +1809,6 @@ main() {
 
     # Set default config variables
     if [[ ! -f "${CONFIG_PATH}" ]]; then
-        set_value config "prefix_dir=${DEFAULT_PFX_DIR}"
         set_value config "spt_dir=${DEFAULT_SPT_DIR}"
         set_value config "install_mode=${DEFAULT_INSTALL_MODE}"
         save_array config
@@ -1828,9 +1816,11 @@ main() {
 
     # Set default environment variables
     if [[ ! -f "${ENV_PATH}" ]]; then
+        set_value env "WINEPREFIX=${WINEPREFIX:-${DEFAULT_WINEPREFIX}}"
+        set_value env "PROTONPATH=${PROTONPATH:-${DEFAULT_PROTONPATH}}"
         set_value env "DOTNET_ROOT="
-        set_value env "PROTON_USE_XALIA=0"
         set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
+        set_value env "PROTON_USE_XALIA=0"
         save_array env
     fi
 
@@ -1843,8 +1833,8 @@ main() {
 
     # Export paths
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
-    export PROTONPATH="${PROTONPATH:-"GE-Proton"}"
-    export WINEPREFIX="${CONFIG[prefix_dir]}"
+    export WINEPREFIX="${ENV[WINEPREFIX]:-${DEFAULT_WINEPREFIX}}"
+    export PROTONPATH="${ENV[PROTONPATH]:-${DEFAULT_PROTONPATH}}"
     export PATH=$RUNTIME_DIR:$PATH
 
     # Handle command line arguments
