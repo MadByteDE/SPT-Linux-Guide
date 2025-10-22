@@ -1698,15 +1698,16 @@ opt_help() {
             } | more
         ;;
         switches)
-            msg
-            msg "${BOLD}Available switches:${RESET}"
-            msg "${BOLD}-m${RESET}              - Change SPT install mode (Default is \"${CONFIG[install_mode]}\")"
-            msg "${BOLD}-p${RESET}              - Set a custom path for the wine prefix"
-            msg "${BOLD}-e${RESET}              - Set[*]/Unset[-*] a environment variable"
-            msg "${BOLD}--no-prompt${RESET}     - Disable interactive prompt messages"
-            msg "${BOLD}--no-ansi${RESET}       - Disable ansi codes in messages"
-            msg "${BOLD}-h | --help${RESET}     - Print the help message"
-            msg "${BOLD}-v | --version${RESET}  - Print the VERSION info message"
+            {   msg "${BOLD}Available switches:${RESET}"
+                msg "-p <path>                      - Specify a custom wine prefix path"
+                msg "-e <KEY=VALUE>                 - Set an environment variable for the prefix"
+                msg "-m <mode>                      - Set the install mode for SPTarkov (native, proton, lutris)"
+                msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
+                msg "--no-ansi                      - Disable ANSI colors in output"
+                msg "-h|--help                      - Show help message"
+                msg "-v|--version                   - Show version info"
+                opt_help switches
+            } | more
         ;;
         "") 
             {   msg "${BOLD}${TITLE} - Standalone EFT/SPTarkov installer & configuration tool${RESET}"
