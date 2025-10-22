@@ -1618,10 +1618,10 @@ opt_help() {
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE patch [target_path] [source_path]${RESET}"
                 msg
-                msg "target_path - Destination install directory (defaults to \"${SPT_DIR}\")"
+                msg "target_path - Destination install directory (defaults to \"${DEFAULT_SPT_DIR}\")"
                 msg "source_path - Directory containing SPT_Patches (defaults to target_path)"
                 msg
-                msg "Example: ${YELLOW}$TITLE patch \"${SPT_DIR}\" \"~/Downloads/patcher\"${RESET}"
+                msg "Example: ${YELLOW}$TITLE patch \"${DEFAULT_SPT_DIR}\" \"~/Downloads/patcher\"${RESET}"
                 opt_help switches
             } | more
         ;;
