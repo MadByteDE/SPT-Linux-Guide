@@ -1464,7 +1464,21 @@ opt_shortcut() {
         ;;
         help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
-        *) err "Invalid option \"${option}\"" ;;
+        *)
+            # Create custom shortcut
+            local exe_path=$( realpath -m "${option}" )
+            local name="${option##*/}"; name="${name%.*}"
+            local working_dir="${option%/*}"
+            CACHE[_id]="app-shortcut"
+            CACHE[name]="${name}"
+            CACHE[exe_path]="${exe_path}"
+            CACHE[env]="${env}"
+            CACHE[args]="$*"
+            CACHE[working_dir]="${working_dir}"
+            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
+            CACHE[icon]=$( echo "${CACHE[name]}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' )
+            add_app_shortcut
+        ;;
     esac
 }
 
