@@ -48,7 +48,7 @@ readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 readonly DEFAULT_INSTALL_MODE="native"
 
-declare -A CONFIG ENV CACHE URL
+declare -A CONFIG ENV CACHE URL SHORTCUT
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
@@ -93,6 +93,11 @@ URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
 URL[discord]="https://discord.com/invite/Xn9msqQZan"
 URL[forge]="https://forge.sp-tarkov.com"
 readonly -A URL
+
+# Shortcut paths
+SHORTCUT[bsg-launcher]="${APP_DIR}/BSG - Launcher.desktop"
+SHORTCUT[spt-launcher]="${APP_DIR}/SPT - Launcher.desktop"
+SHORTCUT[spt-server]="${APP_DIR}/SPT - Server.desktop"
 
 
 # # # # # # # # # #
@@ -940,8 +945,7 @@ uninstall_eft() {
     m_rm -r "${BSG_DIR}"
 
     msg "Removing \"BSG Launcher\" shortcut..."
-    app_path="${APP_DIR}/BSG - Launcher.desktop"
-    [[ -f "${app_path}" ]] && m_rm "${app_path}"
+    [[ -f "${SHORTCUT[bsg-launcher]}" ]] && m_rm "${SHORTCUT[bsg-launcher]}"
 
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
@@ -961,11 +965,8 @@ uninstall_spt() {
     m_rm -r "${SPT_DIR}"
 
     msg "Removing \"SPTarkov\" shortcuts..."
-    local apps=( "SPT - Launcher.desktop" "SPT - Server.desktop" )
-    for app in "${apps[@]}"; do
-        local app_path="${APP_DIR}/${app}"
-        [[ -f "${app_path}" ]] && m_rm "${app_path}"
-    done
+    [[ -f "${SHORTCUT[spt-server]}" ]] && m_rm "${SHORTCUT[spt-server]}"
+    [[ -f "${SHORTCUT[spt-launcher]}" ]] && m_rm "${SHORTCUT[spt-launcher]}"
 
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
@@ -1011,7 +1012,11 @@ opt_uninstall() {
                 msg "${UNDERLINE}${WINEPREFIX}${RESET}"
                 yesno "Do you want to continue?" || m_exit 0
             fi
-            uninstall_eft 1;  uninstall_spt 1;  uninstall_prefix 1
+            uninstall_prefix 1
+            for shortcut in "${!SHORTCUT[@]}"; do
+                msg "Removing \"${shortcut}\" shortcut..."
+                [[ -f "${SHORTCUT[${shortcut}]}" ]] && m_rm "${SHORTCUT[${shortcut}]}"
+            done
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
         help|-h|--help) opt_help "uninstall";;
@@ -1383,21 +1388,21 @@ opt_env() {
 add_app_shortcut() {
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "app-shortcut" ]] && err "Failed to load shortcut data from cache array"
-    msg "Updating \"${CACHE[name]}\" shortcut..."
-
-    # Get env string
-    local env="$( get_env )"
-    env+="WINEPREFIX=\"${CONFIG[prefix_dir]}\""
-    [[ "${env}" != *"PROTONPATH"* ]] && env+=" PROTONPATH=\"${PROTONPATH}\""
+    if [[ -f "${CACHE[path]}" ]]; then msg "Updating \"${CACHE[name]}\" application shortcut..."
+    else msg "Creating \"${CACHE[name]}\" application shortcut..."; fi
 
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
 
+    # Prepare environment string
+    local env_string
+    [[ -n "${CACHE[env]}" ]] && env_string="env ${CACHE[env]}"
+
     # Generate the exec string
     local exec_string
-    case "${CACHE[executable]}" in
-        *exe*|*bat*|*msi*) exec_string="Exec=env ${env} ${UMU_PATH} \"${CACHE[executable]}\" ${CACHE[args]}" ;;
-        *) exec_string="Exec=\"${CACHE[working_dir]}/${CACHE[executable]}\" ${CACHE[args]}" ;;
+    case "${CACHE[exe_path]}" in
+        *exe*|*bat*|*msi*) exec_string="Exec=${env_string}\"${UMU_PATH}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *) exec_string="Exec=${env_string}\"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
     esac
 
     # Write desktop file
@@ -1415,12 +1420,14 @@ add_app_shortcut() {
 opt_shortcut() {
     # SYNTAX: spt-additions -p "" -e "" -a "" shortcut spt-launcher
     local option="$1" && shift
+    local env=$( get_env )
 
     case "${option}" in
         eft|bsg|bsg-launcher)
             CACHE[_id]="app-shortcut"
             CACHE[name]="BSG - Launcher"
-            CACHE[executable]="BsgLauncher.exe"
+            CACHE[exe_path]="BsgLauncher.exe"
+            CACHE[env]="${env}"
             CACHE[args]="--disable-software-rasterizer"
             CACHE[working_dir]="${BSG_DIR}/BsgLauncher"
             CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
@@ -1430,7 +1437,9 @@ opt_shortcut() {
         launcher)
             CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Launcher"
-            CACHE[executable]="SPT.Launcher.exe"
+            CACHE[exe_path]="SPT.Launcher.exe"
+            CACHE[env]="${env}"
+            CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
             CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="spt_launcher"
@@ -1439,7 +1448,9 @@ opt_shortcut() {
         server)
             CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Server"
-            CACHE[executable]="launch-server.sh"
+            CACHE[exe_path]="launch-server.sh"
+            CACHE[env]=""
+            CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
             CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="spt_server"
