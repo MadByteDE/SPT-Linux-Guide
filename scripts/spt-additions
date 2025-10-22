@@ -36,6 +36,7 @@ readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly DATA_DIR="${DATA_HOME}/${TITLE}"
 readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
+readonly COMPAT_DIR="${DATA_HOME}/Steam/compatibilitytools.d"
 readonly RUNTIME_DIR="${DATA_DIR}/runtime"
 readonly TMP_DIR="$( mktemp -d "/tmp/spt-XXXXX" )"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
@@ -421,6 +422,23 @@ get_patcher_eft_version() {
         ""|*[!0-9]*) exit 14 ;;
         *) printf "%s\n" "${version}" ;;
     esac
+}
+
+
+init_prefix() {
+    if [[ ! -d "${WINEPREFIX}" ]]; then
+        msg "Initializing wine prefix..." && m_umu wineboot -u
+    fi
+
+    # WORKAROUND: Find and pin latest GE-Proton version if no custom path is set
+    # Fixes umu-launcher always re-downloading the latest GE-Proton version
+    if [[ -z "${ENV[PROTONPATH]}" ]] || [[ "${ENV[PROTONPATH]}" == "GE-Proton" ]]; then
+        local proton_path="$( find "${COMPAT_DIR}" \( -name "${DEFAULT_PROTONPATH}*" -type d \) | tail -n 1 )"
+        [[ -z "${proton_path}" ]] && proton_path="${DEFAULT_PROTONPATH}"
+        msg "Setting Proton version to \"${proton_path##*/}\""
+        set_value env "PROTONPATH=${proton_path##*/}"
+        export PROTONPATH="${proton_path##*/}"
+    fi
 }
 
 
