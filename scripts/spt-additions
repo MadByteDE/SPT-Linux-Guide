@@ -1693,9 +1693,10 @@ opt_help() {
                 msg "eft|bsg|tarkov                 - Install the BSG Launcher"
                 msg "spt|sptarkov                   - Install SPTarkov"
                 msg 
-                msg "Availble install modes for SPTarkov:"
-                msg "${BOLD}native${RESET}          - Uses a native install method (default)"
-                msg "${BOLD}proton${RESET}          - Uses Proton to install SPTarkov"
+                msg "Available install modes for SPTarkov:"
+                msg "${BOLD}native${RESET}          - Uses a native install method to install the latest SPTarkov release"
+                msg "${BOLD}proton${RESET}          - Uses Proton to install the latest SPTarkov release"
+                msg "${BOLD}lts${RESET}             - Installs the long-term-support (LTS) version of SPTarkov"
                 opt_help switches
             } | more
         ;;
