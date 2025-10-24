@@ -24,14 +24,15 @@
 
 1. Install EFT in `Lutris` using the installer script
 2. Install game in `BSG Launcher`
-3. Run `winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9` via Lutris bash console
-4. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
-5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
-6. Duplicate config, new profile `SPTarkov - Launcher`
-7. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
-8. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
-9. Add `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` environment variables in `Configure` → `System options`
-10. Run `SPT.Server.Linux`, then `SPTarkov - Launcher`
+3. Run `winetricks --self-update` via the Lutris bash terminal
+4. Run `winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9`
+5. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
+6. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
+7. Duplicate config, new profile `SPTarkov - Launcher`
+8. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
+9. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
+10. Add `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` environment variables in `Configure` → `System options`
+11. Run `SPT.Server.Linux`, then `SPTarkov - Launcher`
 
 </details>
 
@@ -52,6 +53,7 @@
 
 - Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the EFT game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
+      winetricks --self-update
       winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9
 
     <img src="../../media/lutris/terminal.jpg" width="580">
