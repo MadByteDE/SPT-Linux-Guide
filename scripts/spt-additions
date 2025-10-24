@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.9.5"
+VERSION="0.9.6"
 DATE="2025-10-24"
 
 # ANSI codes
@@ -351,9 +351,8 @@ save_array() {
 
 load_metadata() {
     # Get metadata
-    local download=0
-    if [[ ! -f "${METADATA_PATH}" ]] || ! check_ttl "${METADATA_PATH}" "7200"; then
-        msg "Downloading \"LTS\" metadata..."
+    if [[ ! -f "${METADATA_PATH}" ]] || ! check_ttl "${METADATA_PATH}"; then
+        msg "Downloading metadata..."
         m_curl -sL "${URL[metadata]}" -o "${METADATA_PATH}"
     fi
     load_array metadata
