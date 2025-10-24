@@ -1618,11 +1618,12 @@ opt_selfinstall() {
         fi
     done
 
+    # Load required metadata
+    load_metadata
+
     # Search for bin paths in the PATH environment variable
     for path in "${bin_paths[@]}"; do
-        local remote_hash=$( curl -sf "${URL[script-hash]}" )
-        [[ -z "${remote_hash}" ]] && err "Failed to get remote script hash"
-        msg "${BOLD}Remote hash${RESET}:   ${remote_hash}"
+        msg "${BOLD}Remote hash${RESET}:   ${METADATA[additions-hash]}"
         if [[ -z $( echo "${PATH}" | grep "${path}" ) ]]; then continue; fi
 
         # Found a user bin path
@@ -1634,7 +1635,7 @@ opt_selfinstall() {
             [[ ! -d "${path}" ]] && m_mkdir "${path}"
             msg "Downloading ${TITLE}..."
             cd "${TMP_DIR}" && m_curl -sLO "${URL[installer-script]}"
-            if ! check_hash "${TMP_DIR}/${TITLE}" "${remote_hash}"; then
+            if ! check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}"; then
                 err "Downloaded script is corrupted"
             fi
             msg "Installing ${TITLE}..."
@@ -1651,12 +1652,14 @@ opt_selfinstall() {
 
 
 opt_selfupdate() {
-    local current_hash=$( get_hash "${SCRIPT_PATH}/${TITLE}" ) || err "Failed to get script hash"
-    local remote_hash=$( curl -sf "${URL[script-hash]}" )
-    [[ -z "${remote_hash}" ]] && err "Failed to get remote script hash"
+    local current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
+
+    # Load required metadata
+    load_metadata
+
     msg "${BOLD}Current hash${RESET}:  ${current_hash}"
-    msg "${BOLD}Remote hash${RESET}:   ${remote_hash}"
-    if [[ "${current_hash}" == "${remote_hash}" ]]; then
+    msg "${BOLD}Remote hash${RESET}:   ${METADATA[additions-hash]}"
+    if [[ "${current_hash}" == "${METADATA[additions-hash]}" ]]; then
         msg "${BOLD}The script is up-to-date.${RESET}"
         return 0
     else
@@ -1668,12 +1671,12 @@ opt_selfupdate() {
         fi
         msg "Downloading ${TITLE}..."
         cd "${TMP_DIR}" && m_curl -sLO "${URL[installer-script]}"
-        if ! check_hash "${TMP_DIR}/${TITLE}" "${remote_hash}"; then
+        if ! check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}"; then
             err "Downloaded script is corrupted"
         fi
         msg "Installing ${TITLE}..."
-        m_mv "${TMP_DIR}/${TITLE}" "${SCRIPT_PATH}/${TITLE}"
-        m_chmod +x "${SCRIPT_PATH}/${TITLE}"
+        m_mv "${TMP_DIR}/${TITLE}" "${SCRIPT_DIR}/${TITLE}"
+        m_chmod +x "${SCRIPT_DIR}/${TITLE}"
         msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
     fi
 }
