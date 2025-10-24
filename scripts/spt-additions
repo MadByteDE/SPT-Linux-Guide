@@ -30,6 +30,7 @@ RED="\e[31m"; GREEN="\e[32m"; BLUE="\e[36m"
 YELLOW="\e[33m"; GRAY="\e[90m"
 
 # System directories
+readonly SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
 readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
 readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
@@ -705,10 +706,6 @@ install_eft() {
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
     
-    # Add prefix update pop-up workaround
-    msg "Adding \"RUNDLL32\" pop-up workaround..."
-    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
-    
     # Add mouse focus workaround
     msg "Adding mouse focus workaround..."
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
@@ -1092,7 +1089,7 @@ opt_update() {
 
             # Get required metadata for mod release
             if ! check_ttl "${MOD_JSON_PATH}"; then
-                msg "Downloading metadata..."
+                msg "Downloading \"RELEASE\" metadata..."
                 m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
             fi
 
@@ -1684,7 +1681,7 @@ opt_selfupdate() {
 
 opt_version() {
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
-    local script_hash=$( get_hash "${SCRIPT_PATH}/${TITLE}" ) || err "Failed to get script hash"
+    local script_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
     msg "${BOLD}Hash: ${RESET}${script_hash}"
 }
 
