@@ -1483,6 +1483,7 @@ opt_shortcut() {
         *)
             # Create custom shortcut
             local exe_path=$( realpath -m "${option}" )
+            [[ ! -f "${exe_path}" ]] && err "File \""${exe_path}"\" does not exist"
             local name="${option##*/}"; name="${name%.*}"
             local working_dir="${option%/*}"
             CACHE[_id]="app-shortcut"
@@ -1721,6 +1722,7 @@ opt_help() {
                 msg "server                         - Create/update SPT Server shortcut"
                 msg "spt|sptarkov                   - Create/update all SPT shortcuts"
                 msg "all                            - Create/update all available shortcuts"
+                msg "custom_executable              - Create/update custom shortcuts"
                 opt_help switches
             } | more
         ;;
