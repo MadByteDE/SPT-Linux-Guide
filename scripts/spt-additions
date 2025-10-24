@@ -1050,6 +1050,13 @@ opt_update() {
             if ! check_eft_installed; then err "Escape from Tarkov is not installed"; fi
             if [[ -z "${SPT_DIR}" ]] || [[ ! -d "${SPT_DIR}" ]]; then msg "SPTarkov is not installed" && m_exit 0; fi
 
+            # Check if an older SPT version is installed
+            if [[ ! -d "${SPT_DIR}/SPT" && -d "${SPT_DIR}/SPT_Data" ]]; then
+                warn "Looks like a legacy SPT version might be installed!"
+                msg "   > Updating legacy SPT versions is not support."
+                err "Legacy SPT version detected"
+            fi
+
             # Get required metadata for mod release
             if ! check_ttl "${MOD_JSON_PATH}"; then
                 msg "Downloading metadata..."
