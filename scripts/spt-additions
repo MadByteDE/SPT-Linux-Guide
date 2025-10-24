@@ -861,8 +861,8 @@ install_spt_native() {
         lts)
             load_metadata
             # Mod
-            mod_url="${METADATA[lts-mod-url]}"; [[ -z "${mod_url}" ]] && err "Failed to get mod url"
-            mod_hash="${METADATA[lts-mod-hash]}"; [[ -z "${mod_hash}" ]] && err "Failed to get mod hash"
+            mod_url="${METADATA[lts-spt-url]}"; [[ -z "${mod_url}" ]] && err "Failed to get mod url"
+            mod_hash="${METADATA[lts-spt-hash]}"; [[ -z "${mod_hash}" ]] && err "Failed to get mod hash"
             mod_eft="$( echo "${mod_url##*/}" | cut -d "-" -f3 )"; [[ -z "${mod_eft}" ]] && err "Failed to get mod eft version"
             mod_version="$( echo "${mod_url##*/}" | cut -d "-" -f2 )"; [[ -z "${mod_version}" ]] && err "Failed to get mod version"
             mod_path="${LTS_MOD_PATH}"
