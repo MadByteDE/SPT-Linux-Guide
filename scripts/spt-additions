@@ -553,7 +553,6 @@ check_flatpak_env() {
 
 
 check_aspnet() {
-    msg "Checking for ASP.NET Runtime 9.0 ..."
     if check_flatpak_env; then
         warn "Flatpak environment detected!"
         msg "   > Skipping native ASP.NET dependency check" & return 0
@@ -1303,7 +1302,7 @@ opt_guided_install() {
         set_prefix "${prefix_path:-${WINEPREFIX}}"
 
         # Perform some checks
-        check_eft_running;  check_aspnet;  check_native_deps
+        check_eft_running;  check_native_deps; check_aspnet
 
         # Initialize the prefix if needed
         init_prefix
