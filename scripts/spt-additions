@@ -357,8 +357,8 @@ set_prefix() {
     set_value env "WINEPREFIX=${path}"
 
     # Update prefix paths
-    check_spt_path "${CONFIG[spt_dir]}"
-    SPT_DIR="${WINEPREFIX%/}/${CONFIG[spt_dir]%/}"
+    check_spt_path "${CONFIG[spt-path]}"
+    SPT_DIR="${WINEPREFIX%/}/${CONFIG[spt-path]%/}"
     BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games"
     EFT_DIR=$( get_eft_path )
 
@@ -522,7 +522,7 @@ check_spt_path() {
     local spt_path="${1%/}"
     if [[ "${spt_path}" != *"drive_c"* ]]; then
         # Reset to default path
-        set_value config "spt_dir=${DEFAULT_SPT_DIR}"
+        set_value config "spt-path=${DEFAULT_SPT_DIR}"
         err "Invalid spt path: \"${spt_path}\""
     fi
 }
@@ -721,7 +721,7 @@ install_eft() {
 
 
 install_spt() {
-    local install_mode="${1:-"${CONFIG[install_mode]}"}"
+    local install_mode="${CONFIG[install-mode]}"
     
     msg "Launching \"SPTarkov\" setup..."
     msg "Selected install mode is \"${install_mode}\"..."
@@ -784,7 +784,7 @@ install_spt() {
             ln -s -n "${CACHE_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
             
             # Convert SPT directory path to windows path
-            local path="${CONFIG[spt_dir]//\//\\}"
+            local path="${CONFIG[spt-path]//\//\\}"
             path="${path//drive_c/C:}"
 
             # Run SPT Installer
@@ -990,7 +990,7 @@ opt_install() {
     local option="$1" && shift
     case "${option}" in
         eft|tarkov|bsg) install_eft ;;
-        spt|sptarkov) install_spt "${CONFIG[install_mode]}" ;;
+        spt|sptarkov) install_spt "${CONFIG[install-mode]}" ;;
         help|-h|--help) opt_help "install";;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
@@ -1782,7 +1782,10 @@ handle_opts() {
             e) opt_env set "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    native|proton|lutris) set_value config "install_mode=${OPTARG}" ;;
+                    native|proton|lts|lutris)
+                        msg "Setting install mode to \"${OPTARG}\"..."
+                        set_value config "install-mode=${OPTARG}"
+                    ;;
                     *) err "Invalid mode: ${OPTARG}" ;;
                 esac
             ;;
@@ -1852,8 +1855,8 @@ main() {
 
     # Set default config variables
     if [[ ! -f "${CONFIG_PATH}" ]]; then
-        set_value config "spt_dir=${DEFAULT_SPT_DIR}"
-        set_value config "install_mode=${DEFAULT_INSTALL_MODE}"
+        set_value config "spt-path=${DEFAULT_SPT_DIR}"
+        set_value config "install-mode=${DEFAULT_INSTALL_MODE}"
         save_array config
     fi
 
