@@ -537,7 +537,17 @@ check_eft_installed() {
 }
 
 
+check_flatpak_env() {
+    [[ -z "${FLATPATK_SANDBOX_DIR}" ]] && return 1
+}
+
+
 check_aspnet() {
+    msg "Checking for ASP.NET Runtime 9.0 ..."
+    if check_flatpak_env; then
+        warn "Flatpak environment detected!"
+        msg "   > Skipping native ASP.NET dependency check" & return 0
+    fi
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
         msg "> ${YELLOW}Please install it first & retry running this script.${RESET}"
