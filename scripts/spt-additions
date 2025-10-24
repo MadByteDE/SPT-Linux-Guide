@@ -21,8 +21,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.9.3"
-DATE="2025-10-21"
+VERSION="0.9.4"
+DATE="2025-10-24"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -88,7 +88,7 @@ URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401
 # Metadata
 URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
 URL[mod-json]="https://spt-releases.modd.in/release.json"
-URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv4-Dev/scripts/metadata.conf"
+URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
 
 # Links
 URL[spt-release]="https://github.com/sp-tarkov/build/releases"
