@@ -48,16 +48,18 @@ readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 readonly DEFAULT_INSTALL_MODE="native"
 
-declare -A CONFIG ENV CACHE URL SHORTCUT
+declare -A CONFIG ENV METADATA CACHE URL SHORTCUT
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
-readonly SCRIPT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
 readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/app.conf"
 readonly ENV_PATH="${CONFIG_DIR}/env.conf"
-readonly MOD_PATH="${CACHE_DIR}/SPT"
-readonly PATCHER_PATH="${CACHE_DIR}/patcher"
+readonly METADATA_PATH="${SCRIPT_DIR}/metadata.conf"
+readonly MOD_PATH="${CACHE_DIR}/spt.7z"
+readonly LTS_MOD_PATH="${CACHE_DIR}/lts-spt.7z"
+readonly PATCHER_PATH="${CACHE_DIR}/patcher.7z"
+readonly LTS_PATCHER_PATH="${CACHE_DIR}/lts-patcher.7z"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
@@ -85,7 +87,7 @@ URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401
 # Metadata
 URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
 URL[mod-json]="https://spt-releases.modd.in/release.json"
-URL[script-hash]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/additions-hash.txt"
+URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
 
 # Links
 URL[spt-release]="https://github.com/sp-tarkov/build/releases"
@@ -275,6 +277,7 @@ set_value() {
             ENV[$key]="${value%/}"
             export "${key}=${value%/}"  
         ;;
+        metadata) METADATA[$key]="${value}" ;;
         *) err "Invalid array name: \"${array_name}\""
     esac
 }
@@ -305,6 +308,7 @@ load_array() {
     case "${array_name}" in
         config) path="${CONFIG_PATH}" ;;
         env) path="${ENV_PATH}" ;;
+        metadata) path="${METADATA_PATH}" ;;
         *) err "Invalid argument \"${array_name}\"";;
     esac
 
@@ -341,6 +345,17 @@ save_array() {
         ;;
         *) ;;
     esac
+}
+
+
+load_metadata() {
+    # Get metadata
+    local download=0
+    if [[ ! -f "${METADATA_PATH}" ]] || ! check_ttl "${METADATA_PATH}" "7200"; then
+        msg "Downloading \"LTS\" metadata..."
+        m_curl -sL "${URL[metadata]}" -o "${METADATA_PATH}"
+    fi
+    load_array metadata
 }
 
 
@@ -415,18 +430,12 @@ get_patcher_urls() {
 
 
 get_patcher_eft_version() {
-    local url filename version
-    local json_path="${1:-"${PATCHER_JSON_PATH}"}"
-    url=$( get_patcher_urls "${json_path}" 1 ) || exit 1
+    local path="${1}"
+    local filename version
     # Split filename to get version infos from it
-    filename=$( echo "${url##*/}" | tr "_." " " )
-    # get target EFT version
+    filename=$( echo "${path##*/}" | tr "_." " " )
     version=$( echo "${filename}" | cut -d " " -f5 )
-    # Check returned value
-    case "${version}" in
-        ""|*[!0-9]*) exit 14 ;;
-        *) printf "%s\n" "${version}" ;;
-    esac
+    printf "%s\n" "${version}"
 }
 
 
@@ -756,17 +765,13 @@ install_spt() {
     msg "Adding \"winhttp\" DLL override..."
     m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f 1>> "${LOG_PATH}"
 
+    # Add prefix update pop-up workaround
+    msg "Adding \"RUNDLL32\" pop-up workaround..."
+    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
+
     # Install SPT
     case "$install_mode" in
-        native) install_spt_native ;;
-        lutris)
-            # Add prefix update pop-up workaround
-            msg "Adding \"RUNDLL32\" pop-up workaround..."
-            m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
-
-            # Install SPT
-            install_spt_native
-        ;;
+        lts|native|lutris) install_spt_native ;;
         proton)
             # Download ASP.NET Runtime
             if ! [[ -f "${CACHE_DIR}/aspnetcore-runtime.exe" ]]; then
@@ -806,17 +811,25 @@ install_spt() {
         ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
-    # Install the latest server launch script
-    msg "Downloading latest \"launch-server.sh\" script..."
-    cd "${SPT_DIR}" && m_curl -sLO "${URL[server-script]}"
-    m_chmod +x "${SPT_DIR}/launch-server.sh"
+    # Set Windows version to 8.1
+    msg "Setting Windows version to \"8.1\"..."
+    m_umu winetricks -q "win81" 1>> "${LOG_PATH}"
 
-    # Create launcher shortcut inside the root directory
-    ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" &>> "${LOG_PATH}"\
-    || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
+    if [[ "${install_mode}" == "lts" ]]; then
+        set_value env "PROTON_VERB=run"
+    else
+        # Install the latest server launch script
+        msg "Downloading latest \"launch-server.sh\" script..."
+        cd "${SPT_DIR}" && m_curl -sLO "${URL[server-script]}"
+        m_chmod +x "${SPT_DIR}/launch-server.sh"
+
+        # Create launcher shortcut inside the root directory
+        ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" &>> "${LOG_PATH}"\
+        || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
+    fi
 
     case "${install_mode}" in
-        native|proton)
+        native|proton|lts)
             # Download icons to icons directory
             if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
                 msg "Getting app icons from SteamGridDB..."
@@ -836,43 +849,62 @@ install_spt() {
 
 
 install_spt_native() {
+    local installed_eft patcher_eft mod_eft mod_version urls
+    local mod_url mod_hash patcher_hash patcher_url patcher_path
+    local install_mode="${CONFIG[install-mode]}"
+    
     # Pre-Checks
     check_native_deps
 
-    # Get required metadata for mod and patcher releases
-    if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
-        msg "Downloading metadata..."
-        m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-        m_curl -sL "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
-    fi
-
     # Fetch some juicy data
-    local installed_eft patcher_eft mod_eft mod_version
-    local mod_url mod_hash patcher_hash
     installed_eft=$( get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
     installed_eft=$( echo "${installed_eft}" | cut -d "." -f4 )
-    mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
-    mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
-    mod_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
-    mod_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get mod hash" "$?"
-    patcher_hash=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
-    patcher_eft=$( get_patcher_eft_version ) || err "Failed to get required EFT version for patcher" "$?"
-    
-    msg "Latest SPT release is \"${mod_version}\""
 
-    # Check for cached mod archive
-    if ! check_cached "${MOD_PATH}" "${mod_hash}"; then
-        msg "Downloading mod archive..."
-        m_curl -L "${mod_url}" -o "${MOD_PATH}"
-
-        # Make sure the file is good to use
-        check_hash "${MOD_PATH}" "${mod_hash}" || err "File \"${MOD_PATH}\" is corrupted"
-    fi
+    case "${install_mode}" in
+        # SPT 3.11.x
+        lts)
+            load_metadata
+            # Mod
+            mod_url="${METADATA[lts-mod-url]}"; [[ -z "${mod_url}" ]] && err "Failed to get mod url"
+            mod_hash="${METADATA[lts-mod-hash]}"; [[ -z "${mod_hash}" ]] && err "Failed to get mod hash"
+            mod_eft="$( echo "${mod_url##*/}" | cut -d "-" -f3 )"; [[ -z "${mod_eft}" ]] && err "Failed to get mod eft version"
+            mod_version="$( echo "${mod_url##*/}" | cut -d "-" -f2 )"; [[ -z "${mod_version}" ]] && err "Failed to get mod version"
+            mod_path="${LTS_MOD_PATH}"
+            # Patcher
+            patcher_hash="${METADATA[lts-patcher-hash]}"
+            patcher_url="${METADATA[lts-patcher-url]}"
+            patcher_eft=$( get_patcher_eft_version "${patcher_url}" ) || err "Failed to get required EFT version for patcher" "$?"
+            patcher_path="${LTS_PATCHER_PATH}"
+            msg "Installing SPT LTS version: \"${mod_version}\""
+        ;;
+        # SPT 4.x
+        native)
+            # Get metadata
+            if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
+                msg "Downloading \"RELEASE\" metadata..."
+                m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+                m_curl -sL "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+            fi
+            # Mod
+            mod_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
+            mod_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get mod hash" "$?"
+            mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
+            mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
+            mod_path="${MOD_PATH}"
+            # Patcher
+            patcher_hash=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
+            patcher_url=$( jq -r '.Mirrors[].Link' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher download url" "$?"
+            patcher_eft=$( get_patcher_eft_version "${patcher_url}" ) || err "Failed to get required EFT version for patcher" "$?"
+            patcher_path="${PATCHER_PATH}"
+            msg "Installing SPT release version: \"${mod_version}\""
+        ;;
+        *) err "Invalid install mode \"${install_mode}\"" ;;
+    esac
 
     # Check if we need to patch the game files
     msg "Comparing installed EFT <--> required EFT versions"
     if [[ "${installed_eft}" -ne "${mod_eft}" ]]; then
-        msg "Incompatible EFT version found - Checking latest downpatcher"
+        msg "Incompatible EFT version found - Checking patcher compatibility..."
         # Check if target EFT version is lower, greater or equal to required EFT version
         if [[ "${patcher_eft}" -lt "${installed_eft}" ]]; then
             # No patcher available yet!
@@ -892,25 +924,19 @@ install_spt_native() {
             # Downpatcher is compatible!
             msg "Patcher is compatible"
 
-            # Check for cached patcher archive
-            if ! check_cached "${PATCHER_PATH}" "${patcher_hash}"; then
-                # Set global variable for patcher mirror urls
-                local urls
-                urls=$( get_patcher_urls ) || err "Failed to get patcher mirrors" "$?"
-
-                # Try to download from first to last
-                echo "${urls}" | while read -r url; do
-                    msg "Downloading \"${url}\"..."
-                    m_curl -L "${url}" -o "${PATCHER_PATH}" && break
-                done
-
-                # Check archive
-                check_hash "${PATCHER_PATH}" "${patcher_hash}" || err "File \"${PATCHER_PATH}\" is corrupted"
+            # Download latest patcher if needed
+            [[ -z "${patcher_hash}" ]] && err "Missing patcher hash argument"
+            if ! check_cached "${patcher_path}" "${patcher_hash}"; then
+                msg "Downloading \"${patcher_url##*/}\"..."
+                m_curl -L "${patcher_url}" -o "${patcher_path}"
+                check_hash "${patcher_path}" "${patcher_hash}" || err "File \"${patcher_path##*/}\" is corrupted"
             fi
 
-            # Extract downpatcher to temp directory
-            msg "Extracting \"patcher\" archive..."
-            m_7z "${PATCHER_PATH}" "${TMP_DIR}/patcher"
+            # Extract latest patcher to tmp directory
+            local archive_name="${patcher_path##*/}"
+            local patcher_tmp_dir="${TMP_DIR}/${archive_name%.*}"
+            msg "Extracting \"${archive_name}\"..."
+            m_7z "${patcher_path}" "${patcher_tmp_dir}"
 
             # Copy EFT files
             msg "Copying game files to \"${SPT_DIR}\""
@@ -918,21 +944,28 @@ install_spt_native() {
 
             # Move patcher files to install directory
             msg "Copying patch files to \"${SPT_DIR}\""
-            local patch_dir="$(find "${TMP_DIR}/patcher" -type d -name '*SPT_Patches*')"
+            local patch_dir="$(find "${patcher_tmp_dir}" -type d -name '*SPT_Patches*')"
             m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
             opt_patch "${SPT_DIR}"
+        else
+            msg "Installed EFT version is compatible with \"SPT ${mod_version}\""
+            msg "Copying game files to \"${SPT_DIR}\""
+            m_cp "${EFT_DIR}/" "${SPT_DIR}"
         fi
-    else
-        msg "Installed EFT version is compatible with \"SPT ${mod_version}\""
-        msg "Copying game files to \"${SPT_DIR}\""
-        m_cp "${EFT_DIR}/" "${SPT_DIR}"
+    fi
+
+    # Check for cached mod archive
+    if ! check_cached "${mod_path}" "${mod_hash}"; then
+        msg "Downloading \"${mod_url##*/}\"..."
+        m_curl -L "${mod_url}" -o "${mod_path}"
+        check_hash "${mod_path}" "${mod_hash}" || err "File \"${mod_path##*/}\" is corrupted"
     fi
 
     # Extract mod archive to install directory
-    msg "Extracting \"mod\" archive..."
-    m_7z "${MOD_PATH}" "${SPT_DIR}"
+    msg "Extracting \"${mod_path##*/}\" archive..."
+    m_7z "${mod_path}" "${SPT_DIR}"
 }
 
 
@@ -1471,12 +1504,33 @@ opt_shortcut() {
             CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="spt_server"
             add_app_shortcut
+        ;;
+        lts-server)
+            CACHE[_id]="app-shortcut"
+            CACHE[name]="SPT - Server"
+            CACHE[exe_path]="SPT.Server.exe"
+            CACHE[env]="${env}"
+            CACHE[args]=""
+            CACHE[working_dir]="${SPT_DIR}"
+            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
+            CACHE[icon]="spt_server"
+            add_app_shortcut
         ;; 
         spt|sptarkov)
-            opt_shortcut launcher; opt_shortcut server
+            opt_shortcut launcher
+            if [[ "${CONFIG[install-mode]}" == "lts" ]]; then
+                opt_shortcut lts-server
+            else
+                opt_shortcut server
+            fi
         ;;
         all)
-            opt_shortcut bsg-launcher;  opt_shortcut launcher;  opt_shortcut server
+            opt_shortcut bsg-launcher;  opt_shortcut launcher
+            if [[ "${CONFIG[install-mode]}" == "lts" ]]; then
+                opt_shortcut lts-server
+            else
+                opt_shortcut server
+            fi
         ;;
         help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
