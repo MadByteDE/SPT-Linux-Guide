@@ -1081,9 +1081,9 @@ opt_update() {
 
             # Check if an older SPT version is installed
             if [[ ! -d "${SPT_DIR}/SPT" && -d "${SPT_DIR}/SPT_Data" ]]; then
-                warn "Looks like a legacy SPT version might be installed!"
-                msg "   > Updating legacy SPT versions is not support."
-                err "Legacy SPT version detected"
+                warn "Looks like a \"LTS\" SPT version is installed!"
+                msg "   > Updating \"LTS\" versions is not support."
+                err "Unsupported SPT version"
             fi
 
             # Get required metadata for mod release
