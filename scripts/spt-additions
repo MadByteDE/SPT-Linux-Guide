@@ -605,15 +605,14 @@ check_hash() {
 
 check_cached() {
     local cached_path="$(realpath -m "${1%/}")"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
-    local expected_hash="${2}"; [[ -z "${expected_hash}" ]] && err "Missing expected hash argument"
+    local expected_hash="${2}"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] || err "File is not in \"${CACHE_DIR}\""
     # Verify the file is there and valid
     local filename=${cached_path##*/}
     if [[ -f "${cached_path}" ]]; then
         msg "Found \"${filename}\" in cache directory"
-        # Check hash
-        if ! check_hash "${cached_path}" "${expected_hash}"; then
+        if [[ -n "${expected_hash}" ]] && ! check_hash "${cached_path}" "${expected_hash}"; then
             msg "Removing cached file \"${filename}\""
             m_rm "${cached_path}"
             return 1
