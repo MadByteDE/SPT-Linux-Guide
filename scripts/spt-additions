@@ -88,7 +88,7 @@ URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401
 # Metadata
 URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
 URL[mod-json]="https://spt-releases.modd.in/release.json"
-URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
+URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv4-Dev/scripts/metadata.conf"
 
 # Links
 URL[spt-release]="https://github.com/sp-tarkov/build/releases"
