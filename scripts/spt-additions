@@ -1809,7 +1809,6 @@ opt_help() {
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
                 msg "-v|--version                   - Show version info"
-                opt_help switches
             } | more
         ;;
         "") 
