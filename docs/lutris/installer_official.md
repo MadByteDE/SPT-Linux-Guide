@@ -3,6 +3,9 @@
 
 This *.yml script uses the regular windows installer to install SPT on your system.
 
+> [!WARNING]
+> This installer is currently broken. Please use one of the other [install methods](../../README.md#automated-install) instead.
+
 ## What you need
 
 ### - **~120GB free disk space**

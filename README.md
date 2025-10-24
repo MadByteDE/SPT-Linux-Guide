@@ -44,6 +44,9 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 
 [Lutris installer](docs/lutris/installer_official.md) (Official)
   -
+  > [!WARNING]
+  > This installer is currently broken. Please use one of the other [install methods](../../README.md#automated-install) instead.
+  
   - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
   - ⚠️ Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
