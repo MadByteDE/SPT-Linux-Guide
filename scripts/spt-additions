@@ -21,7 +21,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.9.4"
+VERSION="0.9.5"
 DATE="2025-10-24"
 
 # ANSI codes
@@ -874,7 +874,7 @@ install_spt_native() {
             msg "Installing SPT LTS version: \"${mod_version}\""
         ;;
         # SPT 4.x
-        native)
+        native|lutris)
             # Get metadata
             if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
                 msg "Downloading \"RELEASE\" metadata..."
