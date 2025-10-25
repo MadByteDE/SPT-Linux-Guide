@@ -21,8 +21,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
-VERSION="0.9.6"
-DATE="2025-10-24"
+VERSION="0.9.7"
+DATE="2025-10-25"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
