@@ -696,7 +696,7 @@ install_dep() {
 
 
 install_eft() {
-    msg "Starting \"Escape from Tarkov\" setup..."
+    msg "${BOLD}Starting \"Escape from Tarkov\" setup...${RESET}"
     check_disk_space 60
 
     # Install game dependencies
@@ -728,14 +728,15 @@ install_eft() {
     # Create application shortcut
     opt_shortcut bsg-launcher
 
-    msg "${GREEN}Done!${RESET}"
+    msg "${GREEN}EFT has been installed successfully!${RESET}"
 }
 
 
 install_spt() {
     local install_mode="${CONFIG[install-mode]}"
-    
-    msg "Launching \"SPTarkov\" setup..."
+    [[ "${install_mode}" == "lutris" ]] && opt_version
+
+    msg "${BOLD}Starting \"SPTarkov\" setup...${RESET}"
     msg "Selected install mode is \"${install_mode}\"..."
 
     if ! check_eft_installed; then
@@ -743,8 +744,8 @@ install_spt() {
         msg "> ${YELLOW}make sure to install the game inside the BSG Launcher & try again!${RESET}"
         err "Escape from Tarkov not found."
     elif [[ -d "${SPT_DIR}" ]]; then
-        warn "SPTarkov directory already exists."
-        msg "> ${YELLOW}If you want to reinstall, make sure to remove the old installation first!${RESET}"
+        warn "\"${SPT_DIR}\" already exists."
+        msg "> ${YELLOW}If you want to reinstall, make sure to move or delete the current installation first!${RESET}"
         err "SPTarkov directory already exists."
     fi
 
@@ -802,7 +803,6 @@ install_spt() {
             # Make the Linux server executable
             m_chmod +x "${SPT_DIR}/SPT/SPT.Server.Linux"
         ;;
-        ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
     # Set Windows version to 8.1
@@ -854,8 +854,6 @@ install_mod_archive() {
 
 
 install_spt_native() {
-    local installed_eft patcher_eft mod_eft mod_version urls
-    local mod_url mod_hash patcher_hash patcher_url patcher_path
     local install_mode="${CONFIG[install-mode]}"
     
     # Pre-Checks
@@ -1094,7 +1092,6 @@ load_metadata() {
 opt_update() {
     # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
     # TODO: Gotta check somehow if a BLEEDING EDGE version is installed!
-    # TODO: Add a `-f / --force` switch to force updates
     local option="$1" && shift
     case "${option}" in
         spt|sptarkov)
@@ -1350,17 +1347,17 @@ opt_run() {
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
             local args="--disable-software-rasterizer"
-            msg "Launching BSG Launcher..."
+            msg "${BOLD}Launching BSG Launcher...${RESET}"
             cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "$args" "$@"
         ;;
         launcher)
             check_eft_running
-            msg "Launching SPT Launcher..."
+            msg "${BOLD}Launching SPT Launcher...${RESET}"
             cd "${SPT_DIR}" && m_umu "SPT.Launcher.exe" "$@"
         ;;
         server)
             check_eft_running
-            msg "Launching SPT Server..."
+            msg "${BOLD}Launching SPT Server...${RESET}"
             cd "${SPT_DIR}" && "./launch-server.sh" "$@"
         ;;
         help|-h|--help) opt_help "run";;
@@ -1800,7 +1797,7 @@ opt_help() {
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
                 msg "-e <KEY=VALUE>                 - Set an environment variable for the prefix"
-                msg "-m <mode>                      - Set the install mode for SPTarkov (native, proton, lutris)"
+                msg "-m <mode>                      - Set the install mode for SPTarkov (native, proton, lts)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
