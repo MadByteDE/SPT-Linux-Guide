@@ -274,7 +274,7 @@ set_value() {
             CONFIG[$key]="${value%/}"
         ;;
         env)
-            [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/.,_=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
+            [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[A-Za-z0-9/.,_+=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
             ENV[$key]="${value%/}"
             export "${key}=${value%/}"  
         ;;
@@ -436,7 +436,7 @@ init_prefix() {
 
     # WORKAROUND: Find and pin latest GE-Proton version if no custom path is set
     # Fixes umu-launcher always re-downloading the latest GE-Proton version
-    if [[ -z "${ENV[PROTONPATH]}" ]] || [[ "${ENV[PROTONPATH]}" == "GE-Proton" ]]; then
+    if [[ -z "${PROTONPATH}" ]] || [[ "${PROTONPATH}" == "GE-Proton" ]]; then
         local proton_path="$( find "${COMPAT_DIR}" \( -name "${DEFAULT_PROTONPATH}*" -type d \) | tail -n 1 )"
         [[ -z "${proton_path}" ]] && proton_path="${DEFAULT_PROTONPATH}"
         msg "Setting Proton version to \"${proton_path##*/}\""
@@ -1917,33 +1917,26 @@ main() {
     for dir in "${dirs[@]}"; do [[ ! -d "${dir}" ]] && mkdir -p "${dir}"; done
 
     # Set default config variables
-    if [[ ! -f "${CONFIG_PATH}" ]]; then
-        set_value config "spt-path=${DEFAULT_SPT_DIR}"
-        set_value config "install-mode=${DEFAULT_INSTALL_MODE}"
-        save_array config
-    fi
+    [[ -f "${CONFIG_PATH}" ]] && load_array config
+    set_value config "spt-path=${CONFIG[spt-path]:-"${DEFAULT_SPT_DIR}"}"
+    set_value config "install-mode=${CONFIG[install-mode]:-"${DEFAULT_INSTALL_MODE}"}"
 
     # Set default environment variables
-    if [[ ! -f "${ENV_PATH}" ]]; then
-        set_value env "WINEPREFIX=${WINEPREFIX:-${DEFAULT_WINEPREFIX}}"
-        set_value env "PROTONPATH=${PROTONPATH:-${DEFAULT_PROTONPATH}}"
-        set_value env "DOTNET_ROOT="
-        set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
-        set_value env "PROTON_USE_XALIA=0"
-        save_array env
-    fi
+    [[ -f "${ENV_PATH}" ]] && load_array env
+    [[ -z "${ENV[WINEPREFIX]}" ]] && set_value env "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
+    [[ -z "${ENV[PROTONPATH]}" ]] && set_value env "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
+    [[ -z "${ENV[DOTNET_ROOT]}" ]] && set_value env "DOTNET_ROOT="
+    [[ -z "${ENV[DOTNET_BUNDLE_EXTRACT_BASE_DIR]}" ]] && set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
+    [[ -z "${ENV[PROTON_USE_XALIA]}" ]] && set_value env "PROTON_USE_XALIA="
+    [[ -z "${ENV[WINEDEBUG]}" ]] && set_value env "WINEDEBUG=+debugstr,err+all,fixme+all"
 
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
 
-    # Load config files
-    [[ -f "${CONFIG_PATH}" ]] && load_array config
-    [[ -f "${ENV_PATH}" ]] && load_array env
-
     # Export paths
-    export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
-    export WINEPREFIX="${ENV[WINEPREFIX]:-${DEFAULT_WINEPREFIX}}"
-    export PROTONPATH="${ENV[PROTONPATH]:-${DEFAULT_PROTONPATH}}"
+    export WINEDEBUG="${WINEDEBUG:-"${ENV[WINEDEBUG]}"}"
+    export WINEPREFIX="${ENV[WINEPREFIX]}"
+    export PROTONPATH="${ENV[PROTONPATH]}"
     export PATH=$RUNTIME_DIR:$PATH
 
     # Handle command line arguments
