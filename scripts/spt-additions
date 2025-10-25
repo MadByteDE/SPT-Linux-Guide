@@ -546,13 +546,22 @@ check_eft_installed() {
 }
 
 
-check_flatpak_env() {
-    [[ -z "${FLATPATK_SANDBOX_DIR}" ]] && return 1
+check_lts_installed() {
+    [[ -z "${SPT_DIR}" ]] || [[ ! -d "${SPT_DIR}" ]] && return 1
+    [[ ! -d "${SPT_DIR}/SPT_Data" ]] || [[ ! -f "${SPT_DIR}/SPT.Launcher.exe" ]] && return 1
+    return 0
+}
+
+
+check_latest_installed() {
+    [[ -z "${SPT_DIR}" ]] || [[ ! -d "${SPT_DIR}" ]] && return 1
+    [[ ! -d "${SPT_DIR}/SPT" || ! -f "${SPT_DIR}/SPT.Launcher.exe" ]] && return 1
+    return 0
 }
 
 
 check_aspnet() {
-    if check_flatpak_env; then
+    if [[ -n "${FLATPAK_SANDBOX_DIR}" ]]; then
         warn "Flatpak environment detected!"
         msg "   > Skipping native ASP.NET dependency check" & return 0
     fi
