@@ -349,16 +349,6 @@ save_array() {
 }
 
 
-load_metadata() {
-    # Get metadata
-    if [[ ! -f "${METADATA_PATH}" ]] || ! check_ttl "${METADATA_PATH}"; then
-        msg "Downloading metadata..."
-        m_curl -sL "${URL[metadata]}" -o "${METADATA_PATH}"
-    fi
-    load_array metadata
-}
-
-
 set_prefix() {
     # Validate path
     check_prefix_path "${1%/}"
@@ -845,10 +835,21 @@ install_spt() {
             opt_shortcut spt
         ;;
         lutris) ;;
-        ""|*) err "Invalid install mode \"${install_mode}\"" ;;
     esac
+}
 
-    msg "${GREEN}Done!${RESET}"
+
+install_mod_archive() {
+    local url="${1}"; [[ -z "${url}" ]] && err "Missing argument: url"
+    local source_path="${2}"; [[ -z "${source_path}" ]] && err "Missing argument: source_path"
+    local hash="${3}"; [[ -z "${hash}" ]] && err "Missing argument: hash"
+    if ! check_cached "${source_path}" "${hash}"; then
+        msg "Downloading \"${url##*/}\"..."
+        m_curl -L "${url}" -o "${source_path}"
+        check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
+    fi
+    msg "Extracting \"${source_path##*/}\" archive..."
+    m_7z "${source_path}" "${SPT_DIR}"
 }
 
 
@@ -860,57 +861,22 @@ install_spt_native() {
     # Pre-Checks
     check_native_deps
 
-    # Fetch some juicy data
-    installed_eft=$( get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
-    installed_eft=$( echo "${installed_eft}" | cut -d "." -f4 )
+    load_metadata eft
 
     case "${install_mode}" in
         # SPT 3.11.x
-        lts)
-            load_metadata
-            # Mod
-            mod_url="${METADATA[lts-spt-url]}"; [[ -z "${mod_url}" ]] && err "Failed to get mod url"
-            mod_hash="${METADATA[lts-spt-hash]}"; [[ -z "${mod_hash}" ]] && err "Failed to get mod hash"
-            mod_eft="$( echo "${mod_url##*/}" | cut -d "-" -f3 )"; [[ -z "${mod_eft}" ]] && err "Failed to get mod eft version"
-            mod_version="$( echo "${mod_url##*/}" | cut -d "-" -f2 )"; [[ -z "${mod_version}" ]] && err "Failed to get mod version"
-            mod_path="${LTS_MOD_PATH}"
-            # Patcher
-            patcher_hash="${METADATA[lts-patcher-hash]}"
-            patcher_url="${METADATA[lts-patcher-url]}"
-            patcher_eft=$( get_patcher_eft_version "${patcher_url}" ) || err "Failed to get required EFT version for patcher" "$?"
-            patcher_path="${LTS_PATCHER_PATH}"
-            msg "Installing SPT LTS version: \"${mod_version}\""
-        ;;
-        # SPT 4.x
-        native|lutris)
-            # Get metadata
-            if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
-                msg "Downloading \"RELEASE\" metadata..."
-                m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-                m_curl -sL "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
-            fi
-            # Mod
-            mod_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
-            mod_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get mod hash" "$?"
-            mod_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
-            mod_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get SPT version" "$?"
-            mod_path="${MOD_PATH}"
-            # Patcher
-            patcher_hash=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
-            patcher_url=$( jq -r '.Mirrors[].Link' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher download url" "$?"
-            patcher_eft=$( get_patcher_eft_version "${patcher_url}" ) || err "Failed to get required EFT version for patcher" "$?"
-            patcher_path="${PATCHER_PATH}"
-            msg "Installing SPT release version: \"${mod_version}\""
-        ;;
+        lts) load_metadata lts && msg "${BOLD}Installing SPT LTS version: \"${METADATA[mod-version]}\"${RESET}" ;;
+        # SPT 4.x.x
+        native|lutris) load_metadata latest && msg "${BOLD}Installing SPT release version: \"${METADATA[mod-version]}\"${RESET}" ;;
         *) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
     # Check if we need to patch the game files
     msg "Comparing installed EFT <--> required EFT versions"
-    if [[ "${installed_eft}" -ne "${mod_eft}" ]]; then
+    if [[ "${METADATA[inst-eft]}" -ne "${METADATA[mod-eft]}" ]]; then
         msg "Incompatible EFT version found - Checking patcher compatibility..."
         # Check if target EFT version is lower, greater or equal to required EFT version
-        if [[ "${patcher_eft}" -lt "${installed_eft}" ]]; then
+        if [[ "${METADATA[patcher-eft]}" -lt "${METADATA[inst-eft]}" ]]; then
             # No patcher available yet!
             warn "Looks like there's no patcher available for your EFT version"
             msg "    > This usually happens when EFT has been updated recently."
@@ -918,29 +884,29 @@ install_spt_native() {
             msg "    > Usually, this will take less then 24 hours."
             err "No patcher available"
             
-        elif [[ "${patcher_eft}" -gt "${installed_eft}" ]]; then
+        elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
             # EFT is outdated!
             warn "Looks like your installed EFT version is out-of-date"
             msg "    > Please update your live EFT installation & try again"
             err "EFT is out-of-date"
 
-        elif [[ "${patcher_eft}" -eq "${installed_eft}" ]]; then
+        elif [[ "${METADATA[patcher-eft]}" -eq "${METADATA[inst-eft]}" ]]; then
             # Downpatcher is compatible!
             msg "Patcher is compatible"
 
             # Download latest patcher if needed
-            [[ -z "${patcher_hash}" ]] && err "Missing patcher hash argument"
-            if ! check_cached "${patcher_path}" "${patcher_hash}"; then
-                msg "Downloading \"${patcher_url##*/}\"..."
-                m_curl -L "${patcher_url}" -o "${patcher_path}"
-                check_hash "${patcher_path}" "${patcher_hash}" || err "File \"${patcher_path##*/}\" is corrupted"
+            [[ -z "${METADATA[patcher-hash]}" ]] && err "Missing patcher hash argument"
+            if ! check_cached "${METADATA[patcher-path]}" "${METADATA[patcher-hash]}"; then
+                msg "Downloading \"${METADATA[patcher-url]##*/}\"..."
+                m_curl -L "${METADATA[patcher-url]}" -o "${METADATA[patcher-path]}"
+                check_hash "${METADATA[patcher-path]}" "${METADATA[patcher-hash]}" || err "File \"${METADATA[patcher-path]##*/}\" is corrupted"
             fi
 
             # Extract latest patcher to tmp directory
-            local archive_name="${patcher_path##*/}"
+            local archive_name="${METADATA[patcher-path]##*/}"
             local patcher_tmp_dir="${TMP_DIR}/${archive_name%.*}"
             msg "Extracting \"${archive_name}\"..."
-            m_7z "${patcher_path}" "${patcher_tmp_dir}"
+            m_7z "${METADATA[patcher-path]}" "${patcher_tmp_dir}"
 
             # Copy EFT files
             msg "Copying game files to \"${SPT_DIR}\""
@@ -954,22 +920,14 @@ install_spt_native() {
             # Patch game files
             opt_patch "${SPT_DIR}"
         else
-            msg "Installed EFT version is compatible with \"SPT ${mod_version}\""
+            msg "Installed EFT version is compatible with \"SPT ${METADATA[mod-version]}\""
             msg "Copying game files to \"${SPT_DIR}\""
             m_cp "${EFT_DIR}/" "${SPT_DIR}"
         fi
     fi
 
-    # Check for cached mod archive
-    if ! check_cached "${mod_path}" "${mod_hash}"; then
-        msg "Downloading \"${mod_url##*/}\"..."
-        m_curl -L "${mod_url}" -o "${mod_path}"
-        check_hash "${mod_path}" "${mod_hash}" || err "File \"${mod_path##*/}\" is corrupted"
-    fi
-
-    # Extract mod archive to install directory
-    msg "Extracting \"${mod_path##*/}\" archive..."
-    m_7z "${mod_path}" "${SPT_DIR}"
+    install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
+    msg "${GREEN}${BOLD}SPT \"${METADATA[mod-version]}\" has been installed successfully!${RESET}"
 }
 
 
@@ -1072,6 +1030,67 @@ opt_uninstall() {
 }
 
 
+load_metadata() {
+    local name="${1}"
+    # Get specific build data
+    case "${name}" in
+        latest)
+            # Fetch metadata
+            if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
+                msg "Downloading metadata..."
+                m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
+                m_curl -sL "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+            fi
+            METADATA[mod-eft]=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
+            METADATA[mod-version]=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
+            METADATA[mod-url]=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
+            METADATA[mod-hash]=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get SPT archive hash" "$?"
+            METADATA[mod-path]="${MOD_PATH}"
+            METADATA[patcher-url]=$( jq -r '.Mirrors[].Link' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-hash]=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
+            METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" ) || err "Failed to get required EFT version for patcher" "$?"
+            METADATA[patcher-path]="${PATCHER_PATH}"
+        ;;
+        lts)
+            # Fetch metadata
+            load_metadata
+            METADATA[mod-url]="${METADATA[lts-spt-url]}"; [[ -z "${METADATA[mod-url]}" ]] && err "Failed to get mod url"
+            METADATA[mod-hash]="${METADATA[lts-spt-hash]}"; [[ -z "${METADATA[mod-hash]}" ]] && err "Failed to get mod hash"
+            METADATA[mod-eft]="$( echo "${METADATA[mod-url]##*/}" | cut -d "-" -f3 )"; [[ -z "${METADATA[mod-eft]}" ]] && err "Failed to get mod eft version"
+            METADATA[mod-version]="$( echo "${METADATA[mod-url]##*/}" | cut -d "-" -f2 )"; [[ -z "${METADATA[mod-version]}" ]] && err "Failed to get mod version"
+            METADATA[mod-path]="${LTS_MOD_PATH}"
+            METADATA[patcher-url]="${METADATA[lts-patcher-url]}"
+            METADATA[patcher-hash]="${METADATA[lts-patcher-hash]}"
+            METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" )
+            METADATA[patcher-path]="${LTS_PATCHER_PATH}"
+        ;;
+        eft)
+            if [[ "${EFT_DIR}" ]]; then
+                METADATA[inst-eft]=$( get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
+                METADATA[inst-eft]=$( echo "${METADATA[inst-eft]}" | cut -d "." -f4 )
+            fi
+        ;;
+        mod-eft)
+            if [[ "${SPT_DIR}" ]]; then
+                local core_dll_path="${SPT_DIR}/BepInEx/plugins/spt/spt-core.dll"
+                METADATA[inst-spt]=$( get_file_version "${core_dll_path}" | cut -d "." -f1-3 ) || err "Failed to get installed SPT version" "$?"
+                METADATA[inst-spt]=$( echo "${METADATA[inst-spt]}" )
+                METADATA[inst-mod-eft]=$( get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get mod EFT version" "$?"
+                METADATA[inst-mod-eft]=$( echo "${METADATA[inst-mod-eft]}" | cut -d "." -f4 )
+            fi
+        ;;
+        "")
+            # Get metadata file
+            if [[ ! -f "${METADATA_PATH}" ]] || ! check_ttl "${METADATA_PATH}"; then
+                msg "Downloading metadata..." && m_curl -sL "${URL[metadata]}" -o "${METADATA_PATH}"
+            fi
+            load_array metadata
+        ;;
+        *) err "Invalid argument: \"${name}\"" ;;
+    esac
+}
+
+
 opt_update() {
     # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
     # TODO: Gotta check somehow if a BLEEDING EDGE version is installed!
@@ -1079,69 +1098,50 @@ opt_update() {
     local option="$1" && shift
     case "${option}" in
         spt|sptarkov)
-            local inst_eft inst_mod_eft inst_spt
-            local upd_eft upd_version upd_url upd_hash
-            local major minor patch
-
             # Check if EFT & SPT are installed
             if ! check_eft_installed; then err "Escape from Tarkov is not installed"; fi
-            if [[ -z "${SPT_DIR}" ]] || [[ ! -d "${SPT_DIR}" ]]; then msg "SPTarkov is not installed" && m_exit 0; fi
 
-            # Check if an older SPT version is installed
-            if [[ ! -d "${SPT_DIR}/SPT" && -d "${SPT_DIR}/SPT_Data" ]]; then
-                warn "Looks like a \"LTS\" SPT version is installed!"
-                msg "   > Updating \"LTS\" versions is not support."
-                err "Unsupported SPT version"
-            fi
+            # Get metadata
+            if check_latest_installed; then load_metadata latest
+            elif check_lts_installed; then load_metadata lts
+            else msg "SPTarkov is not installed" && m_exit 0; fi
+            
+            load_metadata mod-eft
+            [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
+            [[ -z "${METADATA[mod-version]}" ]] && err "Update SPT version is not set"
+            msg "Installed SPT version is \"${METADATA[inst-spt]}\""
+            msg "Latest SPT version is \"${METADATA[mod-version]}\""
+            
+            local inst_major=$( echo "${METADATA[inst-spt]}" | cut -d "." -f1 )
+            local inst_minor=$( echo "${METADATA[inst-spt]}" | cut -d "." -f2 )
+            local inst_patch=$( echo "${METADATA[inst-spt]}" | cut -d "." -f3 )
+            local upd_major=$( echo "${METADATA[mod-version]}" | cut -d "." -f1 )
+            local upd_minor=$( echo "${METADATA[mod-version]}" | cut -d "." -f2 )
+            local upd_patch=$( echo "${METADATA[mod-version]}" | cut -d "." -f3 )
 
-            # Get required metadata for mod release
-            if ! check_ttl "${MOD_JSON_PATH}"; then
-                msg "Downloading \"RELEASE\" metadata..."
-                m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-            fi
-
-            # Get infos about the current SPT installation
-            inst_spt=$( get_file_version "${SPT_DIR}/SPT/SPT.Server.exe" ) || err "Failed to get installed SPT version" "$?"
-            inst_spt=$( echo "${inst_spt}" | cut -d "." -f1-3 )
-            inst_mod_eft=$( get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get mod EFT version" "$?"
-            inst_mod_eft=$( echo "${inst_mod_eft}" | cut -d "." -f4 )
-
-            # Get infos about the latest SPT version
-            upd_eft=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
-            upd_version=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
-            upd_url=$( jq -r '.Mirrors[].DownloadUrl' "${MOD_JSON_PATH}" ) || err "Failed to get SPT download url" "$?"
-            upd_hash=$( jq -r '.Mirrors[].Hash' "${MOD_JSON_PATH}" ) || err "Failed to get SPT archive hash" "$?"
-
-            msg "Installed SPT version is \"${inst_spt}\""
-            msg "Latest SPT version is \"${upd_version}\""
-
-            if [[ $( echo "${upd_version}" | cut -d "." -f1 ) -gt $( echo "${inst_spt}" | cut -d "." -f1 ) ]]; then major=1; fi
-            if [[ $( echo "${upd_version}" | cut -d "." -f2 ) -gt $( echo "${inst_spt}" | cut -d "." -f2 ) ]]; then minor=1; fi
-            if [[ $( echo "${upd_version}" | cut -d "." -f3 ) -gt $( echo "${inst_spt}" | cut -d "." -f3 ) ]]; then patch=1; fi
-
-            if [[ "${upd_version}" == "${inst_spt}" ]]; then
+            if [[ "${METADATA[mod-version]}" == "${METADATA[inst-spt]}" ]]; then
                 msg "${BOLD}SPT is up-to-date.${RESET}" && m_exit 0
-            elif [[ $major == 1 ]]; then
-                {   msg "${BOLD}${YELLOW}A new major release is available!${RESET}"
+            elif [[ "${upd_major}" -gt "${inst_major}" ]]; then
+                {   msg "${BOLD}${YELLOW}A new major update is available!${RESET}"
                     msg "   > ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
                     msg
                     msg "   ${BOLD}Please check out the release notes & re-install SPT manually:${RESET}"
-                    msg "   > ${URL[spt-release]}/tag/${upd_version}"
+                    msg "   > ${URL[spt-release]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   1. Update the additions script with: ${BOLD}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
                     msg "   3. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   4. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
                 } | more
-            elif [[ $minor == 1 ]]; then
-                {   msg "${BOLD}${YELLOW}A new minor release is available!${RESET}"
+            elif [[ "${upd_minor}" -gt "${inst_minor}" ]]; then
+                {   msg "${BOLD}${YELLOW}A new minor update is available!${RESET}"
                     msg "   > ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods might not be compatible."
                     msg
                     msg "   ${BOLD}Please check out the release notes & update / re-install SPT manually:${RESET}"
-                    msg "   > ${URL[spt-release]}/tag/${upd_version}"
+                    msg "   > ${URL[spt-release]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   ${BOLD}How to update:${RESET}"
-                    msg "   1. Download the latest release archive: ${upd_url}"
+                    msg "   1. Download the latest release archive: ${METADATA[mod-url]}"
                     msg "   2. Extract its content into \"${SPT_DIR}\" & override when asked"
                     msg
                     msg "   ${BOLD}How to re-install:${RESET}"
@@ -1149,28 +1149,15 @@ opt_update() {
                     msg "   2. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   3. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
                 }
-            elif [[ $patch == 1 ]]; then
-                {   msg "${BOLD}${YELLOW}A new patch release is available!${RESET}"
+            elif [[ "${upd_patch}" -gt "${inst_patch}" ]]; then
+                {   msg "${BOLD}${YELLOW}A new patch update is available!${RESET}"
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
-                    msg "   > ${URL[spt-release]}/tag/${upd_version}"
+                    msg "   > ${URL[spt-release]}/tag/${METADATA[mod-version]}"
                     yesno "Do you want to install the update?" || m_exit 0
                 }
-                msg "${BOLD}Updating SPT to version \"${upd_version}\" ...${RESET}"
-                
-                # Check for cached mod archive
-                if ! check_cached "${MOD_PATH}" "${upd_hash}"; then
-                    # Download archive
-                    msg "Downloading mod archive..."
-                    m_curl -L "${upd_url}" -o "${MOD_PATH}"
 
-                    # Make sure the file is good to use
-                    check_hash "${MOD_PATH}" "${upd_hash}" || err "File \"${MOD_PATH}\" is corrupted"
-                fi
-
-                # Extract mod archive to install directory
-                msg "Extracting \"mod\" archive..."
-                m_7z "${MOD_PATH}" "${SPT_DIR}"
-
+                msg "${BOLD}Updating SPT to version \"${METADATA[mod-version]}\" ...${RESET}"
+                install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
                 msg "${GREEN}${BOLD}Update successful!${RESET}"
             else
                 err "Unhandled exception"
