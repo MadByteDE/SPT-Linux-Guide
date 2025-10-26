@@ -3,9 +3,6 @@
 
 This *.yml script uses the regular windows installer to install SPT on your system.
 
-> [!WARNING]
-> This installer is currently broken. Please use one of the other [install methods](../../README.md#automated-install) instead.
-
 ## What you need
 
 ### - **~120GB free disk space**
@@ -15,8 +12,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - Tested wine versions:
     - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
-    - **[wine-10.x-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-    - **[wine-kron4ek-10.16 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.16)** (install & play)
+    - **[wine-kron4ek-10.17 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.17)** (install & play)
         
 ### - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 
@@ -64,7 +60,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 **4. Running SPT**
 
 > [!WARNING]
-> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to one of the tested wine versions for better performance and an overall better experience.
+> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to oa tested Proton version for better performance and an overall better experience.
 
 Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 

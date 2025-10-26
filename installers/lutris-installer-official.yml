@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.10-3
+##                 v2025.10-4
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using the -OFFICIAL- windows installer.
@@ -17,6 +17,9 @@ script:
     - spt-installer:
         url: https://ligma.waffle-lord.net/SPTInstaller.exe
         filename: SPTInstaller.exe
+    - dotnet-windows:
+        url: https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/9.0.9/windowsdesktop-runtime-9.0.9-win-x64.exe
+        filename: dotnetcore-runtime.exe
     - aspnet-windows:
         url: https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.9/aspnetcore-runtime-9.0.9-win-x64.exe
         filename: aspnetcore-runtime.exe
@@ -33,27 +36,34 @@ script:
 
     # Prepare the wine prefix
     - task:
-        app: arial times dotnetdesktop6 dotnetdesktop8 dotnetdesktop9
+        app: arial times dotnetdesktop6 dotnetdesktop8
         arch: win64
         description: Installing game dependencies ...
         name: winetricks
         prefix: $GAMEDIR
-    - task:
-        app: win10
-        arch: win64
-        description: Setting windows version to Windows 10...
-        name: winetricks 
-        prefix: $GAMEDIR
 
-    # Install ASP.NET Runtime 9.0
+    # Install .NET Desktop Runtime 9.0
+    - task:
+        arch: win64
+        description: Installing .NET Desktop Runtime 9.0 ...
+        executable: dotnet-windows
+        args: /q
+        name: wineexec
+
+    # Install ASP.NET Desktop Runtime 9.0
     - task:
         arch: win64
         description: Installing ASP.NET Runtime 9.0 ...
         executable: aspnet-windows
         args: /q
         name: wineexec
+
     - task:
-        name: winekill
+        app: win10
+        arch: win64
+        description: Setting windows version to Windows 10...
+        name: winetricks 
+        prefix: $GAMEDIR
 
     # Install SPT using the windows installer
     - task:
