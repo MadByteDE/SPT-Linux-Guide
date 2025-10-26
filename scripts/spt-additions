@@ -205,6 +205,23 @@ m_7z() {
 }
 
 
+m_download() {
+    case "$1" in
+        -f) local force=1 && shift ;;
+    esac
+    local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
+    local path="${2}"; [[ -z "${path}" ]] && err "Missing path argument"
+    local filename="${url##*/}"
+    if [[ -d "${path}" ]]; then path="${path}/${filename}"
+    else filename="${path##*/}"; fi
+    if [[ -f "${path}" ]] && [[ $force -ne 1 ]]; then
+        msg "Skipping download: ${filename}" && return 0
+    fi
+    msg "Downloading: ${filename}..."
+    m_curl -L "${url}" -o "${path}"
+}
+
+
 # # # # # # # # # # #
 # Helper functions  #
 # # # # # # # # # # #
@@ -693,10 +710,9 @@ install_dep() {
     local cmd_name="$1"; local url="$2"; local filename="${url##*/}"
     local source_path="${3:-$TMP_DIR}"; local target_path="${4:-$RUNTIME_DIR}"
     
-    # Download
-    msg "Downloading \"${filename}\"..."
-    cd "${TMP_DIR}" && m_curl -sL "${url}" -o "${filename}"
-
+    cd "${TMP_DIR}"
+    m_download "${url}" "${TMP_DIR}" 2>/dev/null
+    
     case "${filename}" in
         # Extract archive
         *.zip*|*.7z*) m_7z "${filename}" "${TMP_DIR}" ;;
@@ -728,8 +744,7 @@ install_mod_archive() {
     local source_path="${2}"; [[ -z "${source_path}" ]] && err "Missing argument: source_path"
     local hash="${3}"; [[ -z "${hash}" ]] && err "Missing argument: hash"
     if ! check_cached "${source_path}" "${hash}"; then
-        msg "Downloading \"${url##*/}\"..."
-        m_curl -L "${url}" -o "${source_path}"
+        m_download "${url}" "${source_path}"
         check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
     fi
     msg "Extracting \"${source_path##*/}\" archive..."
@@ -752,10 +767,7 @@ install_eft() {
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
     
     # Download BSG Launcher setup file
-    if [[ ! -f "${CACHE_DIR}/BsgLauncher.exe" ]]; then
-        msg "Downloading BSG Launcher..."
-        cd "${CACHE_DIR}" && m_curl -L "${URL[bsg-launcher]}" -o "BsgLauncher.exe"
-    fi
+    m_download "${URL[bsg-launcher]}" "${CACHE_DIR}/BsgLauncher.exe"
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}/BsgLauncher" ]]; then
@@ -764,10 +776,7 @@ install_eft() {
     fi
 
     # Download icon to icons directory
-    if [[ ! -f "${ICO_DIR}/bsg_launcher.png" ]]; then
-        msg "Getting app icon from SteamGridDB..."
-        cd "${ICO_DIR}" && m_curl -sL "${URL[bsg-launcher-ico]}" -o "bsg_launcher.png"
-    fi
+    m_download "${URL[bsg-launcher-ico]}" "${ICO_DIR}/bsg_launcher.png" 2>> "${LOG_PATH}"
 
     # Create application shortcut
     opt_shortcut bsg-launcher
@@ -809,21 +818,14 @@ install_spt() {
     case "$install_mode" in
         lts|native|lutris) install_spt_native ;;
         proton)
-            # Download ASP.NET Runtime
-            if ! [[ -f "${CACHE_DIR}/aspnetcore-runtime.exe" ]]; then
-                msg "Downloading Microsoft ASP.NET Runtime 9..."
-                cd "${CACHE_DIR}" && m_curl -L "${URL[aspnet-windows]}" -o "aspnetcore-runtime.exe"
-            fi
-
-            # Install ASP.NET Runtime
-            msg "Installing Microsoft ASP.NET Runtime 9..."
-            m_umu "${CACHE_DIR}/aspnetcore-runtime.exe" /q
+            # Download & install ASP.NET Desktop Runtime 9.0
+            # WORKAROUND: Fixes SPTInstaller requirement check failing
+            m_download "${URL[aspnetcore]}" "${CACHE_DIR}/aspnet-runtime.exe"
+            msg "Installing: ASP.NET Desktop Runtime 9.0..." && m_umu "${CACHE_DIR}/aspnet-runtime.exe" /q
 
             # Download SPT Installer
-            if ! [[ -f "${CACHE_DIR}/SPTInstaller.exe" ]]; then
-                msg "Downloading SPTInstaller.exe..."
-                cd "${CACHE_DIR}" && m_curl -LO "${URL[spt-installer]}"
-            fi
+            local installer_path="${CACHE_DIR}/SPTInstaller.exe"
+            m_download "${URL[spt-installer]}" "${CACHE_DIR}"
 
             # Symlink SPTInstaller cache directory to script cache directory
             local cache_dir="${WINEPREFIX}/drive_c/users/steamuser/Application Data/spt-installer/cache"
@@ -854,8 +856,7 @@ install_spt() {
         set_value env "PROTON_VERB=run"
     else
         # Install the latest server launch script
-        msg "Downloading latest \"launch-server.sh\" script..."
-        cd "${SPT_DIR}" && m_curl -sLO "${URL[server-script]}"
+        m_download "${URL[server-script]}" "${SPT_DIR}" 2>> "${LOG_PATH}"
         m_chmod +x "${SPT_DIR}/launch-server.sh"
 
         # Create launcher shortcut inside the root directory
@@ -866,11 +867,10 @@ install_spt() {
     case "${install_mode}" in
         native|proton|lts)
             # Download icons to icons directory
-            if [[ ! -f "${ICO_DIR}/spt_launcher.png" ]] || [[ ! -f "${ICO_DIR}/spt_server.png" ]]; then
-                msg "Getting app icons from SteamGridDB..."
-                cd "${ICO_DIR}" && m_curl -sL "${URL[spt-launcher-ico]}" -o "spt_launcher.png"
-                cd "${ICO_DIR}" && m_curl -sL "${URL[spt-server-ico]}" -o "spt_server.png"
-            fi
+            local launcher_icon="${ICO_DIR}/spt_launcher.png"
+            local server_icon="${ICO_DIR}/spt_server.png"
+            m_download "${URL[spt-launcher-ico]}" "${launcher_icon}" 2>> "${LOG_PATH}"
+            m_download "${URL[spt-server-ico]}" "${server_icon}" 2>> "${LOG_PATH}"
 
             # Create application shortcuts
             opt_shortcut spt
@@ -923,8 +923,7 @@ install_spt_native() {
             # Download latest patcher if needed
             [[ -z "${METADATA[patcher-hash]}" ]] && err "Missing patcher hash argument"
             if ! check_cached "${METADATA[patcher-path]}" "${METADATA[patcher-hash]}"; then
-                msg "Downloading \"${METADATA[patcher-url]##*/}\"..."
-                m_curl -L "${METADATA[patcher-url]}" -o "${METADATA[patcher-path]}"
+                m_download "${METADATA[patcher-url]}" "${METADATA[patcher-path]}"
                 check_hash "${METADATA[patcher-path]}" "${METADATA[patcher-hash]}" || err "File \"${METADATA[patcher-path]##*/}\" is corrupted"
             fi
 
@@ -1062,9 +1061,8 @@ load_metadata() {
         latest)
             # Fetch metadata
             if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
-                msg "Downloading metadata..."
-                m_curl -sL "${URL[mod-json]}" -o "${MOD_JSON_PATH}"
-                m_curl -sL "${URL[patcher-json]}" -o "${PATCHER_JSON_PATH}"
+                m_download -f "${URL[mod-json]}" "${MOD_JSON_PATH}" 2>> "${LOG_PATH}"
+                m_download -f "${URL[patcher-json]}" "${PATCHER_JSON_PATH}" 2>> "${LOG_PATH}"
             fi
             METADATA[mod-eft]=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
             METADATA[mod-version]=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
@@ -1106,8 +1104,8 @@ load_metadata() {
         ;;
         "")
             # Get metadata file
-            if [[ ! -f "${METADATA_PATH}" ]] || ! check_ttl "${METADATA_PATH}"; then
-                msg "Downloading metadata..." && m_curl -sL "${URL[metadata]}" -o "${METADATA_PATH}"
+            if ! check_ttl "${METADATA_PATH}"; then
+                m_download -f "${URL[metadata]}" "${METADATA_PATH}" 2>> "${LOG_PATH}"
             fi
             load_array metadata
         ;;
@@ -1650,8 +1648,7 @@ opt_selfinstall() {
 
         if [[ "$?" == 0 ]]; then
             [[ ! -d "${path}" ]] && m_mkdir "${path}"
-            msg "Downloading ${TITLE}..."
-            cd "${TMP_DIR}" && m_curl -sLO "${URL[installer-script]}"
+            m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
             if ! check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}"; then
                 err "Downloaded script is corrupted"
             fi
@@ -1687,11 +1684,13 @@ opt_selfupdate() {
             msg
             yesno "Do you want to continue?" || m_exit 0
         fi
-        msg "Downloading ${TITLE}..."
-        cd "${TMP_DIR}" && m_curl -sLO "${URL[installer-script]}"
+
+        m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
+
         if ! check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}"; then
             err "Downloaded script is corrupted"
         fi
+
         msg "Installing ${TITLE}..."
         m_mv "${TMP_DIR}/${TITLE}" "${SCRIPT_DIR}/${TITLE}"
         m_chmod +x "${SCRIPT_DIR}/${TITLE}"
