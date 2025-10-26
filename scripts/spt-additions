@@ -656,7 +656,6 @@ check_cached() {
     local cached_path
     cached_path="$(realpath -m "${1%/}")"
     local expected_hash="${2}"
-    [[ ! -f "${cached_path}" ]] && err "File \"${cached_path}\" does not exist"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] || err "File is not in \"${CACHE_DIR}\""
     # Verify the file is there and valid
@@ -679,7 +678,7 @@ check_ttl() {
     local file_path current_time modified_time elapsed_time
     file_path="$(realpath -m "${1%/}")"; local ttl="${2:-"3600"}"
     # Check if file exists, if not - fail the check
-    [[ ! -f "${file_path}" ]] && msg "File \"${file_path}\" does not exist" && return 1
+    [[ ! -f "${file_path}" ]] && return 1
     # Calculate time elapsed since last modified
     current_time=$( date +%s )
     modified_time=$( date -r "${file_path}" +%s )
