@@ -306,7 +306,7 @@ set_value() {
     # Filter for invalid keys
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
     [[ ! "${key}" =~ ^[A-Za-z0-9_-]+$ ]] && err "Key contains invalid characters: \"${key}\""
-    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[\ A-Za-z0-9/@()/.,_+=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
+    [[ -n "${value}" ]] && [[ ! "${value}" =~ ^[\ A-Za-z0-9/@()/:.,_+=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
 
     # Set value
     case "${array_name}" in
