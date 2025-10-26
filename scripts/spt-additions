@@ -394,12 +394,14 @@ get_eft_path() {
     # get windows path
     [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg" )
-    path=$( echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
+    path=$( echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
     [[ -z "${path}" ]] && exit 12
     # Replace backslashes with slashes
     path="${path//\\\\/\/}"
+    # Replace disk letter
+    path="${path//C:/drive_c}"
     # Finally assemble the full path & return it
-    printf "%s/%s\n" "${WINEPREFIX}" "${path//C:/drive_c}"
+    printf "%s/%s\n" "${WINEPREFIX}" "${path%/*}"
 }
 
 
