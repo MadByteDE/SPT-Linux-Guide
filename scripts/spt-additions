@@ -1643,6 +1643,7 @@ opt_selfinstall() {
 
 opt_selfupdate() {
     local current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
+    [[ -z "${current_hash}" ]] && err "Failed to get script hash"
 
     # Load required metadata
     load_metadata
@@ -1674,8 +1675,8 @@ opt_selfupdate() {
 
 opt_version() {
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
-    local script_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
-    msg "${BOLD}Hash: ${RESET}${script_hash}"
+    local current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
+    [[ -n "${script_hash}" ]] && msg "${BOLD}Hash: ${RESET}${script_hash}"
 }
 
 
