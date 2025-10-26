@@ -1677,7 +1677,7 @@ opt_selfupdate() {
 opt_version() {
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
     local current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
-    [[ -n "${script_hash}" ]] && msg "${BOLD}Hash: ${RESET}${script_hash}"
+    [[ -n "${current_hash}" ]] && msg "${BOLD}Hash: ${RESET}${current_hash}"
 }
 
 
