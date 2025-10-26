@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="0.9.9"
+VERSION="0.9.10"
 DATE="2025-10-26"
 
 # ANSI codes
