@@ -697,8 +697,24 @@ install_dep() {
 }
 
 
+install_mod_archive() {
+    local url="${1}"; [[ -z "${url}" ]] && err "Missing argument: url"
+    local source_path="${2}"; [[ -z "${source_path}" ]] && err "Missing argument: source_path"
+    local hash="${3}"; [[ -z "${hash}" ]] && err "Missing argument: hash"
+    if ! check_cached "${source_path}" "${hash}"; then
+        msg "Downloading \"${url##*/}\"..."
+        m_curl -L "${url}" -o "${source_path}"
+        check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
+    fi
+    msg "Extracting \"${source_path##*/}\" archive..."
+    m_7z "${source_path}" "${SPT_DIR}"
+}
+
+
 install_eft() {
-    msg "${BOLD}Starting \"Escape from Tarkov\" setup...${RESET}"
+    msg "${BOLD}Starting \"BSG Launcher\" setup...${RESET}"
+
+    # Minimum disk space requirement
     check_disk_space 60
 
     # Install game dependencies
@@ -729,8 +745,6 @@ install_eft() {
 
     # Create application shortcut
     opt_shortcut bsg-launcher
-
-    msg "${GREEN}EFT has been installed successfully!${RESET}"
 }
 
 
@@ -841,20 +855,6 @@ install_spt() {
 }
 
 
-install_mod_archive() {
-    local url="${1}"; [[ -z "${url}" ]] && err "Missing argument: url"
-    local source_path="${2}"; [[ -z "${source_path}" ]] && err "Missing argument: source_path"
-    local hash="${3}"; [[ -z "${hash}" ]] && err "Missing argument: hash"
-    if ! check_cached "${source_path}" "${hash}"; then
-        msg "Downloading \"${url##*/}\"..."
-        m_curl -L "${url}" -o "${source_path}"
-        check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
-    fi
-    msg "Extracting \"${source_path##*/}\" archive..."
-    m_7z "${source_path}" "${SPT_DIR}"
-}
-
-
 install_spt_native() {
     local install_mode="${CONFIG[install-mode]}"
     
@@ -927,7 +927,6 @@ install_spt_native() {
     fi
 
     install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
-    msg "${GREEN}${BOLD}SPT \"${METADATA[mod-version]}\" has been installed successfully!${RESET}"
 }
 
 
@@ -1311,9 +1310,12 @@ opt_guided_install() {
         # Install EFT
         if [[ "$install_eft" == 0 ]]; then
             opt_install eft
-            # Interactive - Users need to manually install the game client inside the BSG Launcher
-            msg "${BOLD}${BLUE}Please log-in to your BSG account, install Escape from Tarkov & close the launcher to continue...${RESET}"
+            
+            # Run BSG Launcher
+            msg "${BOLD}${BLUE}Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
+            msg "   > After the client is installed - close the Launcher to continue${RESET}"
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
+
             # Update EFT path
             if ! check_eft_installed; then
                 warn "Looks like EFT is not installed."
@@ -1632,7 +1634,6 @@ opt_selfinstall() {
             m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}"
             m_chmod +x "${path}/${TITLE}"
             msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
-            installed=1
             return 0
         else
             break
@@ -1885,12 +1886,10 @@ handle_opts() {
     case "${option}" in
         install|run|update|dlloverride)
             check_native_deps
-            # Check & set the prefix path
-            set_prefix "${WINEPREFIX}" 1>/dev/null
-            # Initialize the prefix if it doesn't exist yet
+            set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}"
             init_prefix
         ;;
-        uninstall|shortcut) set_prefix "${WINEPREFIX}" 1>/dev/null ;;
+        uninstall|shortcut) set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}" ;;
     esac
 
     # Handle options
