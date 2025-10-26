@@ -616,10 +616,9 @@ check_native_deps() {
             # Required tools / libraries
             python3|curl) warn "Cannot find \"${cmd}\"!"; status=1 ;;
             # Downloadable tools / libraries
-            jq|hpatchz|xxd|7zzs|umu-run) wrap_run install_dep "${cmd}" "${URL[${cmd}]}" || status=1 ;;
+            jq|hpatchz|xxd|7zzs|umu-run) install_dep "${cmd}" "${URL[${cmd}]}" ;;
         esac
     done
-    [ "$status" = 1 ] && err "Please install all missing dependencies & try again."
 }
 
 
