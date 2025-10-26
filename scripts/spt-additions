@@ -1928,16 +1928,15 @@ main() {
     [[ -f "${ENV_PATH}" ]] && load_array env
     [[ -z "${ENV[WINEPREFIX]}" ]] && set_value env "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
     [[ -z "${ENV[PROTONPATH]}" ]] && set_value env "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
-    [[ -z "${ENV[DOTNET_ROOT]}" ]] && set_value env "DOTNET_ROOT="
-    [[ -z "${ENV[DOTNET_BUNDLE_EXTRACT_BASE_DIR]}" ]] && set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
     [[ -z "${ENV[PROTON_USE_XALIA]}" ]] && set_value env "PROTON_USE_XALIA="
-    [[ -z "${ENV[WINEDEBUG]}" ]] && set_value env "WINEDEBUG=+debugstr,err+all,fixme+all"
+    [[ -z "${ENV[DOTNET_BUNDLE_EXTRACT_BASE_DIR]}" ]] && set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
+    [[ -z "${ENV[DOTNET_ROOT]}" ]] && set_value env "DOTNET_ROOT="
 
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
 
     # Export paths
-    export WINEDEBUG="${WINEDEBUG:-"${ENV[WINEDEBUG]}"}"
+    export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
     export WINEPREFIX="${ENV[WINEPREFIX]}"
     export PROTONPATH="${ENV[PROTONPATH]}"
     export PATH=$RUNTIME_DIR:$PATH
