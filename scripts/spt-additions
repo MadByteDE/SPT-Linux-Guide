@@ -1927,7 +1927,7 @@ main() {
     [[ -f "${ENV_PATH}" ]] && load_array env
     [[ -z "${ENV[WINEPREFIX]}" ]] && set_value env "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
     [[ -z "${ENV[PROTONPATH]}" ]] && set_value env "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
-    [[ -z "${ENV[PROTON_USE_XALIA]}" ]] && set_value env "PROTON_USE_XALIA="
+    [[ -z "${ENV[PROTON_USE_XALIA]}" ]] && set_value env "PROTON_USE_XALIA=0"
     [[ -z "${ENV[DOTNET_BUNDLE_EXTRACT_BASE_DIR]}" ]] && set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
     [[ -z "${ENV[DOTNET_ROOT]}" ]] && set_value env "DOTNET_ROOT="
 
