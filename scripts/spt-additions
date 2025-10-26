@@ -1365,7 +1365,7 @@ opt_run() {
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
         *)
-            local cmd="$( echo "${option} $@" | xargs )"
+            local cmd="$( echo "${option} $@" | sed -e 's/[[:space:]]*$//' )"
             msg "Running command: \"${cmd}\"..."
             m_umu "${option}" "$@"
         ;;
