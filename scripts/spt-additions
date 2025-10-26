@@ -735,7 +735,7 @@ install_eft() {
     msg "${BOLD}Starting \"BSG Launcher\" setup...${RESET}"
 
     # Minimum disk space requirement
-    check_disk_space 60
+    if ! check_eft_installed; then check_disk_space 60; fi
 
     # Install game dependencies
     install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
