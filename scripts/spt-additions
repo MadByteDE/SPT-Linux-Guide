@@ -1382,7 +1382,9 @@ opt_run() {
         server)
             check_eft_running
             msg "${BOLD}Launching SPT Server...${RESET}"
-            cd "${SPT_DIR}" && "./launch-server.sh" "$@"
+            cd "${SPT_DIR}"
+            if check_lts_installed; then m_umu "SPT.Server.exe" "$@"
+            else "./launch-server.sh" "$@"; fi
         ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
@@ -1530,19 +1532,11 @@ opt_shortcut() {
         ;; 
         spt|sptarkov)
             opt_shortcut launcher
-            if [[ "${CONFIG[install-mode]}" == "lts" ]]; then
-                opt_shortcut lts-server
-            else
-                opt_shortcut server
-            fi
+            if check_lts_installed || [[ "${CONFIG[install-mode]}" == "lts" ]]; then opt_shortcut lts-server
+            else opt_shortcut server; fi
         ;;
         all)
-            opt_shortcut bsg-launcher;  opt_shortcut launcher
-            if [[ "${CONFIG[install-mode]}" == "lts" ]]; then
-                opt_shortcut lts-server
-            else
-                opt_shortcut server
-            fi
+            opt_shortcut bsg-launcher;  opt_shortcut spt
         ;;
         help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
