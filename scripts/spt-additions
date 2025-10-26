@@ -40,7 +40,7 @@ shopt -s extglob
 # Make sure to throw an error and exit on SIGINT
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
-TITLE="spt-additions"; AUTHOR="MadByte"; LICENSE="MIT"
+TITLE="spt-additions"
 VERSION="0.9.9"
 DATE="2025-10-26"
 
@@ -147,14 +147,15 @@ m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" fa
 
 
 m_rm() {
-    local path="$( realpath -m "${@: -1}" )"
-    [[ -z "${path}" ]] && err "${err_pfx} Path variable is empty"
+    local path
+    path="$( realpath -m "${@: -1}" )"
+    [[ -z "${path}" ]] && err "Path variable is empty"
 
     # Check for valid paths
     case "${path}" in
         *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | \
         *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
-        *) err "${err_pfx} Cannot remove file or directory \"${path}\"" ;;
+        *) err "Cannot remove file or directory \"${path}\"" ;;
     esac
     
     rm "$@" || warn "Command \"rm $*\" failed"
@@ -195,7 +196,9 @@ m_cp() {
 
 
 m_7z() {
-    archive_path="$(realpath -m "${1%/}")"; local target_path="$(realpath -m "${2%/}")"
+    local archive_path target_path
+    archive_path="$(realpath -m "${1%/}")"
+    target_path="$(realpath -m "${2%/}")"
     filename="${archive_path##*/}"
     7zzs x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null
     [[ "$?" != 0 ]] && err "Failed to extract \"${filename}\""
@@ -235,7 +238,7 @@ msg() {
 
 
 warn() {
-    msg "${YELLOW}Warn: ${RESET}$1"
+    msg "${BOLD}${YELLOW}Warn: ${RESET}$1"
 }
 
 
@@ -243,7 +246,7 @@ err() {
     local message="$1"; local status="${2:-"1"}"
     local pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
     msg "${pfx}${message} (Exit code: ${status})" 1>&2
-    msg "${pfx}See \"${LOG_PATH}\" for more details.${RESET}" 1>&2
+    msg "   ► See ${BOLD}\"${LOG_PATH}\"${RESET} for more details." 1>&2
     m_exit "$status"
 }
 
@@ -255,7 +258,7 @@ yesno() {
         return 0
     fi
     while true; do
-        read -r -p "│ > " yn
+        read -r -p "│ ► " yn
         case $yn in
             [Yy]*) return 0 ;;  
             [Nn]*) return 1 ;;
@@ -265,7 +268,7 @@ yesno() {
 
 
 read_input() {
-    read -e -r -p "│ > " input; printf "$input\n"
+    read -e -r -p "│ ► " input; printf "$input\n"
 }
 
 
@@ -451,6 +454,7 @@ get_patcher_eft_version() {
 
 
 init_prefix() {
+    local proton_path
     if [[ ! -d "${WINEPREFIX}" ]]; then
         msg "Initializing wine prefix..." && m_umu wineboot -u
     fi
@@ -458,7 +462,7 @@ init_prefix() {
     # WORKAROUND: Find and pin latest GE-Proton version if no custom path is set
     # Fixes umu-launcher always re-downloading the latest GE-Proton version
     if [[ -z "${PROTONPATH}" ]] || [[ "${PROTONPATH}" == "GE-Proton" ]]; then
-        local proton_path="$( find "${COMPAT_DIR}" \( -name "${DEFAULT_PROTONPATH}*" -type d \) | tail -n 1 )"
+        proton_path="$( find "${COMPAT_DIR}" \( -name "${DEFAULT_PROTONPATH}*" -type d \) | tail -n 1 )"
         [[ -z "${proton_path}" ]] && proton_path="${DEFAULT_PROTONPATH}"
         msg "Setting Proton version to \"${proton_path##*/}\""
         set_value env "PROTONPATH=${proton_path##*/}"
@@ -483,14 +487,14 @@ check_disk_space() {
     local total_gb=${1}; local path="${WINEPREFIX}"
     [[ -z "${path}" ]] && err "Missing path argument"
     # Get required values
-    local free_kb total_kb eft_kb free_gb total_gb
+    local free_kb total_kb eft_kb free_gb total_gb eft_kb
     free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
     free_gb=$( echo "${free_kb}" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }' )
     # If no total size is defined, use size of the EFT game files
     if [[ -n "${total_gb}" ]]; then
         total_kb=$(( 1024*1024*total_gb ))
     else
-        local eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
+        eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
         total_kb=$((eft_kb + 1024*1024*10))
     fi
     total_gb=$( echo "${total_kb}" | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }' )
@@ -574,7 +578,7 @@ check_latest_installed() {
 check_aspnet() {
     if [[ -n "${FLATPAK_SANDBOX_DIR}" ]]; then
         warn "Flatpak environment detected!"
-        msg "   > Skipping native ASP.NET dependency check" & return 0
+        msg "   ► Skipping native ASP.NET dependency check" & return 0
     fi
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
@@ -614,7 +618,7 @@ check_eft_running() {
 
 check_hash() {
     local file_hash
-    local file_path="$(realpath -m "${1%/}")"; local expected_hash="${2}"
+    file_path="$(realpath -m "${1%/}")"; local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
     [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
@@ -632,8 +636,10 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path="$(realpath -m "${1%/}")"; [[ -z "${cached_path}" ]] && err "Missing cached path argument"
+    local cached_path
+    cached_path="$(realpath -m "${1%/}")"
     local expected_hash="${2}"
+    [[ ! -f "${cached_path}" ]] && err "File \"${cached_path}\" does not exist"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] || err "File is not in \"${CACHE_DIR}\""
     # Verify the file is there and valid
@@ -653,16 +659,16 @@ check_cached() {
 
 
 check_ttl() {
-    local c_time m_time e_time
-    local file_path="$(realpath -m "${1%/}")"; local ttl="${2:-"3600"}"
+    local file_path current_time modified_time elapsed_time
+    file_path="$(realpath -m "${1%/}")"; local ttl="${2:-"3600"}"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && msg "File \"${file_path}\" does not exist" && return 1
     # Calculate time elapsed since last modified
-    c_time=$( date +%s )
-    m_time=$( date -r "${file_path}" +%s )
-    ((e_time = c_time - m_time))
+    current_time=$( date +%s )
+    modified_time=$( date -r "${file_path}" +%s )
+    ((elapsed_time = current_time - modified_time))
     # If elapsed time >= TTL - fail the check
-    if [[ $e_time -ge $ttl ]]; then
+    if [[ $elapsed_time -ge $ttl ]]; then
         return 1
     fi
 }
@@ -673,12 +679,12 @@ check_ttl() {
 # # # # # # # # # # # # #
 
 install_verb() {
-    local verb="${1}"; local text="${2:-"Installing \"${verb}\""}"
+    local verb="${1}"; local text="${2:-"Installing: ${BOLD}${verb}${RESET}..."}"
     if check_verb "${verb}"; then
         msg "\"${verb}\" is already installed"
         return 1
     fi
-    msg "${text}..."
+    msg "Installing: ${BOLD}${text}${RESET}..."
     m_umu winetricks -q "${verb}" 1>> "${LOG_PATH}"
 }
 
@@ -705,7 +711,8 @@ install_dep() {
     esac
 
     # Search executable inside the extracted directory
-    local file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
+    local file_path
+    file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
     [[ -z "${file_path}" ]] && err "Cannot find \"${cmd_name}\" in \"${source_path}\""
 
     # Change permissions
@@ -737,8 +744,8 @@ install_eft() {
     if ! check_eft_installed; then check_disk_space 60; fi
 
     # Install game dependencies
-    install_verb "dotnet48" "Installing .NET 4.8 Runtime (this might take a while)"
-    install_verb "vcrun2022" "Installing Microsoft Visual C++ 2015-2022 Redistributable"
+    install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
+    install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
     
     # Add mouse focus workaround
     msg "Adding mouse focus workaround..."
@@ -775,25 +782,24 @@ install_spt() {
     msg "Selected install mode is \"${install_mode}\"..."
 
     if ! check_eft_installed; then
-        warn "Escape from Tarkov is not installed."
-        msg "> ${YELLOW}make sure to install the game inside the BSG Launcher & try again!${RESET}"
+        warn "${BOLD}Escape from Tarkov is not installed${RESET}"
+        msg "   ► make sure to install the game inside the BSG Launcher & try again!"
         err "Escape from Tarkov not found."
     elif [[ -d "${SPT_DIR}" ]]; then
-        warn "\"${SPT_DIR}\" already exists."
-        msg "> ${YELLOW}If you want to reinstall, make sure to move or delete the current installation first!${RESET}"
+        warn "${BOLD}\"${SPT_DIR}\"${RESET} already exists"
+        msg "   ► If you want to reinstall, make sure to move or delete the current installation first!"
         err "SPTarkov directory already exists."
     fi
 
     check_eft_running;  check_aspnet;  check_disk_space
     
     # Install dependencies
-    install_verb "dotnetdesktop6" "Installing .NET Desktop 6 Runtime"
-    install_verb "dotnetdesktop8" "Installing .NET Desktop 8 Runtime"
-    install_verb "dotnetdesktop9" "Installing .NET Desktop 9 Runtime"
+    install_verb "dotnetdesktop6" ".NET Desktop Runtime 6.0"
+    install_verb "dotnetdesktop8" ".NET Desktop Runtime 8.0"
+    install_verb "dotnetdesktop9" ".NET Desktop Runtime 9.0"
 
     # Add DLL overrides
-    msg "Adding \"winhttp\" DLL override..."
-    m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "winhttp" /t "REG_SZ" /d "native,builtin" /f 1>> "${LOG_PATH}"
+    opt_dlloverride winhttp n,b
 
     # Add prefix update pop-up workaround
     msg "Adding \"RUNDLL32\" pop-up workaround..."
@@ -875,6 +881,7 @@ install_spt() {
 
 
 install_spt_native() {
+    local patch_dir archive_name patcher_tmp_dir
     local install_mode="${CONFIG[install-mode]}"
     
     # Pre-Checks
@@ -898,15 +905,15 @@ install_spt_native() {
         if [[ "${METADATA[patcher-eft]}" -lt "${METADATA[inst-eft]}" ]]; then
             # No patcher available yet!
             warn "Looks like there's no patcher available for your EFT version"
-            msg "    > This usually happens when EFT has been updated recently."
-            msg "    > Please wait for the SPT team to generate a new patcher."
-            msg "    > Usually, this will take less then 24 hours."
+            msg "    ► This usually happens when EFT has been updated recently."
+            msg "    ► Please wait for the SPT team to generate a new patcher."
+            msg "    ► Usually, this will take less then 24 hours."
             err "No patcher available"
             
         elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
             # EFT is outdated!
             warn "Looks like your installed EFT version is out-of-date"
-            msg "    > Please update your live EFT installation & try again"
+            msg "    ► Please update your live EFT installation & try again"
             err "EFT is out-of-date"
 
         elif [[ "${METADATA[patcher-eft]}" -eq "${METADATA[inst-eft]}" ]]; then
@@ -922,8 +929,8 @@ install_spt_native() {
             fi
 
             # Extract latest patcher to tmp directory
-            local archive_name="${METADATA[patcher-path]##*/}"
-            local patcher_tmp_dir="${TMP_DIR}/${archive_name%.*}"
+            archive_name="${METADATA[patcher-path]##*/}"
+            patcher_tmp_dir="${TMP_DIR}/${archive_name%.*}"
             msg "Extracting \"${archive_name}\"..."
             m_7z "${METADATA[patcher-path]}" "${patcher_tmp_dir}"
 
@@ -933,7 +940,7 @@ install_spt_native() {
 
             # Move patcher files to install directory
             msg "Copying patch files to \"${SPT_DIR}\""
-            local patch_dir="$(find "${patcher_tmp_dir}" -type d -name '*SPT_Patches*')"
+            patch_dir="$(find "${patcher_tmp_dir}" -type d -name '*SPT_Patches*')"
             m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
@@ -1092,7 +1099,7 @@ load_metadata() {
             if [[ "${SPT_DIR}" ]]; then
                 local core_dll_path="${SPT_DIR}/BepInEx/plugins/spt/spt-core.dll"
                 METADATA[inst-spt]=$( get_file_version "${core_dll_path}" | cut -d "." -f1-3 ) || err "Failed to get installed SPT version" "$?"
-                METADATA[inst-spt]=$( echo "${METADATA[inst-spt]}" )
+                METADATA[inst-spt]="${METADATA[inst-spt]}"
                 METADATA[inst-mod-eft]=$( get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get mod EFT version" "$?"
                 METADATA[inst-mod-eft]=$( echo "${METADATA[inst-mod-eft]}" | cut -d "." -f4 )
             fi
@@ -1112,10 +1119,10 @@ load_metadata() {
 opt_update() {
     # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
     # TODO: Gotta check somehow if a BLEEDING EDGE version is installed!
+    local inst_major inst_minor inst_patch upd_major upd_minor upd_patch
     local option="$1" && shift
     case "${option}" in
         spt|sptarkov)
-            # Check if EFT & SPT are installed
             if ! check_eft_installed; then err "Escape from Tarkov is not installed"; fi
 
             # Get metadata
@@ -1129,33 +1136,33 @@ opt_update() {
             msg "Installed SPT version is \"${METADATA[inst-spt]}\""
             msg "Latest SPT version is \"${METADATA[mod-version]}\""
             
-            local inst_major=$( echo "${METADATA[inst-spt]}" | cut -d "." -f1 )
-            local inst_minor=$( echo "${METADATA[inst-spt]}" | cut -d "." -f2 )
-            local inst_patch=$( echo "${METADATA[inst-spt]}" | cut -d "." -f3 )
-            local upd_major=$( echo "${METADATA[mod-version]}" | cut -d "." -f1 )
-            local upd_minor=$( echo "${METADATA[mod-version]}" | cut -d "." -f2 )
-            local upd_patch=$( echo "${METADATA[mod-version]}" | cut -d "." -f3 )
+            inst_major=$( echo "${METADATA[inst-spt]}" | cut -d "." -f1 )
+            inst_minor=$( echo "${METADATA[inst-spt]}" | cut -d "." -f2 )
+            inst_patch=$( echo "${METADATA[inst-spt]}" | cut -d "." -f3 )
+            upd_major=$( echo "${METADATA[mod-version]}" | cut -d "." -f1 )
+            upd_minor=$( echo "${METADATA[mod-version]}" | cut -d "." -f2 )
+            upd_patch=$( echo "${METADATA[mod-version]}" | cut -d "." -f3 )
 
             if [[ "${METADATA[mod-version]}" == "${METADATA[inst-spt]}" ]]; then
                 msg "${BOLD}SPT is up-to-date.${RESET}" && m_exit 0
             elif [[ "${upd_major}" -gt "${inst_major}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new major update is available!${RESET}"
-                    msg "   > ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
+                    msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
                     msg
                     msg "   ${BOLD}Please check out the release notes & re-install SPT manually:${RESET}"
-                    msg "   > ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
                     msg
-                    msg "   1. Update the additions script with: ${BOLD}${TITLE} self-update${RESET}"
+                    msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
                     msg "   3. Update Escape from Tarkov inside the BSG Launcher"
-                    msg "   4. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
+                    msg "   4. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 } | more
             elif [[ "${upd_minor}" -gt "${inst_minor}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new minor update is available!${RESET}"
-                    msg "   > ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods might not be compatible."
+                    msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods might not be compatible."
                     msg
                     msg "   ${BOLD}Please check out the release notes & update / re-install SPT manually:${RESET}"
-                    msg "   > ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   ${BOLD}How to update:${RESET}"
                     msg "   1. Download the latest release archive: ${METADATA[mod-url]}"
@@ -1164,16 +1171,15 @@ opt_update() {
                     msg "   ${BOLD}How to re-install:${RESET}"
                     msg "   1. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
                     msg "   2. Update Escape from Tarkov inside the BSG Launcher"
-                    msg "   3. Re-install the latest SPT version with: ${BOLD}${TITLE} install spt${RESET}"
+                    msg "   3. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 }
             elif [[ "${upd_patch}" -gt "${inst_patch}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new patch update is available!${RESET}"
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
-                    msg "   > ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg
                     yesno "Do you want to install the update?" || m_exit 0
                 }
-
-                msg "${BOLD}Updating SPT to version \"${METADATA[mod-version]}\" ...${RESET}"
                 install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
                 msg "${GREEN}${BOLD}Update successful!${RESET}"
             else
@@ -1189,8 +1195,7 @@ opt_update() {
 
 
 opt_patch() {
-    msg "Patching game files..."
-    local files_total
+    local files_total;  local progress=1
     local target_path="${1:-"${SPT_DIR}"}"
     local source_path="${2:-"${target_path}"}"
     target_path=$( realpath -m "${target_path%/}" )
@@ -1203,6 +1208,8 @@ opt_patch() {
     # Make sure all native dependencies are installed
     check_native_deps
 
+    msg "Patching game files in \"${target_path}\"..."
+
     # Search in optional SOURCE directory
     if [ "$( find "${source_path}" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null )" ]; then
         source_path="${source_path}"
@@ -1213,7 +1220,6 @@ opt_patch() {
         err "Unable to locate \"SPT_Patches\" directory in \"${source_path}\""
     fi
 
-    local progress=1
     files_total=$( find "${source_path}/SPT_Patches" \( -type f -printf x \) | wc -c )
 
     # Iterate files
@@ -1288,14 +1294,14 @@ opt_guided_install() {
         msg "░▀▀▀░▀░░░░▀░░░░▀░▀░▀▀░░▀▀░░▀▀▀░░▀░░▀▀▀░▀▀▀░▀░▀░▀▀▀"
         opt_version
         msg
-        msg "${BOLD}${BLUE}Hello mercenary!${RESET}"
+        msg "${BOLD}Hello mercenary! ${BLUE}(･_･)ゞ${RESET}"
         msg
         msg "${BOLD}${YELLOW}This CLI installer will perform the following steps:${RESET}"
-        msg " ~> Install latest GE-Proton (if not installed already)"
-        msg " ~> Setup the wine prefix, install dependencies & apply game specific workarounds"
-        msg " ~> Install the BSG Launcher"
-        msg " ~> Install SPTarkov"
-        msg " ~> Add application menu shortcuts"
+        msg "   ► Install latest GE-Proton (if not installed already)"
+        msg "   ► Setup the wine prefix, install dependencies & apply game specific workarounds"
+        msg "   ► Install the BSG Launcher"
+        msg "   ► Install SPTarkov"
+        msg "   ► Add application menu shortcuts"
         msg
     } | more
     
@@ -1331,14 +1337,15 @@ opt_guided_install() {
             opt_install eft
             
             # Run BSG Launcher
-            msg "${BOLD}${BLUE}Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
-            msg "   > After the client is installed - close the Launcher to continue${RESET}"
+            msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
+            msg "   ► After the client is installed - close the Launcher to continue${RESET}"
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
             # Update EFT path
             if ! check_eft_installed; then
-                warn "Looks like EFT is not installed."
-                msg "${YELLOW}> Make sure you installed the game & you can see the \"Play\" button inside the BSG Launcher.${RESET}"
+                warn "${YELLOW} Looks like EFT is not installed!${RESET}"
+                msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
+                msg "   ► & that you can see the \"${GREEN}Play${RESET}\" button"
                 err "Failed to get EFT install path"
             fi
         fi
@@ -1381,14 +1388,14 @@ opt_run() {
         server)
             check_eft_running
             msg "${BOLD}Launching SPT Server...${RESET}"
-            cd "${SPT_DIR}"
+            cd "${SPT_DIR}" || exit
             if check_lts_installed; then m_umu "SPT.Server.exe" "$@"
             else "./launch-server.sh" "$@"; fi
         ;;
         help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
         *)
-            local cmd="$( echo "${option} $@" | sed -e 's/[[:space:]]*$//' )"
+            local cmd="$( echo "${option} $*" | sed -e 's/[[:space:]]*$//' )"
             msg "Running command: \"${cmd}\"..."
             m_umu "${option}" "$@"
         ;;
@@ -1541,8 +1548,9 @@ opt_shortcut() {
         "") err "Option \"shortcut\" requires an argument" ;;
         *)
             # Create custom shortcut
-            local exe_path=$( realpath -m "${option}" )
-            [[ ! -f "${exe_path}" ]] && err "File \""${exe_path}"\" does not exist"
+            local exe_path
+            exe_path=$( realpath -m "${option}" )
+            [[ ! -f "${exe_path}" ]] && err "File \"${exe_path}\" does not exist"
             local name="${option##*/}"; name="${name%.*}"
             local working_dir="${option%/*}"
             CACHE[_id]="app-shortcut"
@@ -1572,9 +1580,9 @@ opt_clean() {
             # Warn user before continuing
             {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "    > ${UNDERLINE}${DATA_DIR}${RESET}"
-                msg "    > ${UNDERLINE}${CACHE_DIR}${RESET}"
-                msg "    > ${UNDERLINE}${CONFIG_DIR}${RESET}"
+                msg "    ► ${UNDERLINE}${DATA_DIR}${RESET}"
+                msg "    ► ${UNDERLINE}${CACHE_DIR}${RESET}"
+                msg "    ► ${UNDERLINE}${CONFIG_DIR}${RESET}"
             } | more
             yesno "Do you want to continue?" || m_exit 0
             export NO_PROMPT=1
@@ -1591,7 +1599,7 @@ opt_clean() {
     if [[ -n "${dir_path}" ]]; then
         if [[ "${NO_PROMPT}" != 1 ]]; then
             {   msg "${BOLD}This action will remove the following directory:${RESET}"
-                msg "    > ${UNDERLINE}${dir_path}${RESET}"
+                msg "    ► ${UNDERLINE}${dir_path}${RESET}"
             } | more
             yesno "Do you want to continue?" || m_exit 0
         fi
@@ -1609,8 +1617,8 @@ opt_selfinstall() {
     for path in "${bin_paths[@]}"; do
         if [[ -n $( echo "${PATH}" | grep "${path}" ) ]]; then break; fi
         msg "${BOLD}${GREEN}${TITLE}${YELLOW} provides useful CLI commands for managing your wine prefix!${RESET}"
-        msg "   > Consider adding the script to your PATH variable for ease of use!"
-        msg "   > Run \"${GREEN}${TITLE} -h${RESET}\" after installing it for more details."
+        msg "   ► Consider adding the script to your PATH variable for ease of use!"
+        msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" after installing it for more details."
         return 0
     done
 
@@ -1618,7 +1626,7 @@ opt_selfinstall() {
     for path in "${bin_paths[@]}"; do
         if [[ -f "${path}/${TITLE}" ]]; then
             msg "${BOLD}${GREEN}${TITLE}${RESET} is already installed in:"
-            msg "   > ${path}"
+            msg "   ► ${path}"
             return 0
         fi
     done
@@ -1628,12 +1636,16 @@ opt_selfinstall() {
 
     # Search for bin paths in the PATH environment variable
     for path in "${bin_paths[@]}"; do
-        msg "${BOLD}Remote hash${RESET}:   ${METADATA[additions-hash]}"
+        msg "${BOLD}Remote hash${RESET}: ${METADATA[additions-hash]}"
         if [[ -z $( echo "${PATH}" | grep "${path}" ) ]]; then continue; fi
 
         # Found a user bin path
-        msg "${BOLD}${YELLOW}Found \"${path}\" in the PATH environment variable.${RESET}"
-        msg "   > ${GREEN}${TITLE}${RESET} provides useful CLI commands to manage your wine prefix."
+        msg "${YELLOW}Found \"${path}\" in the PATH environment variable.${RESET}"
+        msg "   ► This script provides useful CLI commands to manage your wine prefix, e.g:"
+        msg "   ► \"${GREEN}${TITLE} -e MANGOHUD=1 shortcut launcher${RESET}\"  (Set an environment variable & update an app shortcut)"
+        msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new minor SPT release)"
+        msg "   ► \"${GREEN}${TITLE} -m lts install spt${RESET}\"               (Install legacy SPT [3.11.x])"
+        msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
         yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?"
 
         if [[ "$?" == 0 ]]; then
@@ -1656,7 +1668,8 @@ opt_selfinstall() {
 
 
 opt_selfupdate() {
-    local current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
+    local current_hash
+    current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
     [[ -z "${current_hash}" ]] && err "Failed to get script hash"
 
     # Load required metadata
@@ -1688,8 +1701,9 @@ opt_selfupdate() {
 
 
 opt_version() {
+    local current_hash
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
-    local current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
+    current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
     [[ -n "${current_hash}" ]] && msg "${BOLD}Hash: ${RESET}${current_hash}"
 }
 
