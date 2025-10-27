@@ -59,6 +59,7 @@ readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 readonly COMPAT_DIR="${DATA_HOME}/Steam/compatibilitytools.d"
 readonly RUNTIME_DIR="${DATA_DIR}/runtime"
+readonly FILES_DIR="${CACHE_DIR}/files"
 readonly TMP_DIR="$( mktemp -d "/tmp/spt-XXXXX" )"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
@@ -77,10 +78,10 @@ readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/app.conf"
 readonly ENV_PATH="${CONFIG_DIR}/env.conf"
 readonly METADATA_PATH="${CACHE_DIR}/metadata.conf"
-readonly MOD_PATH="${CACHE_DIR}/spt.7z"
-readonly LTS_MOD_PATH="${CACHE_DIR}/lts-spt.7z"
-readonly PATCHER_PATH="${CACHE_DIR}/patcher.7z"
-readonly LTS_PATCHER_PATH="${CACHE_DIR}/lts-patcher.7z"
+readonly MOD_PATH="${FILES_DIR}/spt.7z"
+readonly LTS_MOD_PATH="${FILES_DIR}/lts-spt.7z"
+readonly PATCHER_PATH="${FILES_DIR}/patcher.7z"
+readonly LTS_PATCHER_PATH="${FILES_DIR}/lts-patcher.7z"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
@@ -765,12 +766,12 @@ install_eft() {
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
     
     # Download BSG Launcher setup file
-    m_download "${URL[bsg-launcher]}" "${CACHE_DIR}/BsgLauncher.exe"
+    m_download "${URL[bsg-launcher]}" "${FILES_DIR}/BsgLauncher.exe"
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}/BsgLauncher" ]]; then
         msg "Installing BSG Launcher..."
-        m_umu "${CACHE_DIR}/BsgLauncher.exe" /VERYSILENT
+        m_umu "${FILES_DIR}/BsgLauncher.exe" /VERYSILENT
     fi
 
     # Download icon to icons directory
@@ -806,8 +807,8 @@ install_spt() {
 
     # Download & install .NET Desktop Runtime 9.0
     # WORKAROUND: Fixes issues with outdated winetricks verb
-    m_download "${URL[dotnetcore]}" "${CACHE_DIR}/dotnet-runtime.exe"
-    msg "Installing: .NET Desktop Runtime 9.0..." && m_umu "${CACHE_DIR}/dotnet-runtime.exe" /q
+    m_download "${URL[dotnetcore]}" "${FILES_DIR}/dotnet-runtime.exe"
+    msg "Installing: .NET Desktop Runtime 9.0..." && m_umu "${FILES_DIR}/dotnet-runtime.exe" /q
 
     # Add DLL overrides
     opt_dlloverride winhttp n,b
@@ -822,20 +823,20 @@ install_spt() {
         proton)
             # Download & install ASP.NET Desktop Runtime 9.0
             # WORKAROUND: Fixes SPTInstaller requirement check failing
-            m_download "${URL[aspnetcore]}" "${CACHE_DIR}/aspnet-runtime.exe"
-            msg "Installing: ASP.NET Desktop Runtime 9.0..." && m_umu "${CACHE_DIR}/aspnet-runtime.exe" /q
+            m_download "${URL[aspnetcore]}" "${FILES_DIR}/aspnet-runtime.exe"
+            msg "Installing: ASP.NET Desktop Runtime 9.0..." && m_umu "${FILES_DIR}/aspnet-runtime.exe" /q
 
             # Download SPT Installer
-            local installer_path="${CACHE_DIR}/SPTInstaller.exe"
-            m_download "${URL[spt-installer]}" "${CACHE_DIR}"
+            local installer_path="${FILES_DIR}/SPTInstaller.exe"
+            m_download "${URL[spt-installer]}" "${FILES_DIR}"
 
             # Symlink SPTInstaller cache directory to script cache directory
             local cache_dir="${WINEPREFIX}/drive_c/users/steamuser/Application Data/spt-installer/cache"
             if [[ -d "${cache_dir}" ]]; then
-                [[ $(readlink "${cache_dir}") != "${CACHE_DIR}" ]] && m_rm -r "${cache_dir}"
+                [[ $(readlink "${cache_dir}") != "${FILES_DIR}" ]] && m_rm -r "${cache_dir}"
             fi
             [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
-            ln -s -n "${CACHE_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
+            ln -s -n "${FILES_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
             
             # Convert SPT directory path to windows path
             local path="${CONFIG[spt-path]//\//\\}"
@@ -843,7 +844,7 @@ install_spt() {
 
             # Run SPT Installer
             msg "Launching SPT Installer..."
-            m_umu "${CACHE_DIR}/SPTInstaller.exe" installpath="${path}"
+            m_umu "${FILES_DIR}/SPTInstaller.exe" installpath="${path}"
 
             # Make the Linux server executable
             m_chmod +x "${SPT_DIR}/SPT/SPT.Server.Linux"
