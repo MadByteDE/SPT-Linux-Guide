@@ -1461,6 +1461,9 @@ add_app_shortcut() {
     if [[ -f "${CACHE[path]}" ]]; then msg "Updating \"${CACHE[name]}\" application shortcut..."
     else msg "Creating \"${CACHE[name]}\" application shortcut..."; fi
 
+    # Warn if the executable does not exist
+    [[ ! -f "${CACHE[working_dir]}/${CACHE[exe_path]}" ]] && warn "File \"${CACHE[exe_path]}\" does not exist"
+
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
 
@@ -1539,7 +1542,7 @@ opt_shortcut() {
         ;; 
         spt|sptarkov)
             opt_shortcut launcher
-            if check_lts_installed || [[ "${CONFIG[install-mode]}" == "lts" ]]; then opt_shortcut lts-server
+            if check_lts_installed; then opt_shortcut lts-server
             else opt_shortcut server; fi
         ;;
         all)
@@ -1915,12 +1918,12 @@ handle_opts() {
     local option="${1}" && shift
     
     case "${option}" in
-        install|run|update|dlloverride)
-            check_native_deps
+        install|run|update|dlloverride|shortcut)
+            [[ "${option}" != "shortcut" ]] && check_native_deps
             set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}"
             init_prefix
         ;;
-        uninstall|shortcut) set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}" ;;
+        uninstall) set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}" ;;
     esac
 
     # Handle options
