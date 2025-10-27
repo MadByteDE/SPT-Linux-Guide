@@ -60,7 +60,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 **4. Running SPT**
 
 > [!WARNING]
-> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to oa tested Proton version for better performance and an overall better experience.
+> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to a Proton version for better performance and an overall better experience.
 
 Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 

@@ -42,8 +42,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - Tested wine versions:
     - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
-    - **[wine-10.0-tkg-git (Valve Bleeding Edge)](https://github.com/Frogging-Family/wine-tkg-git/actions/workflows/wine-valvexbe.yml)** (install & play)
-    - **[wine-kron4ek-10.16 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.16)** (install & play)
+    - **[wine-kron4ek-10.17 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.17)** (install & play)
 
 ### - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
@@ -76,7 +75,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 **3. Running SPT**
 
 > [!WARNING]
-> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to one of the tested wine versions for better performance and an overall better experience.
+> We highly recommend switching from the default `wine-ge-8-26` runner in Lutris to a Proton version for better performance and an overall better experience.
 
 Everything now is pretty much done, so now to run the game we need to run the server and the launcher.
 
