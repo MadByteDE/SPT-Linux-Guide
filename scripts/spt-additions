@@ -1577,6 +1577,8 @@ opt_clean() {
         cache) dir_path="${CACHE_DIR}" ;;
         config) dir_path="${CONFIG_DIR}" ;;
         data) dir_path="${DATA_DIR}" ;;
+        runtime) dir_path="${RUNTIME_DIR}" ;;
+        files) dir_path="${FILES_DIR}" ;;
         all)
             # Warn user before continuing
             {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
