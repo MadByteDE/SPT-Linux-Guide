@@ -472,14 +472,13 @@ get_patcher_eft_version() {
 
 
 init_prefix() {
-    local proton_path
-    if [[ ! -d "${WINEPREFIX}" ]]; then
+    [[ -z "${PROTONPATH}" ]] && set_value env "PROTONPATH=GE-Proton"
+    if [[ ! -d "${WINEPREFIX}" ]] || [[ "${PROTONPATH}" == "GE-Proton" ]]; then
+        # Re-initialise wine prefix
         msg "Initializing wine prefix..." && m_umu wineboot -u
-    fi
-
-    # WORKAROUND: Find and pin latest GE-Proton version if no custom path is set
-    # Fixes umu-launcher always re-downloading the latest GE-Proton version
-    if [[ -z "${PROTONPATH}" ]] || [[ "${PROTONPATH}" == "GE-Proton" ]]; then
+        # WORKAROUND: Find and pin latest GE-Proton version if no custom path is set
+        # Fixes umu-launcher always re-downloading the latest GE-Proton version
+        local proton_path
         proton_path="$( find "${COMPAT_DIR}" \( -name "${DEFAULT_PROTONPATH}*" -type d \) | tail -n 1 )"
         [[ -z "${proton_path}" ]] && proton_path="${DEFAULT_PROTONPATH}"
         msg "Setting Proton version to \"${proton_path##*/}\""
@@ -695,12 +694,12 @@ check_ttl() {
 # # # # # # # # # # # # #
 
 install_verb() {
-    local verb="${1}"; local text="${2:-"Installing: ${BOLD}${verb}${RESET}..."}"
+    local verb="${1}"; local text="${2:-"Installing: ${verb}..."}"
     if check_verb "${verb}"; then
         msg "\"${verb}\" is already installed"
         return 1
     fi
-    msg "Installing: ${BOLD}${text}${RESET}..."
+    msg "Installing: ${text}..."
     m_umu winetricks -q "${verb}" 1>> "${LOG_PATH}"
 }
 
