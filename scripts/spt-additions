@@ -473,18 +473,20 @@ get_patcher_eft_version() {
 
 
 init_prefix() {
-    [[ -z "${PROTONPATH}" ]] && set_value env "PROTONPATH=GE-Proton"
-    if [[ ! -d "${WINEPREFIX}" ]] || [[ "${PROTONPATH}" == "GE-Proton" ]]; then
+    # WORKAROUND: umu-launcher will only work with existing absolute paths or "GE-Proton" (or outdated "UMU-Proton")
+    if [[ -z "${PROTONPATH}" ]] || [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] ;then
+        msg "Invalid PROTONPATH \"${PROTONPATH}\", resetting to default \"${DEFAULT_PROTONPATH}\"..."
+        set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
+    fi
+    if [[ ! -d "${WINEPREFIX}" || "${PROTONPATH}" == "GE-Proton" ]]; then
         # Re-initialise wine prefix
         msg "Initializing wine prefix..." && m_umu wineboot -u
-        # WORKAROUND: Find and pin latest GE-Proton version if no custom path is set
-        # Fixes umu-launcher always re-downloading the latest GE-Proton version
-        local proton_path
-        proton_path="$( find "${COMPAT_DIR}" \( -name "${DEFAULT_PROTONPATH}*" -type d \) | tail -n 1 )"
-        [[ -z "${proton_path}" ]] && proton_path="${DEFAULT_PROTONPATH}"
-        msg "Setting Proton version to \"${proton_path##*/}\""
-        set_value env "PROTONPATH=${proton_path##*/}"
-        export PROTONPATH="${proton_path##*/}"
+        local version=$( cat "${WINEPREFIX}/version" || echo "${DEFAULT_PROTONPATH}" )
+        if [[ "${PROTONPATH}" != "${version}" ]]; then
+            # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
+            msg "Pinning Proton version to \"${version}\""
+            set_value env "PROTONPATH=${version}"
+        fi
     fi
 }
 
