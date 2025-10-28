@@ -1925,7 +1925,8 @@ handle_opts() {
     local option="${1}" && shift
     
     case "${option}" in
-        install|run|update|dlloverride|shortcut)
+        update) check_native_deps ;;
+        install|run|dlloverride|shortcut)
             [[ "${option}" != "shortcut" ]] && check_native_deps
             set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}"
             init_prefix
