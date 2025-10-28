@@ -1354,10 +1354,13 @@ opt_guided_install() {
         fi
 
         # Install SPT
-        opt_install spt
+        opt_install spt; msg
 
-        # Ask to install the script for ease of use
-        msg; opt_selfinstall
+        # Ask to install the script & remove all cached files if not
+        if ! opt_selfinstall; then
+            export NO_PROMPT=1
+            opt_clean cache; opt_clean runtime
+        fi
 
         # All done!
         msg; msg "${BOLD}${GREEN}All done! ※\(^o^)/※${RESET}"
