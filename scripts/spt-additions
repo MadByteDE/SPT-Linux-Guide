@@ -1956,7 +1956,7 @@ handle_opts() {
 
 main() {
     # Create dirs
-    local dirs=( "${DATA_DIR}" "${RUNTIME_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${TMP_DIR}" "${ICO_DIR}" )
+    local dirs=( "${DATA_DIR}" "${RUNTIME_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${ICO_DIR}" "${FILES_DIR}" )
     for dir in "${dirs[@]}"; do [[ ! -d "${dir}" ]] && mkdir -p "${dir}"; done
 
     # Set default config variables
