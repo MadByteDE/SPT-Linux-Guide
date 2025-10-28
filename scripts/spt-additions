@@ -425,7 +425,6 @@ set_prefix() {
     SPT_DIR="${WINEPREFIX%/}/${CONFIG[spt-path]%/}"
     BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games"
     EFT_DIR=$( get_eft_path )
-
     msg "Prefix path has been set to \"${WINEPREFIX}\""
 }
 
@@ -774,8 +773,8 @@ install_additions() {
     [[ ! -d "${path}" ]] && m_mkdir "${path}"
     m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
     check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
-    msg "Installing ${TITLE}..." && m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}"
-    m_chmod +x "${path}/${TITLE}" && msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
+    msg "Installing ${TITLE}..."
+    m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}" && m_chmod +x "${path}/${TITLE}"
 }
 
 
@@ -1082,7 +1081,6 @@ opt_uninstall() {
 
 load_metadata() {
     local name="${1}"
-    # Get specific build data
     case "${name}" in
         latest)
             # Fetch metadata
@@ -1142,7 +1140,6 @@ load_metadata() {
 
 opt_update() {
     # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
-    # TODO: Gotta check somehow if a BLEEDING EDGE version is installed!
     local inst_major inst_minor inst_patch upd_major upd_minor upd_patch
     local option="$1" && shift
     case "${option}" in
@@ -1221,10 +1218,11 @@ opt_update() {
             msg "Installed version: ${old_version}"
             msg "Latest version: ${latest_version}"
             if [[ "${old_version}" != "${latest_version}" ]]; then
-                msg "${BOLD}${YELLOW}${latest_version} is available!${RESET}"
-                msg "   ► The following directory will be removed:"
-                msg "   ► ${COMPAT_DIR}/${old_version}"
-                yesno "Do you want to update?" || return 0
+                {   msg "${BOLD}${YELLOW}${latest_version} is available!${RESET}"
+                    msg "   ► The following directory will be removed:"
+                    msg "   ► ${COMPAT_DIR}/${old_version}"
+                    yesno "Do you want to update?" || return 0
+                } | more
                 m_download "${URL[ge-proton]}/download/${latest_version}/${latest_version}.tar.zst" "${TMP_DIR}"
                 m_extract "${TMP_DIR}/${latest_version}.tar.zst" "${COMPAT_DIR}"
                 m_rm -rf "${COMPAT_DIR}/${old_version}"
@@ -1244,12 +1242,8 @@ opt_update() {
 
 opt_patch() {
     local files_total;  local progress=1
-    local target_path="${1:-"${SPT_DIR}"}"
-    local source_path="${2:-"${target_path}"}"
-    target_path=$( realpath -m "${target_path%/}" )
-    source_path=$( realpath -m "${source_path%/}" )
-
-    # Fail if the target director does not exist
+    local target_path="${1:-"${SPT_DIR}"}";  local source_path="${2:-"${target_path}"}"
+    target_path=$( realpath -m "${target_path%/}" );  source_path=$( realpath -m "${source_path%/}" )
     [[ -z "${target_path}" ]] && err "Target path is not set"
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
 
@@ -1382,7 +1376,7 @@ opt_guided_install() {
             
             # Run BSG Launcher
             msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
-            msg "   ► After the client is installed - close the Launcher to continue${RESET}"
+            msg "   ► Close the Launcher to continue${RESET}"
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
             # Update EFT path
