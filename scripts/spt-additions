@@ -207,10 +207,27 @@ m_7z() {
 }
 
 
-m_download() {
-    case "$1" in
-        -f) local force=1 && shift ;;
+m_extract() {
+    local file_path="${1}"; [[ -z "${file_path}" ]] && err "Missing file_path argument"
+    local target_path="${2:-"${file_path%/*}"}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
+    local filename="${file_path##*/}"
+    [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
+    msg "Extracting: ${filename}"
+    case "${filename}" in
+        # Extract archive
+        *.zip*|*.7z*) m_7z "${file_path}" "${target_path}" ;;
+        *.tar*) tar -xf "${file_path}" -C "${target_path}" &>> "${LOG_PATH}" || err "Failed to extract \"${file_path}\"" ;;
+        *.deb*)
+            m_7z "${file_path}" "${target_path}"
+            tar -xf "${file_path%/*}/data.tar" -C "${target_path}" &>> "${LOG_PATH}" || err "Failed to extract \"data.tar\""
+        ;;
+        *) err "Cannot extract file: \"${file_path}\"" ;;
     esac
+}
+
+
+m_download() {
+    if [[ "${1}" == "-f" ]]; then local force=1 && shift; fi
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local path="${2}"; [[ -z "${path}" ]] && err "Missing path argument"
     local filename="${url##*/}"
@@ -708,23 +725,14 @@ install_verb() {
 
 
 install_dep() {
-    local cmd_name="$1"; local url="$2"; local filename="${url##*/}"
+    local cmd_name="$1"; local url="$2";  local filename="${url##*/}"
     local source_path="${3:-$TMP_DIR}"; local target_path="${4:-$RUNTIME_DIR}"
     
-    cd "${TMP_DIR}"
-    m_download "${url}" "${TMP_DIR}" 2>/dev/null
-    
+    m_download "${url}" "${source_path}" 2>/dev/null
     case "${filename}" in
-        # Extract archive
-        *.zip*|*.7z*) m_7z "${filename}" "${TMP_DIR}" ;;
-        *.tar*) tar -xf "${filename}" || err "Failed to extract tar archive" ;;
-        *.deb*)
-            m_7z "${filename}" "${TMP_DIR}"
-            tar -xf "data.tar" || err "Failed to extract tar archive"
-        ;;
         # Single file workarounds
         *jq-linux-amd64*) mv "jq-linux-amd64" "jq" || err "Failed to rename \"${filename}\"" ;;
-        *) ;;
+        *) m_extract "${source_path}/${filename}" 1>/dev/null ;;
     esac
 
     # Search executable inside the extracted directory
@@ -748,8 +756,16 @@ install_mod_archive() {
         m_download "${url}" "${source_path}"
         check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
     fi
-    msg "Extracting \"${source_path##*/}\" archive..."
-    m_7z "${source_path}" "${SPT_DIR}"
+    m_extract "${source_path}" "${SPT_DIR}"
+}
+
+
+install_additions() {
+    [[ ! -d "${path}" ]] && m_mkdir "${path}"
+    m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
+    check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
+    msg "Installing ${TITLE}..." && m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}"
+    m_chmod +x "${path}/${TITLE}" && msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
 }
 
 
@@ -934,9 +950,7 @@ install_spt_native() {
 
             # Extract latest patcher to tmp directory
             archive_name="${METADATA[patcher-path]##*/}"
-            patcher_tmp_dir="${TMP_DIR}/${archive_name%.*}"
-            msg "Extracting \"${archive_name}\"..."
-            m_7z "${METADATA[patcher-path]}" "${patcher_tmp_dir}"
+            m_extract "${METADATA[patcher-path]}" "${TMP_DIR}"
 
             # Copy EFT files
             msg "Copying game files to \"${SPT_DIR}\""
@@ -1659,22 +1673,8 @@ opt_selfinstall() {
         msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new minor SPT release)"
         msg "   ► \"${GREEN}${TITLE} -m lts install spt${RESET}\"               (Install legacy SPT [3.11.x])"
         msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
-        yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?"
-
-        if [[ "$?" == 0 ]]; then
-            [[ ! -d "${path}" ]] && m_mkdir "${path}"
-            m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
-            if ! check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}"; then
-                err "Downloaded script is corrupted"
-            fi
-            msg "Installing ${TITLE}..."
-            m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}"
-            m_chmod +x "${path}/${TITLE}"
-            msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
-            return 0
-        else
-            break
-        fi
+        yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?" || return 1
+        install_additions && break
     done
 }
 
@@ -1692,25 +1692,12 @@ opt_selfupdate() {
     if [[ "${current_hash}" == "${METADATA[additions-hash]}" ]]; then
         msg "${BOLD}The script is up-to-date.${RESET}"
         return 0
-    else
-        if [[ "${NO_PROMPT}" != 1 ]]; then
-            msg "> ${BOLD}The script will attempt to download the latest version from:${RESET}"
-            msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
-            msg
-            yesno "Do you want to continue?" || m_exit 0
-        fi
-
-        m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
-
-        if ! check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}"; then
-            err "Downloaded script is corrupted"
-        fi
-
-        msg "Installing ${TITLE}..."
-        m_mv "${TMP_DIR}/${TITLE}" "${SCRIPT_DIR}/${TITLE}"
-        m_chmod +x "${SCRIPT_DIR}/${TITLE}"
-        msg "${GREEN}${BOLD}Done! ※\(^o^)/※${RESET}"
     fi
+    msg "> ${BOLD}The script will attempt to download the latest version from:${RESET}"
+    msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
+    msg
+    yesno "Do you want to continue?" || return 1
+    install_additions
 }
 
 
