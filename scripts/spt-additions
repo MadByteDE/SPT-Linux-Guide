@@ -1274,7 +1274,9 @@ opt_patch() {
     local status=$?
     if [[ "$status" -ne "0" ]]; then
         # Failed patching
-        m_rm -r "${SPT_DIR}" && err "Failed to patch game files" $status
+        msg "Removing corrupted game files..."
+        m_rm -r "${SPT_DIR}" || err "Failed to remove corrupted game files" $status
+        return 1
     fi
     
     # Clean up patcher files
