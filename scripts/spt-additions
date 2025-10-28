@@ -91,6 +91,7 @@ URL[7zzs]="https://github.com/ip7z/7zip/releases/download/25.01/7z2501-linux-x64
 URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
 URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 URL[xxd]="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.1.1846-1_amd64.deb"
+URL[ge-proton]="https://github.com/GloriousEggroll/proton-ge-custom/releases"
 
 # Installers
 URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
@@ -155,7 +156,7 @@ m_rm() {
 
     # Check for valid paths
     case "${path}" in
-        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | \
+        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${COMPAT_DIR}"* | \
         *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
         *) err "Cannot remove file or directory \"${path}\"" ;;
     esac
@@ -1204,6 +1205,30 @@ opt_update() {
             fi
         ;;
         additions|script) opt_selfupdate ;;
+        ge-proton|proton-ge|proton)
+        local url  old_version  latest_version
+            [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
+            [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
+            url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2> "${LOG_PATH}" )
+            [[ -z "${url}" ]] && err "Failed to get latest Proton version"
+            latest_version="${url##*/}";  old_version="${PROTONPATH}"
+            msg "Installed version: ${old_version}"
+            msg "Latest version: ${latest_version}"
+            if [[ "${old_version}" != "${latest_version}" ]]; then
+                msg "${BOLD}${YELLOW}${latest_version} is available!${RESET}"
+                msg "   ► The following directory will be removed:"
+                msg "   ► ${COMPAT_DIR}/${old_version}"
+                yesno "Do you want to update?" || return 0
+                m_download "${URL[ge-proton]}/download/${latest_version}/${latest_version}.tar.zst" "${TMP_DIR}"
+                m_extract "${TMP_DIR}/${latest_version}.tar.zst" "${COMPAT_DIR}"
+                m_rm -rf "${COMPAT_DIR}/${old_version}"
+                set_value env "PROTONPATH=${latest_version}"
+                msg "${GREEN}Done!${RESET}"
+            else
+                msg "${BOLD}Proton is up-to-date!${RESET}"
+            fi
+            return 0
+        ;;
         help|-h|--help) opt_help "update";;
         "") err "Option \"update\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
