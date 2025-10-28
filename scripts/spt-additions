@@ -963,9 +963,9 @@ install_spt_native() {
             m_cp "${EFT_DIR}/" "${SPT_DIR}"
 
             # Move patcher files to install directory
-            msg "Copying patch files to \"${SPT_DIR}\""
+            msg "Moving patch files to \"${SPT_DIR}\""
             patch_dir="$(find "${TMP_DIR}" -type d -name '*SPT_Patches*')"
-            m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
+            m_mv "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
             opt_patch "${SPT_DIR}" || err "Failed to patch game files"
