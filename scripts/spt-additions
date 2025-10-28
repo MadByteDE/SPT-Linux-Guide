@@ -1821,9 +1821,11 @@ opt_help() {
             {   msg "Clean installer and prefix files"
                 msg
                 msg "${BOLD}Available options:${RESET}"
-                msg "cache                          - Remove cached files"
+                msg "cache                          - Remove all cached files"
                 msg "config                         - Remove configuration files"
                 msg "data                           - Remove installer data files"
+                msg "runtime                        - Remove static runtime / libraries"
+                msg "files                          - Remove cached installer / archive files"
                 msg "all                            - Remove all of the above"
                 opt_help switches
             } | more
