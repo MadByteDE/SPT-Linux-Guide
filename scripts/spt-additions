@@ -959,11 +959,11 @@ install_spt_native() {
 
             # Move patcher files to install directory
             msg "Copying patch files to \"${SPT_DIR}\""
-            patch_dir="$(find "${patcher_tmp_dir}" -type d -name '*SPT_Patches*')"
+            patch_dir="$(find "${TMP_DIR}" -type d -name '*SPT_Patches*')"
             m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
-            opt_patch "${SPT_DIR}"
+            opt_patch "${SPT_DIR}" || err "Failed to patch game files"
         else
             msg "Installed EFT version is compatible with \"SPT ${METADATA[mod-version]}\""
             msg "Copying game files to \"${SPT_DIR}\""
@@ -986,7 +986,7 @@ uninstall_eft() {
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
         msg "Prefix directory: ${UNDERLINE}${WINEPREFIX}${RESET}"
-        yesno "Do you want to continue?" || m_exit 0
+        yesno "Do you want to continue?" || return 1
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
@@ -1006,7 +1006,7 @@ uninstall_spt() {
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
         msg "SPT directory: ${UNDERLINE}${SPT_DIR}${RESET}"
-        yesno "Do you want to continue?" || m_exit 0
+        yesno "Do you want to continue?" || return 1
     fi
 
     msg "Uninstalling \"SPTarkov\"..."
@@ -1054,11 +1054,11 @@ opt_uninstall() {
         spt|sptarkov) uninstall_spt ;;
         all)
             # Ask for confirmation
-            if ! [ "${NO_PROMPT}" = 1 ]; then
+            if [[ "${NO_PROMPT}" != 1 ]]; then
                 msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
                 msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
                 msg "${UNDERLINE}${WINEPREFIX}${RESET}"
-                yesno "Do you want to continue?" || m_exit 0
+                yesno "Do you want to continue?" || return 1
             fi
             uninstall_prefix 1
             for shortcut in "${!SHORTCUT[@]}"; do
@@ -1141,12 +1141,12 @@ opt_update() {
     local option="$1" && shift
     case "${option}" in
         spt|sptarkov)
-            if ! check_eft_installed; then err "Escape from Tarkov is not installed"; fi
+            if ! check_eft_installed; then msg "Escape from Tarkov is not installed"; return 0; fi
 
             # Get metadata
             if check_latest_installed; then load_metadata latest
             elif check_lts_installed; then load_metadata lts
-            else msg "SPTarkov is not installed" && m_exit 0; fi
+            else msg "SPTarkov is not installed"; return 0; fi
             
             load_metadata mod-eft
             [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
@@ -1162,7 +1162,7 @@ opt_update() {
             upd_patch=$( echo "${METADATA[mod-version]}" | cut -d "." -f3 )
 
             if [[ "${METADATA[mod-version]}" == "${METADATA[inst-spt]}" ]]; then
-                msg "${BOLD}SPT is up-to-date.${RESET}" && m_exit 0
+                msg "${BOLD}SPT is up-to-date.${RESET}" && return 0
             elif [[ "${upd_major}" -gt "${inst_major}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new major update is available!${RESET}"
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
@@ -1196,7 +1196,7 @@ opt_update() {
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
                     msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
                     msg
-                    yesno "Do you want to install the update?" || m_exit 0
+                    yesno "Do you want to install the update?" || return 0
                 }
                 install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
                 msg "${GREEN}${BOLD}Update successful!${RESET}"
@@ -1356,7 +1356,7 @@ opt_guided_install() {
         input=$(read_input)
         if [[ -n "$input" ]]; then
             # HACK: Special input check for canceling the action
-            [[ "${input:0:1}" =~ ^[Qq]+$ ]] && m_exit
+            [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
             prefix_path="${input//[~]/"$HOME"}"
         fi
 
@@ -1369,15 +1369,15 @@ opt_guided_install() {
         # Initialize the prefix if needed
         init_prefix
         
-        local install_eft=0
+        local install_eft=1
          # Ask to skip EFT installation if it's already installed
         if check_eft_installed; then
             msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
-            [[ "$?" == 0 ]] && install_eft=1
+            [[ "$?" == 0 ]] && install_eft=0
         fi
 
         # Install EFT
-        if [[ "$install_eft" == 0 ]]; then
+        if [[ "$install_eft" == 1 ]]; then
             opt_install eft
             
             # Run BSG Launcher
@@ -1630,19 +1630,20 @@ opt_clean() {
         files) dir_path="${FILES_DIR}" ;;
         all)
             # Warn user before continuing
-            {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
-                msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "    ► ${UNDERLINE}${DATA_DIR}${RESET}"
-                msg "    ► ${UNDERLINE}${CACHE_DIR}${RESET}"
-                msg "    ► ${UNDERLINE}${CONFIG_DIR}${RESET}"
-            } | more
-            yesno "Do you want to continue?" || m_exit 0
-            export NO_PROMPT=1
+            if [[ "${NO_PROMPT}" != 1 ]]; then
+                {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
+                    msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
+                    msg "    ► ${UNDERLINE}${DATA_DIR}${RESET}"
+                    msg "    ► ${UNDERLINE}${CACHE_DIR}${RESET}"
+                    msg "    ► ${UNDERLINE}${CONFIG_DIR}${RESET}"
+                } | more
+                yesno "Do you want to continue?" || return 1
+                export NO_PROMPT=1
+            fi
             opt_clean data;  opt_clean config;  opt_clean cache
-            msg "${GREEN}Done!${RESET}"
-            m_exit 0
+            msg "${GREEN}Done!${RESET}" && return 0
         ;;
-        help|-h|--help) opt_help "clean"; m_exit 0 ;;
+        help|-h|--help) opt_help "clean" || return 1 ;;
         "") err "Option \"clean\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -1653,7 +1654,7 @@ opt_clean() {
             {   msg "${BOLD}This action will remove the following directory:${RESET}"
                 msg "    ► ${UNDERLINE}${dir_path}${RESET}"
             } | more
-            yesno "Do you want to continue?" || m_exit 0
+            yesno "Do you want to continue?" || return 1
         fi
         msg "Removing ${option} directory: \"${dir_path}\"..."
         [[ -d "${dir_path}" ]] && m_rm -r "${dir_path}"
@@ -1671,7 +1672,7 @@ opt_selfinstall() {
         msg "${BOLD}${GREEN}${TITLE}${YELLOW} provides useful CLI commands for managing your wine prefix!${RESET}"
         msg "   ► Consider adding the script to your PATH variable for ease of use!"
         msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" after installing it for more details."
-        return 0
+        return 1
     done
 
     # Check if the script is already installed
