@@ -199,7 +199,7 @@ m_cp() {
 
 
 m_7z() {
-    local archive_path target_path
+    local archive_path  target_path
     archive_path="$(realpath -m "${1%/}")"
     target_path="$(realpath -m "${2%/}")"
     filename="${archive_path##*/}"
@@ -430,6 +430,25 @@ set_prefix() {
 }
 
 
+init_prefix() {
+    # WORKAROUND: umu-launcher will only work with existing absolute paths or "GE-Proton" (or outdated "UMU-Proton")
+    if [[ "${PROTONPATH}" != "${DEFAULT_PROTONPATH}" ]] && [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] ;then
+        msg "Setting PROTONPATH to \"${DEFAULT_PROTONPATH}\"..."
+        set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
+    fi
+    if [[ ! -d "${WINEPREFIX}" || "${PROTONPATH}" == "GE-Proton" ]]; then
+        # Re-initialise wine prefix
+        msg "Initializing wine prefix..." && m_umu wineboot -u
+        local version=$( cat "${WINEPREFIX}/version" || echo "${DEFAULT_PROTONPATH}" )
+        if [[ "${PROTONPATH}" != "${version}" ]]; then
+            # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
+            msg "Pinning Proton version to \"${version}\""
+            set_value env "PROTONPATH=${version}"
+        fi
+    fi
+}
+
+
 get_env() {
     printf "$( for key in "${!ENV[@]}"; do printf "${key}=\"${ENV[$key]}\" "; done )\n"
 }
@@ -487,25 +506,6 @@ get_patcher_eft_version() {
     filename=$( echo "${path##*/}" | tr "_." " " )
     version=$( echo "${filename}" | cut -d " " -f5 )
     printf "%s\n" "${version}"
-}
-
-
-init_prefix() {
-    # WORKAROUND: umu-launcher will only work with existing absolute paths or "GE-Proton" (or outdated "UMU-Proton")
-    if [[ -z "${PROTONPATH}" ]] || [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] ;then
-        msg "Invalid PROTONPATH \"${PROTONPATH}\", resetting to default \"${DEFAULT_PROTONPATH}\"..."
-        set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
-    fi
-    if [[ ! -d "${WINEPREFIX}" || "${PROTONPATH}" == "GE-Proton" ]]; then
-        # Re-initialise wine prefix
-        msg "Initializing wine prefix..." && m_umu wineboot -u
-        local version=$( cat "${WINEPREFIX}/version" || echo "${DEFAULT_PROTONPATH}" )
-        if [[ "${PROTONPATH}" != "${version}" ]]; then
-            # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
-            msg "Pinning Proton version to \"${version}\""
-            set_value env "PROTONPATH=${version}"
-        fi
-    fi
 }
 
 
@@ -660,7 +660,7 @@ check_hash() {
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
     [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
     # use file to calculate MD5 hash and ENCODE in base64
-    msg "Calculating checksum for file: \"${file_path##*/}\""
+    msg "Calculating checksum for file: ${file_path##*/}"
     file_hash=$( get_hash "${file_path}" ) || err "Failed to calculate hash"
     [[ -z "${file_hash}" ]] && err "get_hash returned empty string"
     # Compare
