@@ -504,6 +504,11 @@ get_patcher_eft_version() {
 }
 
 
+get_eft_version() { get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
+get_mod_eft_version() { get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
+get_spt_version() { get_file_version "${SPT_DIR}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
+
+
 # # # # # # # # # # #
 #  Check functions  #
 # # # # # # # # # # #
@@ -1109,19 +1114,11 @@ load_metadata() {
             METADATA[patcher-path]="${LTS_PATCHER_PATH}"
         ;;
         eft)
-            if [[ "${EFT_DIR}" ]]; then
-                METADATA[inst-eft]=$( get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get EFT version" "$?"
-                METADATA[inst-eft]=$( echo "${METADATA[inst-eft]}" | cut -d "." -f4 )
-            fi
+             METADATA[inst-eft]=$( get_eft_version ) || err "Failed to get EFT version" "$?"
         ;;
         mod-eft)
-            if [[ "${SPT_DIR}" ]]; then
-                local core_dll_path="${SPT_DIR}/BepInEx/plugins/spt/spt-core.dll"
-                METADATA[inst-spt]=$( get_file_version "${core_dll_path}" | cut -d "." -f1-3 ) || err "Failed to get installed SPT version" "$?"
-                METADATA[inst-spt]="${METADATA[inst-spt]}"
-                METADATA[inst-mod-eft]=$( get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" ) || err "Failed to get mod EFT version" "$?"
-                METADATA[inst-mod-eft]=$( echo "${METADATA[inst-mod-eft]}" | cut -d "." -f4 )
-            fi
+            METADATA[inst-spt]=$( get_spt_version ) || err "Failed to get installed SPT version" "$?"
+            METADATA[inst-mod-eft]=$( get_mod_eft_version ) || err "Failed to get mod EFT version" "$?"
         ;;
         "")
             # Get metadata file
