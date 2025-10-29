@@ -525,8 +525,9 @@ check_verb() {
 
 
 check_disk_space() {
-    local total_gb=${1}; local path="${WINEPREFIX}"
+    local total_gb=${1};  local path="${2:-"${WINEPREFIX}"}"
     [[ -z "${path}" ]] && err "Missing path argument"
+    [[ ! -d "${path}" ]] && err "Directory does not exist: ${path}"
     # Get required values
     local free_kb total_kb eft_kb free_gb total_gb eft_kb
     free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
