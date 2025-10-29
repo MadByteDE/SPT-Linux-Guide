@@ -79,9 +79,9 @@ readonly CONFIG_PATH="${CONFIG_DIR}/app.conf"
 readonly ENV_PATH="${CONFIG_DIR}/env.conf"
 readonly METADATA_PATH="${CACHE_DIR}/metadata.conf"
 readonly MOD_PATH="${FILES_DIR}/spt.7z"
-readonly LTS_MOD_PATH="${FILES_DIR}/lts-spt.7z"
+readonly LEGACY_MOD_PATH="${FILES_DIR}/legacy-spt.7z"
 readonly PATCHER_PATH="${FILES_DIR}/patcher.7z"
-readonly LTS_PATCHER_PATH="${FILES_DIR}/lts-patcher.7z"
+readonly LEGACY_PATCHER_PATH="${FILES_DIR}/legacy-patcher.7z"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
@@ -832,7 +832,7 @@ install_spt() {
 
     # Install SPT
     case "$install_mode" in
-        lts|native|lutris) install_spt_native ;;
+        legacy|native|lutris) install_spt_native ;;
         proton)
             # Download & install ASP.NET Desktop Runtime 9.0
             # WORKAROUND: Fixes SPTInstaller requirement check failing
@@ -868,7 +868,7 @@ install_spt() {
     msg "Setting Windows version to \"8.1\"..."
     m_umu winetricks -q "win81" 1>> "${LOG_PATH}"
 
-    if [[ "${install_mode}" == "lts" ]]; then
+    if [[ "${install_mode}" == "legacy" ]]; then
         set_value env "PROTON_VERB=run"
     else
         # Install the latest server launch script
@@ -881,7 +881,7 @@ install_spt() {
     fi
 
     case "${install_mode}" in
-        native|proton|lts)
+        native|proton|legacy)
             # Download icons to icons directory
             local launcher_icon="${ICO_DIR}/spt_launcher.png"
             local server_icon="${ICO_DIR}/spt_server.png"
@@ -902,9 +902,9 @@ install_spt_native() {
 
     case "${install_mode}" in
         # SPT 3.11.x
-        lts) load_metadata lts && msg "${BOLD}Installing SPT LTS version: \"${METADATA[mod-version]}\"${RESET}" ;;
+        legacy) load_metadata legacy && msg "${BOLD}Installing legacy SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
         # SPT 4.x.x
-        native|lutris) load_metadata latest && msg "${BOLD}Installing SPT release version: \"${METADATA[mod-version]}\"${RESET}" ;;
+        native|lutris) load_metadata latest && msg "${BOLD}Installing latest SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
         *) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
@@ -1080,18 +1080,18 @@ load_metadata() {
             METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" ) || err "Failed to get required EFT version for patcher" "$?"
             METADATA[patcher-path]="${PATCHER_PATH}"
         ;;
-        lts)
+        legacy)
             # Fetch metadata
             load_metadata
             METADATA[mod-url]="${METADATA[lts-spt-url]}"; [[ -z "${METADATA[mod-url]}" ]] && err "Failed to get mod url"
             METADATA[mod-hash]="${METADATA[lts-spt-hash]}"; [[ -z "${METADATA[mod-hash]}" ]] && err "Failed to get mod hash"
             METADATA[mod-eft]="$( echo "${METADATA[mod-url]##*/}" | cut -d "-" -f3 )"; [[ -z "${METADATA[mod-eft]}" ]] && err "Failed to get mod eft version"
             METADATA[mod-version]="$( echo "${METADATA[mod-url]##*/}" | cut -d "-" -f2 )"; [[ -z "${METADATA[mod-version]}" ]] && err "Failed to get mod version"
-            METADATA[mod-path]="${LTS_MOD_PATH}"
+            METADATA[mod-path]="${LEGACY_MOD_PATH}"
             METADATA[patcher-url]="${METADATA[lts-patcher-url]}"
             METADATA[patcher-hash]="${METADATA[lts-patcher-hash]}"
             METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" )
-            METADATA[patcher-path]="${LTS_PATCHER_PATH}"
+            METADATA[patcher-path]="${LEGACY_PATCHER_PATH}"
         ;;
         eft)
              METADATA[inst-eft]=$( get_eft_version ) || err "Failed to get EFT version" "$?"
@@ -1121,7 +1121,7 @@ opt_update() {
 
             # Get metadata
             if check_latest_installed; then load_metadata latest
-            elif check_lts_installed; then load_metadata lts
+            elif check_lts_installed; then load_metadata legacy
             else msg "SPTarkov is not installed"; return 0; fi
             
             load_metadata mod-eft
@@ -1543,7 +1543,7 @@ opt_shortcut() {
             CACHE[icon]="spt_server"
             add_app_shortcut
         ;;
-        lts-server)
+        legacy-server)
             CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="SPT.Server.exe"
@@ -1556,7 +1556,7 @@ opt_shortcut() {
         ;; 
         spt|sptarkov)
             opt_shortcut launcher
-            if check_lts_installed; then opt_shortcut lts-server
+            if check_lts_installed; then opt_shortcut legacy-server
             else opt_shortcut server; fi
         ;;
         all)
@@ -1660,11 +1660,12 @@ opt_selfinstall() {
         if [[ -z $( echo "${PATH}" | grep "${path}" ) ]]; then continue; fi
 
         # Found a user bin path
-        msg "${YELLOW}Found \"${path}\" in the PATH environment variable.${RESET}"
+        msg "${YELLOW}Found \"${path}\" in the PATH environment variable${RESET}"
+        msg
         msg "   ► This script provides useful CLI commands to manage your wine prefix, e.g:"
         msg "   ► \"${GREEN}${TITLE} -e MANGOHUD=1 shortcut launcher${RESET}\"  (Set an environment variable & update an app shortcut)"
-        msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new minor SPT release)"
-        msg "   ► \"${GREEN}${TITLE} -m lts install spt${RESET}\"               (Install legacy SPT [3.11.x])"
+        msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new SPT version)"
+        msg "   ► \"${GREEN}${TITLE} -m legacy install spt${RESET}\"            (Install legacy SPT [3.11.x])"
         msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
         yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?" || return 1
         install_additions && break
@@ -1709,9 +1710,9 @@ opt_help() {
                 msg "spt|sptarkov                   - Install SPTarkov"
                 msg 
                 msg "Available install modes for SPTarkov:"
-                msg "${BOLD}native${RESET}          - Uses a native install method to install the latest SPTarkov release"
-                msg "${BOLD}proton${RESET}          - Uses Proton to install the latest SPTarkov release"
-                msg "${BOLD}lts${RESET}             - Installs the long-term-support (LTS) version of SPTarkov"
+                msg "${BOLD}native${RESET}          - Use the native install method to install the latest SPTarkov release"
+                msg "${BOLD}proton${RESET}          - Use Proton to install the latest version of SPTarkov"
+                msg "${BOLD}legacy${RESET}          - Install the legacy version of SPTarkov"
                 opt_help switches
             } | more
         ;;
@@ -1822,7 +1823,7 @@ opt_help() {
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
                 msg "-e <KEY=VALUE>                 - Set an environment variable for the prefix"
-                msg "-m <mode>                      - Set the install mode for SPTarkov (native, proton, lts)"
+                msg "-m <mode>                      - Set the install mode for SPTarkov (native, proton, legacy)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
@@ -1870,7 +1871,7 @@ handle_opts() {
             e) opt_env set "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    native|proton|lts|lutris)
+                    native|proton|legacy|lutris)
                         msg "Setting install mode to \"${OPTARG}\"..."
                         set_value config "install-mode=${OPTARG}"
                     ;;
