@@ -25,7 +25,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # exit codes:
-# 1: general error | 10: -d check failed | 11: -f check failed | 12: empty string | 13: m_7z failed
+# 1: general error | 10: -d check failed | 11: -f check failed | 12: -z check failed | 13: m_7z failed
 # 14: case char mismatch
 
 # We don't want to run as root
@@ -142,10 +142,10 @@ m_exit() {
 
 
 m_chmod() { chmod "$@" &>> "${LOG_PATH}" || err "Command \"chmod $*\" failed" "$?"; }
-m_mkdir() { mkdir -p "$@" &>> "${LOG_PATH}" || err "Command \"mkdir $*\" failed" "$?"; }
+m_mkdir() { mkdir -p "$@" &>> "${LOG_PATH}" || err "Command \"mkdir -p $*\" failed" "$?"; }
 m_ls() { ls "$@" 2>> "${LOG_PATH}" || err "Command \"ls $*\" failed" "$?"; }
 m_mv() { mv "$@" &>> "${LOG_PATH}" || err "Command \"mv $*\" failed" "$?"; }
-m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl $*\" failed" "$?"; }
+m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl --connect-timeout 30 -f $*\" failed" "$?"; }
 m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed" "$?"; }
 m_7z() { 7zzs "$@" 2>> "${LOG_PATH}" || err "Command \"7zzs $*\" failed" "$?"; }
 m_tar() { tar "$@" 2>> "${LOG_PATH}" || err "Command \"tar $*\" failed" "$?"; }
@@ -215,11 +215,10 @@ m_download() {
     local filename="${url##*/}"
     if [[ -d "${path}" ]]; then path="${path}/${filename}"
     else filename="${path##*/}"; fi
-    if [[ -f "${path}" ]] && [[ $force -ne 1 ]]; then
-        msg "Skipping download: ${filename}" && return 0
+    if [[ ! -f "${path}" ]] || [[ $force -eq 1 ]]; then
+        msg "Downloading: ${filename}..."
+        m_curl -L "${url}" -o "${path}"
     fi
-    msg "Downloading: ${filename}..."
-    m_curl -L "${url}" -o "${path}"
 }
 
 
@@ -1366,7 +1365,7 @@ opt_guided_install() {
             
             # Run BSG Launcher
             msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
-            msg "   ► Close the Launcher to continue${RESET}"
+            msg "   ► When the game is installed, close the Launcher to continue${RESET}"
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
             # Update EFT path
