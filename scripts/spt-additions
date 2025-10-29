@@ -153,27 +153,14 @@ m_rm() {
     local path
     path="$( realpath -m "${@: -1}" )"
     [[ -z "${path}" ]] && err "Path variable is empty"
-
-    # Check for valid paths
-    case "${path}" in
-        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${COMPAT_DIR}"* | \
-        *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
-        *) err "Cannot remove file or directory \"${path}\"" ;;
-    esac
-    
+    check_valid_paths "${path}"
     rm "$@" || warn "Command \"rm $*\" failed"
 }
 
 
 m_cp() {
     local source_path="${1}"; local target_path="${2}"
-
-    # Check for valid paths
-    case "${target_path}" in
-        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | \
-        *"${HOME}/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
-        *) err "Invalid target directory \"${target_path}\"" ;;
-    esac
+    check_valid_paths "${target_path}"
 
     # Create missing directories
     m_mkdir "${target_path}"
@@ -520,6 +507,16 @@ get_patcher_eft_version() {
 # # # # # # # # # # #
 #  Check functions  #
 # # # # # # # # # # #
+
+check_valid_paths() {
+    local target_path="$(realpath -m "${1%/}")"
+    case "${1}" in
+        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | \
+        *"${HOME}/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
+        *) err "Invalid target directory \"${target_path}\"" ;;
+    esac
+}
+
 
 check_verb() {
     [[ ! -d "${WINEPREFIX}" ]] && err "Prefix directory \"${WINEPREFIX}\" does not exist"
