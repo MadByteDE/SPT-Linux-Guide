@@ -273,7 +273,7 @@ yesno() {
         return 0
     fi
     while true; do
-        read -r -p "│ ► " yn
+        read -r -p "│   ► " yn
         case $yn in
             [Yy]*) return 0 ;;  
             [Nn]*) return 1 ;;
@@ -283,7 +283,7 @@ yesno() {
 
 
 read_input() {
-    read -e -r -p "│ ► " input; printf "$input\n"
+    read -e -r -p "│    ► " input; printf "$input\n"
 }
 
 
@@ -765,18 +765,18 @@ install_additions() {
 
 
 install_eft() {
-    msg "${BOLD}Starting \"BSG Launcher\" setup...${RESET}"
+    msg "${BOLD}Launching \"Tarkov / BSG Launcher\" installer...${RESET}"
 
     if ! check_eft_installed; then check_disk_space 60; fi
 
     # Install game dependencies
     install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
-    
+
     # Add mouse focus workaround
     msg "Adding mouse focus workaround..."
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
-    
+
     # Download BSG Launcher setup file
     m_download "${URL[bsg-launcher]}" "${FILES_DIR}/BsgLauncher.exe"
 
@@ -791,6 +791,8 @@ install_eft() {
 
     # Create application shortcut
     opt_shortcut bsg-launcher
+
+    msg "BSG Launcher is installed!"
 }
 
 
@@ -798,7 +800,7 @@ install_spt() {
     local install_mode="${CONFIG[install-mode]}"
     [[ "${install_mode}" == "lutris" ]] && opt_version
 
-    msg "${BOLD}Starting \"SPTarkov\" setup...${RESET}"
+    msg "${BOLD}Launching \"SPTarkov\" installer...${RESET}"
     msg "Selected install mode is \"${install_mode}\"..."
 
     if ! check_eft_installed; then
@@ -844,12 +846,10 @@ install_spt() {
 
             # Symlink SPTInstaller cache directory to script cache directory
             local cache_dir="${WINEPREFIX}/drive_c/users/steamuser/Application Data/spt-installer/cache"
-            if [[ -d "${cache_dir}" ]]; then
-                [[ $(readlink "${cache_dir}") != "${FILES_DIR}" ]] && m_rm -r "${cache_dir}"
-            fi
+            [[ -d "${cache_dir}" && $(readlink "${cache_dir}") != "${FILES_DIR}" ]] && m_rm -r "${cache_dir}"
             [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
             ln -s -n "${FILES_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
-            
+
             # Convert SPT directory path to windows path
             local path="${CONFIG[spt-path]//\//\\}"
             path="${path//drive_c/C:}"
@@ -857,6 +857,7 @@ install_spt() {
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu "${FILES_DIR}/SPTInstaller.exe" installpath="${path}"
+            if ! check_latest_installed && ! check_lts_installed; then err "Failed to install SPTarkov"; fi
 
             # Make the Linux server executable
             m_chmod +x "${SPT_DIR}/SPT/SPT.Server.Linux"
@@ -867,8 +868,7 @@ install_spt() {
     msg "Setting Windows version to \"8.1\"..."
     m_umu winetricks -q "win81" 1>> "${LOG_PATH}"
 
-    if [[ "${install_mode}" == "legacy" ]]; then
-        set_value env "PROTON_VERB=run"
+    if [[ "${install_mode}" == "legacy" ]]; then set_value env "PROTON_VERB=run"
     else
         # Install the latest server launch script
         m_download "${URL[server-script]}" "${SPT_DIR}" 2>> "${LOG_PATH}"
@@ -892,6 +892,7 @@ install_spt() {
         ;;
         lutris) ;;
     esac
+    msg "SPTarkov is installed!"
 }
 
 
@@ -919,7 +920,7 @@ install_spt_native() {
             msg "    ► Please wait for the SPT team to generate a new patcher."
             msg "    ► Usually, this will take less then 24 hours."
             err "No patcher available"
-            
+
         elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
             # EFT is outdated!
             warn "Looks like your installed EFT version is out-of-date"
@@ -1356,9 +1357,10 @@ opt_guided_install() {
         fi
 
         # Install SPT
-        opt_install spt; msg
+        opt_install spt
 
         # Ask to install the script & remove all cached files if not
+        msg "Checking script install..."
         if ! opt_selfinstall; then
             export NO_PROMPT=1
             opt_clean cache; opt_clean runtime
