@@ -423,7 +423,7 @@ init_prefix() {
     fi
 
      # Check if we need to update the prefix
-    if [[ "${PROTONPATH}" != "${version}" && "${missing_proton_dir}" ]]; then
+    if [[ "${PROTONPATH}" != "${version}" || "${missing_proton_dir}" ]]; then
         # Update the prefix
         msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
@@ -810,6 +810,7 @@ install_spt() {
 
     msg "${BOLD}Starting \"SPTarkov\" setup...${RESET}"
     msg "Selected install mode is \"${install_mode}\"..."
+    init_prefix
 
     if ! check_eft_installed; then
         warn "${BOLD}Escape from Tarkov is not installed${RESET}"
@@ -1345,6 +1346,7 @@ opt_guided_install() {
             # HACK: Special input check for canceling the action
             [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
             prefix_path="${input//[~]/"$HOME"}"
+            set_prefix "${prefix_path}"
         fi
 
         # Perform some checks
