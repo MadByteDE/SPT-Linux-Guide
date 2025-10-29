@@ -152,7 +152,7 @@ m_tar() { tar "$@" 2>> "${LOG_PATH}" || err "Command \"tar $*\" failed" "$?"; }
 
 
 m_rm() {
-    local path; path="$( realpath -m "${@: -1}" )"
+    local path; path="${@: -1}"
     [[ -z "${path}" ]] && err "Path variable is empty"
     check_valid_paths "${path}"
     rm "$@" || warn "Command \"rm $*\" failed"
@@ -500,7 +500,7 @@ get_spt_version() { get_file_version "${SPT_DIR}/BepInEx/plugins/spt/spt-core.dl
 # # # # # # # # # # #
 
 check_valid_paths() {
-    local target_path="$(realpath -m "${1%/}")"
+    local target_path="${1%/}"
     case "${1}" in
         *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | \
         *"${HOME}/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
@@ -650,7 +650,7 @@ check_eft_running() {
 
 
 check_hash() {
-    local file_path; file_path="$(realpath -m "${1%/}")"
+    local file_path; file_path="${1%/}"
     local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
@@ -669,7 +669,7 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path; cached_path="$(realpath -m "${1%/}")"
+    local cached_path; cached_path="${1%/}"
     local expected_hash="${2}"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] || err "File is not in \"${CACHE_DIR}\""
@@ -690,7 +690,7 @@ check_cached() {
 
 
 check_ttl() {
-    local file_path; file_path="$(realpath -m "${1%/}")"
+    local file_path; file_path="${1%/}"
     local ttl="${2:-"3600"}"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && return 1
