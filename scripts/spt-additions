@@ -405,10 +405,11 @@ set_prefix() {
 
 
 init_prefix() {
-    local version; version=$( cat "${WINEPREFIX}/version" 2>/dev/null || echo "${DEFAULT_PROTONPATH}" )
-    [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && local missing_proton_dir=1
+    local prefix_path=${1:-"${WINEPREFIX}"}
+    set_prefix "${prefix_path}" 1>"${LOG_PATH}"
 
-    check_native_deps;  set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}"
+    local version; version=$( cat "${prefix_path}/version" 2>/dev/null || echo "${DEFAULT_PROTONPATH}" )
+    [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && local missing_proton_dir=1
 
     if [[ "${PROTONPATH}" != "GE-Proton" && "${missing_proton_dir}" ]]; then
         msg "Invalid Proton path: Defaulting to \"${DEFAULT_PROTONPATH}\"..."
@@ -422,7 +423,7 @@ init_prefix() {
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
 
         # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
-        version=$( cat "${WINEPREFIX}/version" 2>/dev/null )
+        version=$( cat "${prefix_path}/version" 2>/dev/null )
         if [[ "${PROTONPATH}" == "GE-Proton" ]]; then
             msg "Pinning Proton version to \"${version}\""
             set_value env "PROTONPATH=${version}"
@@ -766,7 +767,6 @@ install_additions() {
 install_eft() {
     msg "${BOLD}Starting \"BSG Launcher\" setup...${RESET}"
 
-    init_prefix
     if ! check_eft_installed; then check_disk_space 60; fi
 
     # Install game dependencies
@@ -800,7 +800,6 @@ install_spt() {
 
     msg "${BOLD}Starting \"SPTarkov\" setup...${RESET}"
     msg "Selected install mode is \"${install_mode}\"..."
-    init_prefix
 
     if ! check_eft_installed; then
         warn "${BOLD}Escape from Tarkov is not installed${RESET}"
@@ -812,8 +811,8 @@ install_spt() {
         err "SPTarkov directory already exists."
     fi
 
-    init_prefix;  check_eft_running;  check_aspnet;  check_disk_space
-    
+    check_eft_running;  check_aspnet;  check_disk_space
+
     # Install dependencies
     install_verb "dotnetdesktop6" ".NET Desktop Runtime 6.0"
     install_verb "dotnetdesktop8" ".NET Desktop Runtime 8.0"
@@ -1223,9 +1222,6 @@ opt_patch() {
     [[ -z "${target_path}" ]] && err "Target path is not set"
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
 
-    # Make sure all native dependencies are installed
-    check_native_deps
-
     msg "Patching game files in \"${target_path}\"..."
 
     # Search in optional SOURCE directory
@@ -1333,11 +1329,9 @@ opt_guided_install() {
             # HACK: Special input check for canceling the action
             [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
             local prefix_path; prefix_path="${input//[~]/"$HOME"}"
-            set_prefix "${prefix_path}"
         fi
 
-        # Perform some checks
-        check_eft_running;  check_aspnet
+        init_prefix "${prefix_path}"; check_eft_running; check_aspnet
         
         local install_eft=1
          # Ask to skip EFT installation if it's already installed
@@ -1394,17 +1388,17 @@ opt_run() {
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
             local args="--disable-software-rasterizer"
-            init_prefix && msg "${BOLD}Launching BSG Launcher...${RESET}"
+            msg "${BOLD}Launching BSG Launcher...${RESET}"
             cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "$args" "$@"
         ;;
         launcher)
             check_eft_running
-            init_prefix && msg "${BOLD}Launching SPT Launcher...${RESET}"
+            msg "${BOLD}Launching SPT Launcher...${RESET}"
             cd "${SPT_DIR}" && m_umu "SPT.Launcher.exe" "$@"
         ;;
         server)
             check_eft_running
-            init_prefix && msg "${BOLD}Launching SPT Server...${RESET}"
+            msg "${BOLD}Launching SPT Server...${RESET}"
             cd "${SPT_DIR}" || exit
             if check_lts_installed; then m_umu "SPT.Server.exe" "$@"
             else "./launch-server.sh" "$@"; fi
@@ -1413,7 +1407,7 @@ opt_run() {
         "") err "Option \"run\" requires an argument" ;;
         *)
             local cmd="$( echo "${option} $*" | sed -e 's/[[:space:]]*$//' )"
-            init_prefix && msg "Running command: \"${cmd}\"..."
+            msg "Running command: \"${cmd}\"..."
             m_umu "${option}" "$@"
         ;;
     esac
@@ -1433,7 +1427,7 @@ opt_dlloverride() {
         *) err "Invalid override type \"${override_type}\"" ;;
     esac
     msg "Setting \"${dll_name}\" DLL override (${override_type})..."
-    init_prefix && m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "${dll_name}" /t "REG_SZ" /d "${override_type}" /f 1>> "${LOG_PATH}"
+    m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "${dll_name}" /t "REG_SZ" /d "${override_type}" /f 1>> "${LOG_PATH}"
 }
 
 
@@ -1905,8 +1899,16 @@ handle_opts() {
 
     local option="${1}" && shift
     
+    # Initialize wine prefix
     case "${option}" in
-        shortcut|uninstall|update) set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}" ;;
+        shortcut|uninstall) set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}" ;;
+        install|update|dlloverride|run) init_prefix ;;
+    esac
+
+    # Check native dependencies
+    case "${option}" in
+        "") [[ $OPTIND -eq 1 ]] && check_native_deps ;;
+        install|shortcut|uninstall|patch|update|dlloverride|run) check_native_deps ;;
     esac
 
     # Handle options
