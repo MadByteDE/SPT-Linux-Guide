@@ -147,6 +147,8 @@ m_ls() { ls "$@" 2>> "${LOG_PATH}" || err "Command \"ls $*\" failed" "$?"; }
 m_mv() { mv "$@" &>> "${LOG_PATH}" || err "Command \"mv $*\" failed" "$?"; }
 m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl $*\" failed" "$?"; }
 m_umu() { "${UMU_PATH}" "$@" 2>> "${LOG_PATH}" || err "Command \"umu-run $*\" failed" "$?"; }
+m_7z() { 7zzs "$@" 2>> "${LOG_PATH}" || err "Command \"7zzs $*\" failed" "$?"; }
+m_tar() { tar "$@" 2>> "${LOG_PATH}" || err "Command \"tar $*\" failed" "$?"; }
 
 
 m_rm() {
@@ -185,29 +187,21 @@ m_cp() {
 }
 
 
-m_7z() {
-    local archive_path  target_path
-    archive_path="$(realpath -m "${1%/}")"
-    target_path="$(realpath -m "${2%/}")"
-    filename="${archive_path##*/}"
-    7zzs x -aoa "${archive_path}" -o"${target_path}" 1>/dev/null
-    [[ "$?" != 0 ]] && err "Failed to extract \"${filename}\""
-}
-
-
 m_extract() {
     local file_path="${1}"; [[ -z "${file_path}" ]] && err "Missing file_path argument"
-    local target_path="${2:-"${file_path%/*}"}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
+    local target_path="${2:-"${file_path%/*}"}"
     local filename="${file_path##*/}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
+    check_valid_paths "${target_path}"
     msg "Extracting: ${filename}"
     case "${filename}" in
         # Extract archive
-        *.zip*|*.7z*) m_7z "${file_path}" "${target_path}" ;;
-        *.tar*) tar -xf "${file_path}" -C "${target_path}" &>> "${LOG_PATH}" || err "Failed to extract \"${file_path}\"" ;;
+        *.zip*|*.7z*) m_7z x -aoa "${file_path}" -o"${target_path}" 1>> "${LOG_PATH}" ;;
+        *.tar*) m_tar -xf "${file_path}" -C "${target_path}" 1>> "${LOG_PATH}" ;;
         *.deb*)
-            m_7z "${file_path}" "${target_path}"
-            tar -xf "${file_path%/*}/data.tar" -C "${target_path}" &>> "${LOG_PATH}" || err "Failed to extract \"data.tar\""
+            m_7z x -aoa "${file_path}" -o"${target_path}" 1>> "${LOG_PATH}"
+            m_tar -xf "${file_path%/*}/data.tar" -C "${target_path}" 1>> "${LOG_PATH}"
+            m_rm "${file_path%/*}/data.tar" 1>> "${LOG_PATH}"
         ;;
         *) err "Cannot extract file: \"${file_path}\"" ;;
     esac
@@ -457,8 +451,7 @@ get_hash() {
 get_file_version() {
     local filepath="${1}"
     [[ ! -f "${filepath}" ]] && exit 11
-    $( 7zzs l "${filepath}" &>/dev/null ) || exit $?
-    7zzs l "${filepath}" | grep -o "FileVersion:[^}]*" | head -1 | cut -d " " -f2
+    m_7z l "${filepath}" | grep -o "FileVersion:[^}]*" | head -1 | cut -d " " -f2
 }
 
 
