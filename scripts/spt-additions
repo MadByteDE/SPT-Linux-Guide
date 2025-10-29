@@ -215,7 +215,7 @@ m_download() {
     check_valid_paths "${path}"
     if [[ -d "${path}" ]]; then path="${path}/${filename}"
     else filename="${path##*/}"; fi
-    if [[ ! -f "${path}" ]] || [[ $force -eq 1 ]]; then
+    if [[ ! -f "${path}" || $force -eq 1 ]]; then
         msg "Downloading: ${filename}..."
         m_curl -L "${url}" -o "${path}"
     fi
@@ -247,7 +247,7 @@ msg() {
     esac
 
     # Write to log file
-    if [[ -d "${CACHE_DIR}" ]] && [[ "${mode}" != "o" ]] ; then
+    if [[ -d "${CACHE_DIR}" && "${mode}" != "o" ]] ; then
         echo "[$TITLE] ${filtered_str}" &>> "${LOG_PATH}"
     fi
 }
@@ -269,10 +269,7 @@ err() {
 
 yesno() {
     msg "${BOLD}${BLUE}[Q] $*${RESET} [y/n] "
-    if [[ $NO_PROMPT == 1 ]]; then
-        msg "NO_PROMPT variable set - returning 0"
-        return 0
-    fi
+    if [[ $NO_PROMPT == 1 ]]; then msg "NO_PROMPT variable set - returning 0" && return 0; fi
     while true; do
         read -r -p "│   ► " yn
         case $yn in
@@ -284,13 +281,8 @@ yesno() {
 
 
 read_input() {
+    if [[ $NO_PROMPT == 1 ]]; then msg "NO_PROMPT variable set - returning 0" && return 0; fi
     read -e -r -p "│    ► " input; printf "$input\n"
-}
-
-
-wrap_run() {
-    printf "%s\n" "$( "$@" )"; local status=$?
-    return $status
 }
 
 
@@ -385,8 +377,6 @@ save_array() {
 
 
 set_prefix() {
-    # Validate path
-    check_prefix_path "${1%/}"
     local path="$( realpath -m "${1%/}" )"
     [[ -z "${path}" ]] && err "Path argument is not set"
 
@@ -845,7 +835,6 @@ install_spt() {
             msg "Installing: ASP.NET Desktop Runtime 9.0..." && m_umu "${FILES_DIR}/aspnet-runtime.exe" /q
 
             # Download SPT Installer
-            local installer_path="${FILES_DIR}/SPTInstaller.exe"
             m_download "${URL[spt-installer]}" "${FILES_DIR}"
 
             # Symlink SPTInstaller cache directory to script cache directory
@@ -943,7 +932,6 @@ install_spt_native() {
             fi
 
             # Extract latest patcher to tmp directory
-            local archive_name; archive_name="${METADATA[patcher-path]##*/}"
             m_extract "${METADATA[patcher-path]}" "${TMP_DIR}"
 
             # Copy EFT files
@@ -1218,6 +1206,7 @@ opt_update() {
 
 
 opt_patch() {
+    msg "${BOLD}Launching patcher...${RESET}"
     local files_total; local progress=1
     local target_path="${1:-"${SPT_DIR}"}";  local source_path="${2:-"${target_path}"}"
     target_path=$( realpath -m "${target_path%/}" );  source_path=$( realpath -m "${source_path%/}" )
