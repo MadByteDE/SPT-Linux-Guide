@@ -1025,7 +1025,6 @@ opt_install() {
     case "${option}" in
         eft|tarkov|bsg) install_eft ;;
         spt|sptarkov) install_spt "${CONFIG[install-mode]}" ;;
-        help|-h|--help) opt_help "install";;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -1053,7 +1052,6 @@ opt_uninstall() {
             done
             [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
         ;;
-        help|-h|--help) opt_help "uninstall";;
         "") err "Option \"uninstall\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -1208,7 +1206,6 @@ opt_update() {
             fi
             return 0
         ;;
-        help|-h|--help) opt_help "update";;
         "") err "Option \"update\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -1403,7 +1400,6 @@ opt_run() {
             if check_lts_installed; then m_umu "SPT.Server.exe" "$@"
             else "./launch-server.sh" "$@"; fi
         ;;
-        help|-h|--help) opt_help "run";;
         "") err "Option \"run\" requires an argument" ;;
         *)
             local cmd="$( echo "${option} $*" | sed -e 's/[[:space:]]*$//' )"
@@ -1457,7 +1453,6 @@ opt_env() {
             unset_value env "${key}"
         ;;
         list|-l) get_env ;;
-        help|h|-h|--help) opt_help "env" ;;
         "") err "Option \"env\" requires an argument" ;;
         *) err "Invalid switch \"${option}\"" ;;
     esac
@@ -1556,7 +1551,6 @@ opt_shortcut() {
         all)
             opt_shortcut bsg-launcher;  opt_shortcut spt
         ;;
-        help|-h|--help) opt_help "shortcut";;
         "") err "Option \"shortcut\" requires an argument" ;;
         *)
             # Create custom shortcut
@@ -1604,7 +1598,6 @@ opt_clean() {
             opt_clean data;  opt_clean config;  opt_clean cache
             msg "${GREEN}Done!${RESET}" && return 0
         ;;
-        help|-h|--help) opt_help "clean" || return 1 ;;
         "") err "Option \"clean\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
