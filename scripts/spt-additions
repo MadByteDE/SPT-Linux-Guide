@@ -195,12 +195,12 @@ m_extract() {
     msg "Extracting: ${filename}"
     case "${filename}" in
         # Extract archive
-        *.zip*|*.7z*) m_7z x -aoa "${file_path}" -o"${target_path}" 1>> "${LOG_PATH}" ;;
-        *.tar*) m_tar -xf "${file_path}" -C "${target_path}" 1>> "${LOG_PATH}" ;;
+        *.zip*|*.7z*) m_7z x -aoa "${file_path}" -o"${target_path}" 1>/dev/null ;;
+        *.tar*) m_tar -xf "${file_path}" -C "${target_path}" 1>/dev/null ;;
         *.deb*)
-            m_7z x -aoa "${file_path}" -o"${target_path}" 1>> "${LOG_PATH}"
-            m_tar -xf "${file_path%/*}/data.tar" -C "${target_path}" 1>> "${LOG_PATH}"
-            m_rm "${file_path%/*}/data.tar" 1>> "${LOG_PATH}"
+            m_7z x -aoa "${file_path}" -o"${target_path}" 1>/dev/null
+            m_tar -xf "${file_path%/*}/data.tar" -C "${target_path}" 1>/dev/null
+            m_rm "${file_path%/*}/data.tar"
         ;;
         *) err "Cannot extract file: \"${file_path}\"" ;;
     esac
@@ -400,7 +400,7 @@ set_prefix() {
 
 init_prefix() {
     local prefix_path=${1:-"${WINEPREFIX}"}
-    set_prefix "${prefix_path}" 1>"${LOG_PATH}"
+    set_prefix "${prefix_path}"
 
     local version; version=$( cat "${prefix_path}/version" 2>/dev/null || echo "${DEFAULT_PROTONPATH}" )
     [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && local missing_proton_dir=1
@@ -1175,7 +1175,7 @@ opt_update() {
             [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
             [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
 
-            local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2> "${LOG_PATH}" )
+            local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2>> "${LOG_PATH}" )
             [[ -z "${url}" ]] && err "Failed to get latest Proton version"
             local latest_version; latest_version="${url##*/}"
             local old_version; old_version="${PROTONPATH}"
@@ -1889,7 +1889,7 @@ handle_opts() {
     
     # Initialize wine prefix
     case "${option}" in
-        shortcut|uninstall) set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}" ;;
+        shortcut|uninstall) set_prefix "${WINEPREFIX}" 1>/dev/null ;;
         install|update|dlloverride|run) init_prefix ;;
     esac
 
