@@ -152,8 +152,7 @@ m_tar() { tar "$@" 2>> "${LOG_PATH}" || err "Command \"tar $*\" failed" "$?"; }
 
 
 m_rm() {
-    local path
-    path="$( realpath -m "${@: -1}" )"
+    local path; path="$( realpath -m "${@: -1}" )"
     [[ -z "${path}" ]] && err "Path variable is empty"
     check_valid_paths "${path}"
     rm "$@" || warn "Command \"rm $*\" failed"
@@ -167,8 +166,8 @@ m_cp() {
     # Create missing directories
     m_mkdir "${target_path}"
 
-    local files_total progress=1
-    files_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
+    local progress=1
+    local files_total; files_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
 
     if [[ -d "${source_path}" ]]; then
         # Iterate files & copy to target directory
@@ -227,14 +226,13 @@ m_download() {
 # # # # # # # # # # #
 
 msg() {
-    local mode filtered_str
     case "$1" in
         # Override mode
-        -o) mode="o"; shift ;;
+        -o) local mode="o"; shift ;;
     esac
 
     local output="$*"
-    filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
+    local filtered_str; filtered_str=$( echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' )
 
     # Print to terminal
     case ${NO_ANSI} in
@@ -298,9 +296,8 @@ wrap_run() {
 set_value() {
     local array_name="${1}"
     local keyval="${2}" || err "Missing argument: set_value [array_name] [keyval]"
-    local key value
-    key="$( echo "${keyval}" | cut -d '=' -f 1 )"
-    value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
+    local key; key="$( echo "${keyval}" | cut -d '=' -f 1 )"
+    local value; value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
 
     # Filter for invalid keys
     [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
@@ -326,9 +323,8 @@ set_value() {
 unset_value() {
     local array_name="${1}"
     local keyval="${2}" || err "Missing argument: set_value [array_name] [keyval]"
-    local key value
-    key="$( echo "${keyval}" | cut -d '=' -f 1 )"
-    value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
+    local key; key="$( echo "${keyval}" | cut -d '=' -f 1 )"
+    local value; value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
 
     # Filter for invalid keys
     [[ -z "$key" ]] && err "Missing key: \"${array_name}\""
@@ -343,8 +339,7 @@ unset_value() {
 
 
 load_array() {
-    local path
-    local array_name="${1}" || err "Missing argument: load_array [array_name]"
+    local path; local array_name="${1}" || err "Missing argument: load_array [array_name]"
     case "${array_name}" in
         config) path="${CONFIG_PATH}" ;;
         env) path="${ENV_PATH}" ;;
@@ -368,7 +363,7 @@ load_array() {
 
 
 save_array() {
-    local array_name="${1}" || err "Missing argument: \"array_name\""
+    local key; local array_name="${1}" || err "Missing argument: \"array_name\""
     [[ ! -d "${CONFIG_DIR}" ]] && return 1
     case "${array_name}" in
         config)
@@ -410,8 +405,7 @@ set_prefix() {
 
 
 init_prefix() {
-    local version
-    version=$( cat "${WINEPREFIX}/version" 2>/dev/null || echo "${DEFAULT_PROTONPATH}" )
+    local version; version=$( cat "${WINEPREFIX}/version" 2>/dev/null || echo "${DEFAULT_PROTONPATH}" )
     [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && local missing_proton_dir=1
 
     check_native_deps;  set_prefix "${WINEPREFIX}" 1>"${LOG_PATH}"
@@ -438,6 +432,7 @@ init_prefix() {
 
 
 get_env() {
+    local key
     printf "$( for key in "${!ENV[@]}"; do printf "${key}=\"${ENV[$key]}\" "; done )\n"
 }
 
@@ -455,7 +450,7 @@ get_file_version() {
 
 
 get_eft_path() {
-    local entry path
+    local entry; local path
     # get windows path
     [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg" )
@@ -471,10 +466,9 @@ get_eft_path() {
 
 
 get_patcher_urls() {
-    local urls
     local json_path="${1:-"${PATCHER_JSON_PATH}"}"
     local index="${2}"
-    urls=$( cat "${json_path}" | jq -r '.Mirrors[].Link' )
+    local urls; urls=$( cat "${json_path}" | jq -r '.Mirrors[].Link' )
     [[ -z "${urls}" ]] && exit 12
     # Return single url
     if [[ -n "${index}" ]]; then
@@ -488,10 +482,9 @@ get_patcher_urls() {
 
 get_patcher_eft_version() {
     local path="${1}"
-    local filename version
     # Split filename to get version infos from it
-    filename=$( echo "${path##*/}" | tr "_." " " )
-    version=$( echo "${filename}" | cut -d " " -f5 )
+    local filename; filename=$( echo "${path##*/}" | tr "_." " " )
+    local version; version=$( echo "${filename}" | cut -d " " -f5 )
     printf "%s\n" "${version}"
 }
 
@@ -524,18 +517,17 @@ check_verb() {
 
 
 check_disk_space() {
-    local total_gb=${1};  local path="${2:-"${WINEPREFIX}"}"
+    local total_gb=${1}; local path="${2:-"${WINEPREFIX}"}"
     [[ -z "${path}" ]] && err "Missing path argument"
     [[ ! -d "${path}" ]] && err "Directory does not exist: ${path}"
     # Get required values
-    local free_kb total_kb eft_kb free_gb total_gb eft_kb
-    free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
-    free_gb=$( echo "${free_kb}" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }' )
+    local free_kb; free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
+    local free_gb; free_gb=$( echo "${free_kb}" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }' )
     # If no total size is defined, use size of the EFT game files
     if [[ -n "${total_gb}" ]]; then
-        total_kb=$(( 1024*1024*total_gb ))
+        local total_kb; total_kb=$(( 1024*1024*total_gb ))
     else
-        eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
+        local eft_kb; eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
         total_kb=$((eft_kb + 1024*1024*10))
     fi
     total_gb=$( echo "${total_kb}" | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }' )
@@ -546,7 +538,7 @@ check_disk_space() {
 
 
 check_prefix_path() {
-    local status=0 path
+    local status=0; local path
     local prefix_path="${1%/}"
     [[ ! "${prefix_path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path format: \"${prefix_path}\""
     prefix_path="$(realpath -m "${prefix_path}")"
@@ -630,7 +622,7 @@ check_aspnet() {
 
 
 check_native_deps() {
-    local status
+    local status; local cmd
     local cmds=( "python3" "curl" "7zzs" "xxd" "hpatchz" "jq" "umu-run" )
     msg "Checking for native dependencies..."
     for cmd in "${cmds[@]}"; do
@@ -646,7 +638,7 @@ check_native_deps() {
 
 
 check_eft_running() {
-    local apps=( "BsgLauncher.exe" "EscapeFromTarko" )
+    local app; local apps=( "BsgLauncher.exe" "EscapeFromTarko" )
     for app in "${apps[@]}"; do
         if [[ -z $( pidof "${app}" ) ]]; then continue; fi
         warn "It looks like \"${app}\" is currently running on your system!"
@@ -657,14 +649,14 @@ check_eft_running() {
 
 
 check_hash() {
-    local file_hash
-    file_path="$(realpath -m "${1%/}")"; local expected_hash="${2}"
+    local file_path; file_path="$(realpath -m "${1%/}")"
+    local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
     [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
     # use file to calculate MD5 hash and ENCODE in base64
     msg "Calculating checksum for file: ${file_path##*/}"
-    file_hash=$( get_hash "${file_path}" ) || err "Failed to calculate hash"
+    local file_hash; file_hash=$( get_hash "${file_path}" ) || err "Failed to calculate hash"
     [[ -z "${file_hash}" ]] && err "get_hash returned empty string"
     # Compare
     if [[ "${file_hash}" != "${expected_hash}" ]]; then
@@ -676,8 +668,7 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path
-    cached_path="$(realpath -m "${1%/}")"
+    local cached_path; cached_path="$(realpath -m "${1%/}")"
     local expected_hash="${2}"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] || err "File is not in \"${CACHE_DIR}\""
@@ -698,13 +689,13 @@ check_cached() {
 
 
 check_ttl() {
-    local file_path current_time modified_time elapsed_time
-    file_path="$(realpath -m "${1%/}")"; local ttl="${2:-"3600"}"
+    local file_path; file_path="$(realpath -m "${1%/}")"
+    local ttl="${2:-"3600"}"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && return 1
     # Calculate time elapsed since last modified
-    current_time=$( date +%s )
-    modified_time=$( date -r "${file_path}" +%s )
+    local current_time; current_time=$( date +%s )
+    local modified_time; modified_time=$( date -r "${file_path}" +%s )
     ((elapsed_time = current_time - modified_time))
     # If elapsed time >= TTL - fail the check
     if [[ $elapsed_time -ge $ttl ]]; then
@@ -740,8 +731,7 @@ install_dep() {
     esac
 
     # Search executable inside the extracted directory
-    local file_path
-    file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
+    local file_path; file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
     [[ -z "${file_path}" ]] && err "Cannot find \"${cmd_name}\" in \"${source_path}\""
 
     # Change permissions
@@ -907,9 +897,7 @@ install_spt() {
 
 
 install_spt_native() {
-    local patch_dir archive_name patcher_tmp_dir
     local install_mode="${CONFIG[install-mode]}"
-
     load_metadata eft
 
     case "${install_mode}" in
@@ -951,7 +939,7 @@ install_spt_native() {
             fi
 
             # Extract latest patcher to tmp directory
-            archive_name="${METADATA[patcher-path]##*/}"
+            local archive_name; archive_name="${METADATA[patcher-path]##*/}"
             m_extract "${METADATA[patcher-path]}" "${TMP_DIR}"
 
             # Copy EFT files
@@ -960,7 +948,7 @@ install_spt_native() {
 
             # Move patcher files to install directory
             msg "Copying patch files to \"${SPT_DIR}\""
-            patch_dir="$(find "${TMP_DIR}" -type d -name '*SPT_Patches*')"
+            local patch_dir; patch_dir="$(find "${TMP_DIR}" -type d -name '*SPT_Patches*')"
             m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
@@ -995,7 +983,6 @@ uninstall_eft() {
 
     msg "Removing \"BSG Launcher\" shortcut..."
     [[ -f "${SHORTCUT[bsg-launcher]}" ]] && m_rm "${SHORTCUT[bsg-launcher]}"
-
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
@@ -1016,7 +1003,6 @@ uninstall_spt() {
     msg "Removing \"SPTarkov\" shortcuts..."
     [[ -f "${SHORTCUT[spt-server]}" ]] && m_rm "${SHORTCUT[spt-server]}"
     [[ -f "${SHORTCUT[spt-launcher]}" ]] && m_rm "${SHORTCUT[spt-launcher]}"
-
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
@@ -1049,7 +1035,7 @@ opt_install() {
 
 opt_uninstall() {
     # SYNTAX: spt-additions -p ~/Games/sptarkov uninstall spt 
-    local option="$1" && shift
+    local shortcut; local option="$1" && shift
     case "${option}" in
         eft|tarkov|bsg) uninstall_eft ;;
         spt|sptarkov) uninstall_spt ;;
@@ -1128,7 +1114,6 @@ load_metadata() {
 
 opt_update() {
     # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
-    local inst_major inst_minor inst_patch upd_major upd_minor upd_patch
     local option="$1" && shift
     case "${option}" in
         spt|sptarkov)
@@ -1145,12 +1130,12 @@ opt_update() {
             msg "Installed SPT version is \"${METADATA[inst-spt]}\""
             msg "Latest SPT version is \"${METADATA[mod-version]}\""
             
-            inst_major=$( echo "${METADATA[inst-spt]}" | cut -d "." -f1 )
-            inst_minor=$( echo "${METADATA[inst-spt]}" | cut -d "." -f2 )
-            inst_patch=$( echo "${METADATA[inst-spt]}" | cut -d "." -f3 )
-            upd_major=$( echo "${METADATA[mod-version]}" | cut -d "." -f1 )
-            upd_minor=$( echo "${METADATA[mod-version]}" | cut -d "." -f2 )
-            upd_patch=$( echo "${METADATA[mod-version]}" | cut -d "." -f3 )
+            local inst_major; inst_major=$( echo "${METADATA[inst-spt]}" | cut -d "." -f1 )
+            local inst_minor; inst_minor=$( echo "${METADATA[inst-spt]}" | cut -d "." -f2 )
+            local inst_patch; inst_patch=$( echo "${METADATA[inst-spt]}" | cut -d "." -f3 )
+            local upd_major; upd_major=$( echo "${METADATA[mod-version]}" | cut -d "." -f1 )
+            local upd_minor; upd_minor=$( echo "${METADATA[mod-version]}" | cut -d "." -f2 )
+            local upd_patch; upd_patch=$( echo "${METADATA[mod-version]}" | cut -d "." -f3 )
 
             if [[ "${METADATA[mod-version]}" == "${METADATA[inst-spt]}" ]]; then
                 msg "${BOLD}SPT is up-to-date.${RESET}" && return 0
@@ -1197,14 +1182,17 @@ opt_update() {
         ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
-        local url  old_version  latest_version
             [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
             [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
-            url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2> "${LOG_PATH}" )
+
+            local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2> "${LOG_PATH}" )
             [[ -z "${url}" ]] && err "Failed to get latest Proton version"
-            latest_version="${url##*/}";  old_version="${PROTONPATH}"
+            local latest_version; latest_version="${url##*/}"
+            local old_version; old_version="${PROTONPATH}"
+
             msg "Installed version: ${old_version}"
             msg "Latest version: ${latest_version}"
+
             if [[ "${old_version}" != "${latest_version}" ]]; then
                 {   msg "${BOLD}${YELLOW}${latest_version} is available!${RESET}"
                     msg "   ► The following directory will be removed:"
@@ -1229,7 +1217,7 @@ opt_update() {
 
 
 opt_patch() {
-    local files_total;  local progress=1
+    local files_total; local progress=1
     local target_path="${1:-"${SPT_DIR}"}";  local source_path="${2:-"${target_path}"}"
     target_path=$( realpath -m "${target_path%/}" );  source_path=$( realpath -m "${source_path%/}" )
     [[ -z "${target_path}" ]] && err "Target path is not set"
@@ -1318,7 +1306,6 @@ opt_patch() {
 
 
 opt_guided_install() {
-    local input prefix_path
     # Overview
     {
         msg "░█▀▀░█▀█░▀█▀░░░█▀█░█▀▄░█▀▄░▀█▀░▀█▀░▀█▀░█▀█░█▀█░█▀▀"
@@ -1341,11 +1328,11 @@ opt_guided_install() {
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${WINEPREFIX}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
-        input=$(read_input)
+        local input; input=$(read_input)
         if [[ -n "$input" ]]; then
             # HACK: Special input check for canceling the action
             [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
-            prefix_path="${input//[~]/"$HOME"}"
+            local prefix_path; prefix_path="${input//[~]/"$HOME"}"
             set_prefix "${prefix_path}"
         fi
 
@@ -1452,10 +1439,9 @@ opt_dlloverride() {
 
 opt_env() {
     # SYNTAX: spt-additions env add MANGOHUD=1
-    local key value
     local option="$1"; local keyval="$2" && shift 2
-    key=$( echo "${keyval}" | cut -d "=" -f1 )
-    value=$( echo "${keyval}" | cut -d "=" -f 2- )
+    local key; key=$( echo "${keyval}" | cut -d "=" -f1 )
+    local value; value=$( echo "${keyval}" | cut -d "=" -f 2- )
     [[ "${key}" == "${value}" ]] && unset value
 
     # If the key begins with a '-' we actually wanna unset it!
@@ -1497,8 +1483,7 @@ add_app_shortcut() {
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
 
     # Prepare environment string
-    local env_string
-    [[ -n "${CACHE[env]}" ]] && env_string="env ${CACHE[env]}"
+    [[ -n "${CACHE[env]}" ]] && local env_string="env ${CACHE[env]}"
 
     # Generate the exec string
     local exec_string
@@ -1581,8 +1566,7 @@ opt_shortcut() {
         "") err "Option \"shortcut\" requires an argument" ;;
         *)
             # Create custom shortcut
-            local exe_path
-            exe_path=$( realpath -m "${option}" )
+            local exe_path; exe_path=$( realpath -m "${option}" )
             [[ ! -f "${exe_path}" ]] && err "File \"${exe_path}\" does not exist"
             local name="${option##*/}"; name="${name%.*}"
             local working_dir="${option%/*}"
@@ -1646,7 +1630,7 @@ opt_clean() {
 
 
 opt_selfinstall() {
-    local bin_paths=( "${HOME}/.local/bin" "${HOME}/bin" )
+    local path; local bin_paths=( "${HOME}/.local/bin" "${HOME}/bin" )
     [[ -n "${XDG_BIN_HOME}" ]] && bin_paths+=( "${XDG_BIN_HOME}" )
 
     # Check if PATH contains any of the user bin paths
@@ -1689,8 +1673,7 @@ opt_selfinstall() {
 
 
 opt_selfupdate() {
-    local current_hash
-    current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
+    local current_hash; current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
     [[ -z "${current_hash}" ]] && err "Failed to get script hash"
 
     # Load required metadata
@@ -1711,9 +1694,8 @@ opt_selfupdate() {
 
 
 opt_version() {
-    local current_hash
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
-    current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
+    local current_hash; current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
     [[ -n "${current_hash}" ]] && msg "${BOLD}Hash: ${RESET}${current_hash}"
 }
 
@@ -1949,7 +1931,7 @@ handle_opts() {
 
 main() {
     # Create dirs
-    local dirs=( "${DATA_DIR}" "${RUNTIME_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${ICO_DIR}" "${FILES_DIR}" )
+    local dir; local dirs=( "${DATA_DIR}" "${RUNTIME_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${ICO_DIR}" "${FILES_DIR}" )
     for dir in "${dirs[@]}"; do [[ ! -d "${dir}" ]] && mkdir -p "${dir}"; done
 
     # Set default config variables
