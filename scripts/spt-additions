@@ -1176,8 +1176,8 @@ opt_update() {
                 {   msg "${BOLD}${YELLOW}${latest_version} is available!${RESET}"
                     msg "   ► The following directory will be removed:"
                     msg "   ► ${COMPAT_DIR}/${old_version}"
-                    yesno "Do you want to update?" || return 0
                 } | more
+                yesno "Do you want to update?" || return 0
                 m_download "${URL[ge-proton]}/download/${latest_version}/${latest_version}.tar.zst" "${TMP_DIR}"
                 m_extract "${TMP_DIR}/${latest_version}.tar.zst" "${COMPAT_DIR}"
                 m_rm -rf "${COMPAT_DIR}/${old_version}"
