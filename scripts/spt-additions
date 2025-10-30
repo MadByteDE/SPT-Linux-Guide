@@ -402,25 +402,24 @@ init_prefix() {
     local prefix_path=${1:-"${WINEPREFIX}"}
     set_prefix "${prefix_path}"
 
-    local version; version=$( cat "${prefix_path}/version" 2>/dev/null || echo "${DEFAULT_PROTONPATH}" )
     [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && local missing_proton_dir=1
-
     if [[ "${PROTONPATH}" != "GE-Proton" && "${missing_proton_dir}" ]]; then
-        msg "Invalid Proton path: Defaulting to \"${DEFAULT_PROTONPATH}\"..."
-        set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
+        msg "Invalid Proton path: ${PROTONPATH}"
+        msg "   ► Defaulting to \"GE-Proton\"..."
+        set_value env "PROTONPATH=GE-Proton"
     fi
 
      # Check if we need to update the prefix
-    if [[ "${PROTONPATH}" != "${version}" || "${missing_proton_dir}" ]]; then
+    if [[ "${PROTONPATH}" == "GE-Proton" || "${missing_proton_dir}" ]]; then
         # Update the prefix
         msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
 
         # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
-        version=$( cat "${prefix_path}/version" 2>/dev/null )
+        local proton_path="$( find "${COMPAT_DIR}" \( -name "${PROTONPATH}*" -type d \) | tail -n 1 )"
         if [[ "${PROTONPATH}" == "GE-Proton" ]]; then
-            msg "Pinning Proton version to \"${version}\""
-            set_value env "PROTONPATH=${version}"
+            msg "Pinning Proton version to \"${proton_path##*/}\""
+            set_value env "PROTONPATH=${proton_path##*/}"
         fi
     fi
 }
