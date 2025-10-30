@@ -133,8 +133,7 @@ SHORTCUT[spt-server]="${APP_DIR}/SPT - Server.desktop"
 m_exit() {
     local status=${1:-$?}
     if [[ ${BASH_SUBSHELL} -eq 0 ]]; then
-        save_array config
-        save_array env
+        save_array config;  save_array env
         [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
     fi
     exit "${status}"
@@ -154,14 +153,14 @@ m_tar() { tar "$@" 2>> "${LOG_PATH}" || err "Command \"tar $*\" failed" "$?"; }
 m_rm() {
     local target_path; target_path="${@: -1}"
     [[ -z "${target_path}" ]] && err "Path variable is empty"
-    check__target_path "${target_path}"
+    check_target_path "${target_path}"
     rm "$@" || warn "Command \"rm $*\" failed"
 }
 
 
 m_cp() {
     local source_path="${1}"; local target_path="${2}"
-    check__target_path "${target_path}"
+    check_target_path "${target_path}"
 
     local progress=1
     local files_total; files_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
@@ -188,7 +187,7 @@ m_extract() {
     local target_path="${2:-"${file_path%/*}"}"
     local filename="${file_path##*/}"
 
-    check__target_path "${target_path}"
+    check_target_path "${target_path}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
 
     msg "Extracting: ${filename}"
@@ -211,9 +210,11 @@ m_download() {
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
-    check__target_path "${target_path}"
+    check_target_path "${target_path}"
+
     if [[ -d "${target_path}" ]]; then target_path="${target_path}/${filename}"
     else filename="${target_path##*/}"; fi
+
     if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "Downloading: ${filename}..."
         m_curl --create-dirs -L "${url}" -o "${target_path}"
@@ -424,24 +425,6 @@ init_prefix() {
 }
 
 
-get_env() {
-    local key
-    printf "$( for key in "${!ENV[@]}"; do printf "${key}=\"${ENV[$key]}\" "; done )\n"
-}
-
-
-get_hash() {
-    md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null
-}
-
-
-get_file_version() {
-    local filepath="${1}"
-    [[ ! -f "${filepath}" ]] && exit 11
-    m_7z l "${filepath}" | grep -o "FileVersion:[^}]*" | head -1 | cut -d " " -f2
-}
-
-
 get_eft_path() {
     local entry; local path
     # get windows path
@@ -482,16 +465,25 @@ get_patcher_eft_version() {
 }
 
 
+get_file_version() {
+    local filepath="${1}"
+    [[ ! -f "${filepath}" ]] && exit 11
+    m_7z l "${filepath}" | grep -o "FileVersion:[^}]*" | head -1 | cut -d " " -f2
+}
+
+
 get_eft_version() { get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_mod_eft_version() { get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_spt_version() { get_file_version "${SPT_DIR}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
+get_env() { local key; printf "$( for key in "${!ENV[@]}"; do printf "${key}=\"${ENV[$key]}\" "; done )\n"; }
+get_hash() { md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null; }
 
 
 # # # # # # # # # # #
 #  Check functions  #
 # # # # # # # # # # #
 
-check__target_path() {
+check_target_path() {
     local target_path="${1%/}"
     case "${1}" in
         *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | *"${COMPAT_DIR}"* | \
@@ -503,9 +495,7 @@ check__target_path() {
 
 check_verb() {
     [[ ! -d "${WINEPREFIX}" ]] && err "Prefix directory \"${WINEPREFIX}\" does not exist"
-    if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -q "$1"; then
-        return 1
-    fi
+    if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -q "$1"; then return 1; fi
 }
 
 
@@ -634,7 +624,7 @@ check_eft_running() {
     for app in "${apps[@]}"; do
         if [[ -z $( pidof "${app}" ) ]]; then continue; fi
         warn "It looks like \"${app}\" is currently running on your system!"
-        msg "> ${YELLOW} Please close the application & retry.${RESET}"
+        msg "   ► ${YELLOW} Please close the application & retry.${RESET}"
         err "\"${app}\" process found"
     done
 }
@@ -703,8 +693,7 @@ check_ttl() {
 install_verb() {
     local verb="${1}"; local text="${2:-"Installing: ${verb}..."}"
     if check_verb "${verb}"; then
-        msg "\"${verb}\" is already installed"
-        return 1
+        msg "\"${verb}\" is already installed" && return 1
     fi
     msg "Installing: ${text}..."
     m_umu winetricks -q "${verb}" 1>> "${LOG_PATH}"
@@ -722,7 +711,7 @@ install_dep() {
         *) m_extract "${source_path}/${filename}" 1>/dev/null ;;
     esac
 
-    # Search executable inside the extracted directory
+    # Search for executable inside the extracted directory
     local file_path; file_path=$( find "${source_path}" \( -name "${cmd_name}" -type f \) | head -1 )
     [[ -z "${file_path}" ]] && err "Cannot find \"${cmd_name}\" in \"${source_path}\""
 
@@ -961,6 +950,7 @@ install_spt_native() {
 uninstall_eft() {
     local no_prompt="${1:-$NO_PROMPT}"
     [[ ! -d "${BSG_DIR}" ]] && msg "EFT is not installed" && return 0
+
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
@@ -980,6 +970,7 @@ uninstall_eft() {
 uninstall_spt() {
     local no_prompt="${1:-$NO_PROMPT}"
     [[ ! -d "${SPT_DIR}" ]] && msg "SPT is not installed" && return 0
+
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
@@ -1003,49 +994,6 @@ uninstall_prefix() {
     msg "Removing Prefix directory: \"${WINEPREFIX}\""
     m_rm -r "${WINEPREFIX}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
-}
-
-
-# # # # # # # # # # # #
-#   Option functions  #
-# # # # # # # # # # # #
-
-opt_install() {
-    # SYNTAX: spt-additions -p ~/Games/sptarkov install spt 
-    local option="$1" && shift
-    case "${option}" in
-        eft|tarkov|bsg) install_eft ;;
-        spt|sptarkov) install_spt "${CONFIG[install-mode]}" ;;
-        "") err "Option \"install\" requires an argument" ;;
-        *) err "Invalid option \"${option}\"" ;;
-    esac
-}
-
-
-opt_uninstall() {
-    # SYNTAX: spt-additions -p ~/Games/sptarkov uninstall spt 
-    local shortcut; local option="$1" && shift
-    case "${option}" in
-        eft|tarkov|bsg) uninstall_eft ;;
-        spt|sptarkov) uninstall_spt ;;
-        all)
-            # Ask for confirmation
-            if [[ "${NO_PROMPT}" != 1 ]]; then
-                msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
-                msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
-                msg "${UNDERLINE}${WINEPREFIX}${RESET}"
-                yesno "Do you want to continue?" || return 1
-            fi
-            uninstall_prefix 1
-            for shortcut in "${!SHORTCUT[@]}"; do
-                msg "Removing \"${shortcut}\" shortcut..."
-                [[ -f "${SHORTCUT[${shortcut}]}" ]] && m_rm "${SHORTCUT[${shortcut}]}"
-            done
-            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
-        ;;
-        "") err "Option \"uninstall\" requires an argument" ;;
-        *) err "Invalid option \"${option}\"" ;;
-    esac
 }
 
 
@@ -1096,6 +1044,49 @@ load_metadata() {
             load_array metadata
         ;;
         *) err "Invalid argument: \"${name}\"" ;;
+    esac
+}
+
+
+# # # # # # # # # # # #
+#   Option functions  #
+# # # # # # # # # # # #
+
+opt_install() {
+    # SYNTAX: spt-additions -p ~/Games/sptarkov install spt 
+    local option="$1" && shift
+    case "${option}" in
+        eft|tarkov|bsg) install_eft ;;
+        spt|sptarkov) install_spt "${CONFIG[install-mode]}" ;;
+        "") err "Option \"install\" requires an argument" ;;
+        *) err "Invalid option \"${option}\"" ;;
+    esac
+}
+
+
+opt_uninstall() {
+    # SYNTAX: spt-additions -p ~/Games/sptarkov uninstall spt 
+    local shortcut; local option="$1" && shift
+    case "${option}" in
+        eft|tarkov|bsg) uninstall_eft ;;
+        spt|sptarkov) uninstall_spt ;;
+        all)
+            # Ask for confirmation
+            if [[ "${NO_PROMPT}" != 1 ]]; then
+                msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
+                msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
+                msg "${UNDERLINE}${WINEPREFIX}${RESET}"
+                yesno "Do you want to continue?" || return 1
+            fi
+            uninstall_prefix 1
+            for shortcut in "${!SHORTCUT[@]}"; do
+                msg "Removing \"${shortcut}\" shortcut..."
+                [[ -f "${SHORTCUT[${shortcut}]}" ]] && m_rm "${SHORTCUT[${shortcut}]}"
+            done
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+        ;;
+        "") err "Option \"uninstall\" requires an argument" ;;
+        *) err "Invalid option \"${option}\"" ;;
     esac
 }
 
@@ -1264,9 +1255,7 @@ opt_patch() {
                 fi
                 cp "${source}" "${output}" || return 1
             ;;
-            *)
-                return 1
-            ;;
+            *) return 1 ;;
         esac
         progress=$((progress+1))
     done
@@ -1466,13 +1455,13 @@ add_app_shortcut() {
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
 
     # Prepare environment string
-    [[ -n "${CACHE[env]}" ]] && local env_string="env ${CACHE[env]}"
+    [[ -n "${CACHE[env]}" ]] && local env="env ${CACHE[env]}"
 
     # Generate the exec string
     local exec_string
     case "${CACHE[exe_path]}" in
-        *exe*|*bat*|*msi*) exec_string="Exec=${env_string}\"${UMU_PATH}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
-        *) exec_string="Exec=${env_string}\"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *exe*|*bat*|*msi*) exec_string="Exec=${env}\"${UMU_PATH}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *) exec_string="Exec=${env}\"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
     esac
 
     # Write desktop file
@@ -1491,59 +1480,49 @@ opt_shortcut() {
     # SYNTAX: spt-additions -p "" -e "" -a "" shortcut spt-launcher
     local option="$1" && shift
     local env=$( get_env )
+    CACHE[_id]="app-shortcut"
 
     case "${option}" in
         eft|bsg|bsg-launcher)
-            CACHE[_id]="app-shortcut"
             CACHE[name]="BSG - Launcher"
             CACHE[exe_path]="BsgLauncher.exe"
             CACHE[env]="${env}"
             CACHE[args]="--disable-software-rasterizer"
             CACHE[working_dir]="${BSG_DIR}/BsgLauncher"
-            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="bsg_launcher"
-            add_app_shortcut
         ;;
         launcher)
-            CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Launcher"
             CACHE[exe_path]="SPT.Launcher.exe"
             CACHE[env]="${env}"
             CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
-            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="spt_launcher"
-            add_app_shortcut
         ;;
         server)
-            CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="launch-server.sh"
             CACHE[env]=""
             CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
-            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="spt_server"
-            add_app_shortcut
         ;;
         legacy-server)
-            CACHE[_id]="app-shortcut"
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="SPT.Server.exe"
             CACHE[env]="${env}"
             CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
-            CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]="spt_server"
-            add_app_shortcut
         ;; 
         spt|sptarkov)
             opt_shortcut launcher
             if check_lts_installed; then opt_shortcut legacy-server
             else opt_shortcut server; fi
+            return 0
         ;;
         all)
-            opt_shortcut bsg-launcher;  opt_shortcut spt
+            opt_shortcut bsg-launcher;  opt_shortcut spt;  return 0
         ;;
         "") err "Option \"shortcut\" requires an argument" ;;
         *)
@@ -1553,7 +1532,6 @@ opt_shortcut() {
             local name="${option##*/}"; name="${name%.*}"
             local working_dir="${option%/*}"
             [[ "${working_dir}" == "${option}" ]] && working_dir="${PWD}"
-            CACHE[_id]="app-shortcut"
             CACHE[name]="${name}"
             CACHE[exe_path]="${option##*/}"
             CACHE[env]="${env}"
@@ -1561,9 +1539,12 @@ opt_shortcut() {
             CACHE[working_dir]="${working_dir}"
             CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
             CACHE[icon]=$( echo "${CACHE[name]}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' )
-            add_app_shortcut
         ;;
     esac
+
+    # Create the shortcut
+    CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
+    add_app_shortcut
 }
 
 
@@ -1692,10 +1673,11 @@ opt_help() {
                 msg "eft|bsg|tarkov                 - Install the BSG Launcher"
                 msg "spt|sptarkov                   - Install SPTarkov"
                 msg 
-                msg "Available install modes for SPTarkov:"
-                msg "${BOLD}native${RESET}          - Use the native install method to install the latest SPTarkov release"
-                msg "${BOLD}proton${RESET}          - Use Proton to install the latest version of SPTarkov"
-                msg "${BOLD}legacy${RESET}          - Install the legacy version of SPTarkov"
+                msg "${BOLD}Available install modes:${RESET}"
+                msg "native                         - Use the native install method to install the latest SPTarkov release"
+                msg "proton                         - Use Proton to install the latest version of SPTarkov"
+                msg "legacy                         - Install the legacy version of SPTarkov"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1704,6 +1686,7 @@ opt_help() {
                 msg "eft|bsg|tarkov                 - Uninstall the BSG Launcher"
                 msg "spt|sptarkov                   - Uninstall SPTarkov"
                 msg "all                            - Uninstall everything (prefix, EFT & SPT)"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1712,6 +1695,7 @@ opt_help() {
                 msg "spt|sptarkov                   - Update SPTarkov to the latest version"
                 msg "proton                         - Update GE-Proton to the latest version"
                 msg "additions|script               - Update this additions script"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1721,10 +1705,12 @@ opt_help() {
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE patch [target_path] [source_path]${RESET}"
                 msg
-                msg "target_path - Destination install directory (defaults to \"${DEFAULT_SPT_DIR}\")"
-                msg "source_path - Directory containing SPT_Patches (defaults to target_path)"
+                msg "${BOLD}Example:${RESET}"
+                msg "${YELLOW}$TITLE patch \"${DEFAULT_SPT_DIR}\" \"~/Downloads/patcher\"${RESET}"
                 msg
-                msg "Example: ${YELLOW}$TITLE patch \"${DEFAULT_SPT_DIR}\" \"~/Downloads/patcher\"${RESET}"
+                msg "target_path            - Destination install directory (defaults to \"${DEFAULT_SPT_DIR}\")"
+                msg "source_path            - Directory containing SPT_Patches (defaults to \"target_path\")"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1745,6 +1731,7 @@ opt_help() {
                 msg "launcher                       - Run the SPT Launcher"
                 msg "server                         - Run the SPT Server"
                 msg "custom_command                 - Run a custom command inside the prefix"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1756,6 +1743,7 @@ opt_help() {
                 msg
                 msg "${BOLD}Example:${RESET}"
                 msg "${YELLOW}$TITLE dlloverride d3d11 n,b${RESET}"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1766,6 +1754,7 @@ opt_help() {
                 msg "set|add [KEY=VALUE]            - Set or add an environment variable"
                 msg "unset|remove [KEY]             - Unset or remove an environment variable"
                 msg "list|-l                        - List all active environment variables"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1778,6 +1767,7 @@ opt_help() {
                 msg "spt|sptarkov                   - Create/update all SPT shortcuts"
                 msg "all                            - Create/update all available shortcuts"
                 msg "custom_executable              - Create/update custom shortcuts"
+                msg
                 opt_help switches
             } | more
         ;;
@@ -1791,6 +1781,7 @@ opt_help() {
                 msg "runtime                        - Remove static runtime / libraries"
                 msg "files                          - Remove cached installer / archive files"
                 msg "all                            - Remove all of the above"
+                msg
                 opt_help switches
             } | more
         ;;
