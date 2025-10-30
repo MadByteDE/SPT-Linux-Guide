@@ -621,7 +621,7 @@ check_native_deps() {
         if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
             # Required tools / libraries
-            python3|curl) warn "Cannot find \"${cmd}\"!"; status=1 ;;
+            python3|curl) err "Cannot find \"${cmd}\"!" ;;
             # Downloadable tools / libraries
             jq|hpatchz|xxd|7zzs|umu-run) install_dep "${cmd}" "${URL[${cmd}]}" ;;
         esac
