@@ -216,7 +216,7 @@ m_download() {
     else filename="${target_path##*/}"; fi
     if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "Downloading: ${filename}..."
-        m_curl -L "${url}" -o "${path}"
+        m_curl --create-dirs -L "${url}" -o "${target_path}"
     fi
 }
 
