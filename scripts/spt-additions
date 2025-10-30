@@ -1459,7 +1459,9 @@ add_app_shortcut() {
     else msg "Creating \"${CACHE[name]}\" application shortcut..."; fi
 
     # Warn if the executable does not exist
-    [[ ! -f "${CACHE[working_dir]}/${CACHE[exe_path]}" ]] && warn "File \"${CACHE[exe_path]}\" does not exist"
+    if [[ ! -f "${CACHE[working_dir]}/${CACHE[exe_path]}" ]]; then
+        warn "File \"${CACHE[working_dir]}/${CACHE[exe_path]}\" does not exist"
+    fi 
 
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
@@ -1551,9 +1553,10 @@ opt_shortcut() {
             [[ ! -f "${exe_path}" ]] && err "File \"${exe_path}\" does not exist"
             local name="${option##*/}"; name="${name%.*}"
             local working_dir="${option%/*}"
+            [[ "${working_dir}" == "${option}" ]] && working_dir="${PWD}"
             CACHE[_id]="app-shortcut"
             CACHE[name]="${name}"
-            CACHE[exe_path]="${exe_path}"
+            CACHE[exe_path]="${option##*/}"
             CACHE[env]="${env}"
             CACHE[args]="$*"
             CACHE[working_dir]="${working_dir}"
@@ -1771,6 +1774,7 @@ opt_help() {
                 msg "eft|bsg|bsg-launcher           - Create/update BSG Launcher shortcut"
                 msg "launcher                       - Create/update SPT Launcher shortcut"
                 msg "server                         - Create/update SPT Server shortcut"
+                msg "legacy-server                  - Create/update legacy SPT Server shortcut"
                 msg "spt|sptarkov                   - Create/update all SPT shortcuts"
                 msg "all                            - Create/update all available shortcuts"
                 msg "custom_executable              - Create/update custom shortcuts"
