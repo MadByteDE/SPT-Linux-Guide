@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.1"
+VERSION="1.0.2"
 DATE="2025-10-30"
 
 # ANSI codes
@@ -1710,7 +1710,8 @@ opt_help() {
         ;;
         update)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "spt|sptarkov                   - Update SPTarkov"
+                msg "spt|sptarkov                   - Update SPTarkov to the latest version"
+                msg "proton                         - Update GE-Proton to the latest version"
                 msg "additions|script               - Update this additions script"
                 opt_help switches
             } | more
