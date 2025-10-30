@@ -534,8 +534,8 @@ check_prefix_path() {
     local status=0; local path
     local prefix_path="${1%/}"
     [[ ! "${prefix_path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path format: \"${prefix_path}\""
-    prefix_path="$(realpath -m "${prefix_path}")"
-    local check_paths=("${prefix_path}/system.reg" "${prefix_path}/dosdevices" "${prefix_path}/drive_c")
+    prefix_path="$( realpath -m "${prefix_path}" )"
+    local check_paths=( "${prefix_path}/system.reg" "${prefix_path}/dosdevices" "${prefix_path}/drive_c" )
 
     while true; do
         [[ -f "${prefix_path}" ]] && status=1 && break
@@ -642,7 +642,7 @@ check_eft_running() {
 
 
 check_hash() {
-    local file_path; file_path="${1%/}"
+    local file_path="${1%/}"
     local expected_hash="${2}"
     # Check arguments
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
@@ -661,7 +661,7 @@ check_hash() {
 
 
 check_cached() {
-    local cached_path; cached_path="${1%/}"
+    local cached_path="${1%/}"
     local expected_hash="${2}"
     # Make sure the path actually is in CACHE_PATH
     [[ "$cached_path" == *"${CACHE_DIR}"* ]] || err "File is not in \"${CACHE_DIR}\""
@@ -682,7 +682,7 @@ check_cached() {
 
 
 check_ttl() {
-    local file_path; file_path="${1%/}"
+    local file_path="${1%/}"
     local ttl="${2:-"3600"}"
     # Check if file exists, if not - fail the check
     [[ ! -f "${file_path}" ]] && return 1
@@ -1176,8 +1176,8 @@ opt_update() {
 
             local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2>> "${LOG_PATH}" )
             [[ -z "${url}" ]] && err "Failed to get latest Proton version"
-            local latest_version; latest_version="${url##*/}"
-            local old_version; old_version="${PROTONPATH}"
+            local latest_version="${url##*/}"
+            local old_version="${PROTONPATH}"
 
             msg "Installed version: ${old_version}"
             msg "Latest version: ${latest_version}"
@@ -1317,7 +1317,7 @@ opt_guided_install() {
         if [[ -n "$input" ]]; then
             # HACK: Special input check for canceling the action
             [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
-            local prefix_path; prefix_path="${input//[~]/"$HOME"}"
+            local prefix_path="${input//[~]/"$HOME"}"
         fi
 
         init_prefix "${prefix_path}"; check_eft_running; check_aspnet
