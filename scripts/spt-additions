@@ -152,19 +152,16 @@ m_tar() { tar "$@" 2>> "${LOG_PATH}" || err "Command \"tar $*\" failed" "$?"; }
 
 
 m_rm() {
-    local path; path="${@: -1}"
-    [[ -z "${path}" ]] && err "Path variable is empty"
-    check_valid_paths "${path}"
+    local target_path; target_path="${@: -1}"
+    [[ -z "${target_path}" ]] && err "Path variable is empty"
+    check__target_path "${target_path}"
     rm "$@" || warn "Command \"rm $*\" failed"
 }
 
 
 m_cp() {
     local source_path="${1}"; local target_path="${2}"
-    check_valid_paths "${target_path}"
-
-    # Create missing directories
-    m_mkdir "${target_path}"
+    check__target_path "${target_path}"
 
     local progress=1
     local files_total; files_total=$( find "${source_path}" \( -type f -printf x \) | wc -c )
@@ -190,8 +187,10 @@ m_extract() {
     local file_path="${1}"; [[ -z "${file_path}" ]] && err "Missing file_path argument"
     local target_path="${2:-"${file_path%/*}"}"
     local filename="${file_path##*/}"
+
+    check__target_path "${target_path}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
-    check_valid_paths "${target_path}"
+
     msg "Extracting: ${filename}"
     case "${filename}" in
         # Extract archive
@@ -210,12 +209,12 @@ m_extract() {
 m_download() {
     if [[ "${1}" == "-f" ]]; then local force=1 && shift; fi
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
-    local path="${2}"; [[ -z "${path}" ]] && err "Missing path argument"
+    local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
-    check_valid_paths "${path}"
-    if [[ -d "${path}" ]]; then path="${path}/${filename}"
-    else filename="${path##*/}"; fi
-    if [[ ! -f "${path}" || $force -eq 1 ]]; then
+    check__target_path "${target_path}"
+    if [[ -d "${target_path}" ]]; then target_path="${target_path}/${filename}"
+    else filename="${target_path##*/}"; fi
+    if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "Downloading: ${filename}..."
         m_curl -L "${url}" -o "${path}"
     fi
@@ -377,17 +376,17 @@ save_array() {
 
 
 set_prefix() {
-    local path="$( realpath -m "${1%/}" )"
-    [[ -z "${path}" ]] && err "Path argument is not set"
+    local target_path="$( realpath -m "${1%/}" )"
+    [[ -z "${target_path}" ]] && err "Path argument is not set"
 
     # Validate path
     check_prefix_path "${1%/}"
 
     # Update WINEPREFIX environment variable
-    export WINEPREFIX="${path}"
+    export WINEPREFIX="${target_path}"
 
     # Update prefix config
-    set_value env "WINEPREFIX=${path}"
+    set_value env "WINEPREFIX=${target_path}"
 
     # Update prefix paths
     check_spt_path "${CONFIG[spt-path]}"
@@ -492,7 +491,7 @@ get_spt_version() { get_file_version "${SPT_DIR}/BepInEx/plugins/spt/spt-core.dl
 #  Check functions  #
 # # # # # # # # # # #
 
-check_valid_paths() {
+check__target_path() {
     local target_path="${1%/}"
     case "${1}" in
         *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | *"${COMPAT_DIR}"* | \
@@ -749,11 +748,12 @@ install_mod_archive() {
 
 
 install_additions() {
-    [[ ! -d "${path}" ]] && m_mkdir "${path}"
+    local target_path="${1%/}"
+    [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
     m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
     check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
     msg "Installing ${TITLE}..."
-    m_mv "${TMP_DIR}/${TITLE}" "${path}/${TITLE}" && m_chmod +x "${path}/${TITLE}"
+    m_mv "${TMP_DIR}/${TITLE}" "${target_path}/${TITLE}" && m_chmod +x "${target_path}/${TITLE}"
 }
 
 
@@ -1293,8 +1293,7 @@ opt_patch() {
 
 opt_guided_install() {
     # Overview
-    {
-        msg "░█▀▀░█▀█░▀█▀░░░█▀█░█▀▄░█▀▄░▀█▀░▀█▀░▀█▀░█▀█░█▀█░█▀▀"
+    {   msg "░█▀▀░█▀█░▀█▀░░░█▀█░█▀▄░█▀▄░▀█▀░▀█▀░▀█▀░█▀█░█▀█░█▀▀"
         msg "░▀▀█░█▀▀░░█░░░░█▀█░█░█░█░█░░█░░░█░░░█░░█░█░█░█░▀▀█"
         msg "░▀▀▀░▀░░░░▀░░░░▀░▀░▀▀░░▀▀░░▀▀▀░░▀░░▀▀▀░▀▀▀░▀░▀░▀▀▀"
         opt_version
@@ -1641,13 +1640,14 @@ opt_selfinstall() {
         if [[ -z $( echo "${PATH}" | grep "${path}" ) ]]; then continue; fi
 
         # Found a user bin path
-        msg "${YELLOW}Found \"${path}\" in the PATH environment variable${RESET}"
-        msg
-        msg "   ► This script provides useful CLI commands to manage your wine prefix, e.g:"
-        msg "   ► \"${GREEN}${TITLE} -e MANGOHUD=1 shortcut launcher${RESET}\"  (Set an environment variable & update an app shortcut)"
-        msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new SPT version)"
-        msg "   ► \"${GREEN}${TITLE} -m legacy install spt${RESET}\"            (Install legacy SPT [3.11.x])"
-        msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
+        {   msg "${YELLOW}Found \"${path}\" in the PATH environment variable${RESET}"
+            msg
+            msg "   ► This script provides useful CLI commands to manage your wine prefix, e.g:"
+            msg "   ► \"${GREEN}${TITLE} -e MANGOHUD=1 shortcut launcher${RESET}\"  (Set an environment variable & update an app shortcut)"
+            msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new SPT version)"
+            msg "   ► \"${GREEN}${TITLE} -m legacy install spt${RESET}\"            (Install legacy SPT [3.11.x])"
+            msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
+        } | more
         yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?" || return 1
         install_additions && break
     done
