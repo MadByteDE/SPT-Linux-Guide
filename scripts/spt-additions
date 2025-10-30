@@ -1355,7 +1355,7 @@ opt_guided_install() {
         msg "Checking script install..."
         if ! opt_selfinstall; then
             export NO_PROMPT=1
-            opt_clean cache; opt_clean runtime
+            opt_clean cache; opt_clean data
         fi
 
         # All done!
