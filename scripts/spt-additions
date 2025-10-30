@@ -570,11 +570,10 @@ check_prefix_path() {
 
 check_spt_path() {
     local spt_path="${1%/}"
-    if [[ "${spt_path}" != *"drive_c"* ]]; then
-        # Reset to default path
-        set_value config "spt-path=${DEFAULT_SPT_DIR}"
-        err "Invalid spt path: \"${spt_path}\""
-    fi
+    if [[ "${spt_path}" == "drive_c/"* ]]; then return; fi
+    # Reset to default path
+    set_value config "spt-path=${DEFAULT_SPT_DIR}"
+    err "Invalid spt path: \"${spt_path}\""
 }
 
 
