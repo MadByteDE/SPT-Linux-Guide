@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.0"
+VERSION="1.0.1"
 DATE="2025-10-30"
 
 # ANSI codes
@@ -1652,7 +1652,7 @@ opt_selfinstall() {
             msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
         } | more
         yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?" || return 1
-        install_additions && break
+        install_additions "${path}" && break
     done
 }
 
@@ -1674,7 +1674,7 @@ opt_selfupdate() {
     msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
     msg
     yesno "Do you want to continue?" || return 1
-    install_additions
+    install_additions "${SCRIPT_DIR}"
 }
 
 
