@@ -410,7 +410,7 @@ init_prefix() {
     fi
 
      # Check if we need to update the prefix
-    if [[ "${PROTONPATH}" == "GE-Proton" || "${missing_proton_dir}" ]]; then
+    if [[ "${PROTONPATH}" == "GE-Proton" || "${missing_proton_dir}" || ! -d "${WINEPREFIX}" ]]; then
         # Update the prefix
         msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
