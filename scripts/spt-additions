@@ -1553,43 +1553,34 @@ opt_shortcut() {
 opt_clean() {
     # SYNTAX: spt-additions clean all --no-prompt
     local option="$1" && shift
-    local dir_path
+    local path; local paths=()
 
     case "${option}" in
-        cache) dir_path="${CACHE_DIR}" ;;
-        config) dir_path="${CONFIG_DIR}" ;;
-        data) dir_path="${DATA_DIR}" ;;
-        runtime) dir_path="${RUNTIME_DIR}" ;;
-        files) dir_path="${FILES_DIR}" ;;
-        all)
-            # Warn user before continuing
-            if [[ "${NO_PROMPT}" != 1 ]]; then
-                {   msg "${BOLD}This action will remove all configs & cached files!${RESET}"
-                    msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                    msg "    ► ${UNDERLINE}${DATA_DIR}${RESET}"
-                    msg "    ► ${UNDERLINE}${CACHE_DIR}${RESET}"
-                    msg "    ► ${UNDERLINE}${CONFIG_DIR}${RESET}"
-                } | more
-                yesno "Do you want to continue?" || return 1
-                export NO_PROMPT=1
-            fi
-            opt_clean data;  opt_clean config;  opt_clean cache
-            msg "${GREEN}Done!${RESET}" && return 0
-        ;;
+        metadata) paths=( "${CACHE_DIR}/metadata.conf" "${CACHE_DIR}/release.json" "${CACHE_DIR}/mirrors.json" ) ;;
+        cache) paths=( "${CACHE_DIR}" ) ;;
+        config) paths=( "${CONFIG_DIR}" ) ;;
+        data) paths=( "${DATA_DIR}" ) ;;
+        runtime) paths=( "${RUNTIME_DIR}" )  ;;
+        files) paths=( "${FILES_DIR}" )  ;;
+        all) paths+=( "${CACHE_DIR}" "${DATA_DIR}" "${CONFIG_DIR}" ) ;;
         "") err "Option \"clean\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
 
     # Warn user before continuing
-    if [[ -n "${dir_path}" ]]; then
+    if [[ -n "${paths}" ]]; then
         if [[ "${NO_PROMPT}" != 1 ]]; then
-            {   msg "${BOLD}This action will remove the following directory:${RESET}"
-                msg "    ► ${UNDERLINE}${dir_path}${RESET}"
+            {   msg "${BOLD}This action will remove the following files / directories ${YELLOW}permanently${RESET}:"
+                for path in "${paths[@]}"; do msg "    ► ${UNDERLINE}${path}${RESET}"; done
             } | more
             yesno "Do you want to continue?" || return 1
         fi
-        msg "Removing ${option} directory: \"${dir_path}\"..."
-        [[ -d "${dir_path}" ]] && m_rm -r "${dir_path}"
+        for path in "${paths[@]}"; do
+            msg "Removing: ${path}..."
+            if [[ -f "${path}" ]]; then m_rm "${path}"
+            elif [[ -d "${path}" ]]; then m_rm -r "${path}"; fi
+        done
+        msg "${BOLD}${GREEN}Done!${RESET}"
     fi
 }
 
@@ -1777,6 +1768,7 @@ opt_help() {
             {   msg "Clean installer and prefix files"
                 msg
                 msg "${BOLD}Available options:${RESET}"
+                msg "metadata                       - Remove metadata files"
                 msg "cache                          - Remove all cached files"
                 msg "config                         - Remove configuration files"
                 msg "data                           - Remove installer data files"
