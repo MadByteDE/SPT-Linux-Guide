@@ -402,7 +402,8 @@ init_prefix() {
     local prefix_path=${1:-"${WINEPREFIX}"}
     set_prefix "${prefix_path}"
 
-    [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && local missing_proton_dir=1
+    local missing_proton_dir
+    [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && missing_proton_dir=1
     if [[ "${PROTONPATH}" != "GE-Proton" && "${missing_proton_dir}" ]]; then
         msg "Invalid Proton path: ${PROTONPATH}"
         msg "   ► Defaulting to \"GE-Proton\"..."
@@ -1455,7 +1456,8 @@ add_app_shortcut() {
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
 
     # Prepare environment string
-    [[ -n "${CACHE[env]}" ]] && local env="env ${CACHE[env]}"
+    local env
+    [[ -n "${CACHE[env]}" ]] && env="env ${CACHE[env]}"
 
     # Generate the exec string
     local exec_string
