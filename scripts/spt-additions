@@ -206,7 +206,8 @@ m_extract() {
 
 
 m_download() {
-    if [[ "${1}" == "-f" ]]; then local force=1 && shift; fi
+    local force
+    if [[ "${1}" == "-f" ]]; then force=1 && shift; fi
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
@@ -708,7 +709,7 @@ install_dep() {
     m_download "${url}" "${source_path}" 2>/dev/null
     case "${filename}" in
         # Single file workarounds
-        *jq-linux-amd64*) mv "jq-linux-amd64" "jq" || err "Failed to rename \"${filename}\"" ;;
+        *jq-linux-amd64*) mv "${source_path}/jq-linux-amd64" "${source_path}/jq" || err "Failed to rename \"${filename}\"" ;;
         *) m_extract "${source_path}/${filename}" 1>/dev/null ;;
     esac
 
