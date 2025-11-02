@@ -174,8 +174,13 @@ m_extract() {
 
 
 m_download() {
-    local force
-    if [[ "${1}" == "-f" ]]; then force=1 && shift; fi
+    local force=0; local silent=0
+    for opt in "${@}"; do
+        case ${opt} in
+            -f) force=1; shift 1 ;;
+            -s) silent=1; shift 1 ;;
+        esac
+    done
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
@@ -186,7 +191,8 @@ m_download() {
 
     if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "Downloading: ${filename}..."
-        m_curl --create-dirs -L "${url}" -o "${target_path}"
+        if [[ $silent -eq 1 ]]; then m_curl --silent --create-dirs -L "${url}" -o "${target_path}"
+        else m_curl --create-dirs -L "${url}" -o "${target_path}"; fi
     fi
 }
 
@@ -674,7 +680,7 @@ install_dep() {
     local cmd_name="$1"; local url="$2";  local filename="${url##*/}"
     local source_path="${3:-$TMP_DIR}"; local target_path="${4:-$RUNTIME_DIR}"
     
-    m_download "${url}" "${source_path}" 2>/dev/null
+    m_download -s "${url}" "${source_path}"
     case "${filename}" in
         # Single file workarounds
         *jq-linux-amd64*) mv "${source_path}/jq-linux-amd64" "${source_path}/jq" || err "Failed to rename \"${filename}\"" ;;
@@ -708,7 +714,7 @@ install_mod_archive() {
 install_additions() {
     local target_path="${1%/}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
-    m_download "${METADATA[installer-script-url]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
+    m_download -s "${METADATA[installer-script-url]}" "${TMP_DIR}"
     check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
     msg "Installing ${TITLE}..."
     m_mv "${TMP_DIR}/${TITLE}" "${target_path}/${TITLE}" && m_chmod +x "${target_path}/${TITLE}"
@@ -738,7 +744,7 @@ install_eft() {
     fi
 
     # Download icon to icons directory
-    m_download "${METADATA[bsg-launcher-ico]}" "${ICO_DIR}/bsg_launcher.png" 2>> "${LOG_PATH}"
+    m_download -s "${METADATA[bsg-ico-url]}" "${ICO_DIR}/bsg_launcher.png"
 
     # Create application shortcut
     opt_shortcut bsg-launcher
@@ -821,7 +827,7 @@ install_spt() {
     if [[ "${install_mode}" == "legacy" ]]; then set_value env "PROTON_VERB=run"
     else
         # Install the latest server launch script
-        m_download "${METADATA[server-script-url]}" "${SPT_DIR}" 2>> "${LOG_PATH}"
+        m_download -s "${METADATA[server-script-url]}" "${SPT_DIR}"
         m_chmod +x "${SPT_DIR}/launch-server.sh"
 
         # Create launcher shortcut inside the root directory
@@ -834,8 +840,8 @@ install_spt() {
             # Download icons to icons directory
             local launcher_icon="${ICO_DIR}/spt_launcher.png"
             local server_icon="${ICO_DIR}/spt_server.png"
-            m_download "${METADATA[spt-launcher-ico]}" "${launcher_icon}" 2>> "${LOG_PATH}"
-            m_download "${METADATA[spt-server-ico]}" "${server_icon}" 2>> "${LOG_PATH}"
+            m_download -s "${METADATA[launcher-ico-url]}" "${launcher_icon}"
+            m_download -s "${METADATA[server-ico-url]}" "${server_icon}"
 
             # Create application shortcuts
             opt_shortcut spt
@@ -973,8 +979,8 @@ load_metadata() {
         latest)
             # Fetch metadata
             if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
-                m_download -f "${METADATA[mod-json-url]}" "${MOD_JSON_PATH}" 2>> "${LOG_PATH}"
-                m_download -f "${METADATA[patcher-json-url]}" "${PATCHER_JSON_PATH}" 2>> "${LOG_PATH}"
+                m_download -f -s "${METADATA[mod-json-url]}" "${MOD_JSON_PATH}"
+                m_download -f -s "${METADATA[patcher-json-url]}" "${PATCHER_JSON_PATH}"
             fi
             METADATA[mod-eft]=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
             METADATA[mod-version]=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
@@ -1009,7 +1015,7 @@ load_metadata() {
         "")
             # Get metadata file (1 hour time-to-live)
             if ! check_ttl "${METADATA_PATH}"; then
-                m_download -f "${METADATA_URL}" "${METADATA_PATH}" 2>> "${LOG_PATH}"
+                m_download -f -s "${METADATA_URL}" "${METADATA_PATH}"
             fi
             load_array metadata
         ;;
