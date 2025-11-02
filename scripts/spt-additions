@@ -41,8 +41,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.4"
-DATE="2025-10-31"
+VERSION="1.0.5-wip1"
+DATE="2025-11-02"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -85,40 +85,8 @@ readonly LEGACY_PATCHER_PATH="${FILES_DIR}/legacy-patcher.7z"
 readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
-# Libraries / Tools
-URL[umu-run]="https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.2.9/umu-launcher-1.2.9-zipapp.tar"
-URL[7zzs]="https://github.com/ip7z/7zip/releases/download/25.01/7z2501-linux-x64.tar.xz"
-URL[hpatchz]="https://github.com/sisong/HDiffPatch/releases/download/v4.11.1/hdiffpatch_v4.11.1_bin_linux64.zip"
-URL[jq]="https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
-URL[xxd]="http://ftp.de.debian.org/debian/pool/main/v/vim/xxd_9.1.1882-1_amd64.deb"
-URL[ge-proton]="https://github.com/GloriousEggroll/proton-ge-custom/releases"
-
-# Installers
-URL[bsg-launcher]="https://prod.escapefromtarkov.com/launcher/download"
-URL[spt-installer]="https://ligma.waffle-lord.net/SPTInstaller.exe"
-URL[dotnetcore]="https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/9.0.9/windowsdesktop-runtime-9.0.9-win-x64.exe"
-URL[aspnetcore]="https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.9/aspnetcore-runtime-9.0.9-win-x64.exe"
-
-# Scripts
-URL[installer-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/${TITLE}"
-URL[server-script]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/launch-server.sh"
-
-# Icons
-URL[bsg-launcher-ico]="https://cdn2.steamgriddb.com/icon/33686c2d8930be81c843ffb7d4312605/32/256x256.png"
-URL[spt-launcher-ico]="https://cdn2.steamgriddb.com/icon_thumb/ddd4f86cd0f978e85155cfa6c9f94e0c.png"
-URL[spt-server-ico]="https://cdn2.steamgriddb.com/icon_thumb/9f7431ea593b8e57401c08f40adc6e34.png"
-
-# Metadata
-URL[patcher-json]="https://slugma.waffle-lord.net/mirrors.json"
-URL[mod-json]="https://spt-releases.modd.in/release.json"
-URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
-
-# Links
-URL[spt-release]="https://github.com/sp-tarkov/build/releases"
-URL[guide-repo]="https://github.com/MadByteDE/SPT-Linux-Guide"
-URL[discord]="https://discord.com/invite/Xn9msqQZan"
-URL[forge]="https://forge.sp-tarkov.com"
-readonly -A URL
+# Metadata file
+readonly METADATA_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv4-Dev/scripts/metadata.conf"
 
 # Shortcut paths
 SHORTCUT[bsg-launcher]="${APP_DIR}/BSG - Launcher.desktop"
@@ -615,7 +583,7 @@ check_native_deps() {
             # Required tools / libraries
             python3|curl) err "Cannot find \"${cmd}\"!" ;;
             # Downloadable tools / libraries
-            jq|hpatchz|xxd|7zzs|umu-run) install_dep "${cmd}" "${URL[${cmd}]}" ;;
+            jq|hpatchz|xxd|7zzs|umu-run) install_dep "${cmd}" "${METADATA[${cmd}-url]}" ;;
         esac
     done
 }
@@ -740,7 +708,7 @@ install_mod_archive() {
 install_additions() {
     local target_path="${1%/}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
-    m_download "${URL[installer-script]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
+    m_download "${METADATA[installer-script-url]}" "${TMP_DIR}" 2>> "${LOG_PATH}"
     check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
     msg "Installing ${TITLE}..."
     m_mv "${TMP_DIR}/${TITLE}" "${target_path}/${TITLE}" && m_chmod +x "${target_path}/${TITLE}"
@@ -761,7 +729,7 @@ install_eft() {
     m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
 
     # Download BSG Launcher setup file
-    m_download "${URL[bsg-launcher]}" "${FILES_DIR}/BsgLauncher.exe"
+    m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}/BsgLauncher" ]]; then
@@ -770,7 +738,7 @@ install_eft() {
     fi
 
     # Download icon to icons directory
-    m_download "${URL[bsg-launcher-ico]}" "${ICO_DIR}/bsg_launcher.png" 2>> "${LOG_PATH}"
+    m_download "${METADATA[bsg-launcher-ico]}" "${ICO_DIR}/bsg_launcher.png" 2>> "${LOG_PATH}"
 
     # Create application shortcut
     opt_shortcut bsg-launcher
@@ -804,7 +772,7 @@ install_spt() {
 
     # Download & install .NET Desktop Runtime 9.0
     # WORKAROUND: Fixes issues with outdated winetricks verb
-    m_download "${URL[dotnetcore]}" "${FILES_DIR}/dotnet-runtime.exe"
+    m_download "${METADATA[dotnetcore-url]}" "${FILES_DIR}/dotnet-runtime.exe"
     msg "Installing: .NET Desktop Runtime 9.0..." && m_umu "${FILES_DIR}/dotnet-runtime.exe" /q
 
     # Add DLL overrides
@@ -820,11 +788,11 @@ install_spt() {
         proton)
             # Download & install ASP.NET Desktop Runtime 9.0
             # WORKAROUND: Fixes SPTInstaller requirement check failing
-            m_download "${URL[aspnetcore]}" "${FILES_DIR}/aspnet-runtime.exe"
+            m_download "${METADATA[aspnetcore-url]}" "${FILES_DIR}/aspnet-runtime.exe"
             msg "Installing: ASP.NET Desktop Runtime 9.0..." && m_umu "${FILES_DIR}/aspnet-runtime.exe" /q
 
             # Download SPT Installer
-            m_download "${URL[spt-installer]}" "${FILES_DIR}"
+            m_download "${METADATA[spt-installer-url]}" "${FILES_DIR}"
 
             # Symlink SPTInstaller cache directory to script cache directory
             local cache_dir="${WINEPREFIX}/drive_c/users/steamuser/Application Data/spt-installer/cache"
@@ -853,7 +821,7 @@ install_spt() {
     if [[ "${install_mode}" == "legacy" ]]; then set_value env "PROTON_VERB=run"
     else
         # Install the latest server launch script
-        m_download "${URL[server-script]}" "${SPT_DIR}" 2>> "${LOG_PATH}"
+        m_download "${METADATA[server-script-url]}" "${SPT_DIR}" 2>> "${LOG_PATH}"
         m_chmod +x "${SPT_DIR}/launch-server.sh"
 
         # Create launcher shortcut inside the root directory
@@ -866,8 +834,8 @@ install_spt() {
             # Download icons to icons directory
             local launcher_icon="${ICO_DIR}/spt_launcher.png"
             local server_icon="${ICO_DIR}/spt_server.png"
-            m_download "${URL[spt-launcher-ico]}" "${launcher_icon}" 2>> "${LOG_PATH}"
-            m_download "${URL[spt-server-ico]}" "${server_icon}" 2>> "${LOG_PATH}"
+            m_download "${METADATA[spt-launcher-ico]}" "${launcher_icon}" 2>> "${LOG_PATH}"
+            m_download "${METADATA[spt-server-ico]}" "${server_icon}" 2>> "${LOG_PATH}"
 
             # Create application shortcuts
             opt_shortcut spt
@@ -1005,8 +973,8 @@ load_metadata() {
         latest)
             # Fetch metadata
             if ! check_ttl "${MOD_JSON_PATH}" || ! check_ttl "${PATCHER_JSON_PATH}"; then
-                m_download -f "${URL[mod-json]}" "${MOD_JSON_PATH}" 2>> "${LOG_PATH}"
-                m_download -f "${URL[patcher-json]}" "${PATCHER_JSON_PATH}" 2>> "${LOG_PATH}"
+                m_download -f "${METADATA[mod-json-url]}" "${MOD_JSON_PATH}" 2>> "${LOG_PATH}"
+                m_download -f "${METADATA[patcher-json-url]}" "${PATCHER_JSON_PATH}" 2>> "${LOG_PATH}"
             fi
             METADATA[mod-eft]=$( jq -r '.ClientVersion' "${MOD_JSON_PATH}" ) || err "Failed to get required EFT version for SPT" "$?"
             METADATA[mod-version]=$( jq -r '.AkiVersion' "${MOD_JSON_PATH}" ) || err "Failed to get remote SPT version" "$?"
@@ -1039,9 +1007,9 @@ load_metadata() {
             METADATA[inst-mod-eft]=$( get_mod_eft_version ) || err "Failed to get mod EFT version" "$?"
         ;;
         "")
-            # Get metadata file
+            # Get metadata file (1 hour time-to-live)
             if ! check_ttl "${METADATA_PATH}"; then
-                m_download -f "${URL[metadata]}" "${METADATA_PATH}" 2>> "${LOG_PATH}"
+                m_download -f "${METADATA_URL}" "${METADATA_PATH}" 2>> "${LOG_PATH}"
             fi
             load_array metadata
         ;;
@@ -1125,7 +1093,7 @@ opt_update() {
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
                     msg
                     msg "   ${BOLD}Please check out the release notes & re-install SPT manually:${RESET}"
-                    msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
@@ -1137,7 +1105,7 @@ opt_update() {
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods might not be compatible."
                     msg
                     msg "   ${BOLD}Please check out the release notes & update / re-install SPT manually:${RESET}"
-                    msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   ${BOLD}How to update:${RESET}"
                     msg "   1. Download the latest release archive: ${METADATA[mod-url]}"
@@ -1151,7 +1119,7 @@ opt_update() {
             elif [[ "${upd_patch}" -gt "${inst_patch}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new patch update is available!${RESET}"
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
-                    msg "   ► ${URL[spt-release]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
                     msg
                     yesno "Do you want to install the update?" || return 0
                 }
@@ -1166,7 +1134,7 @@ opt_update() {
             [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
             [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
 
-            local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${URL[ge-proton]}/latest" 2>> "${LOG_PATH}" )
+            local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/latest" 2>> "${LOG_PATH}" )
             [[ -z "${url}" ]] && err "Failed to get latest Proton version"
             local latest_version="${url##*/}"
             local old_version="${PROTONPATH}"
@@ -1180,7 +1148,7 @@ opt_update() {
                     msg "   ► ${COMPAT_DIR}/${old_version}"
                 } | more
                 yesno "Do you want to update?" || return 0
-                m_download "${URL[ge-proton]}/download/${latest_version}/${latest_version}.tar.zst" "${TMP_DIR}"
+                m_download "${METADATA[ge-proton-url]}/download/${latest_version}/${latest_version}.tar.zst" "${TMP_DIR}"
                 m_extract "${TMP_DIR}/${latest_version}.tar.zst" "${COMPAT_DIR}"
                 m_rm -rf "${COMPAT_DIR}/${old_version}"
                 set_value env "PROTONPATH=${latest_version}"
@@ -1351,10 +1319,10 @@ opt_guided_install() {
         msg; msg "${BOLD}${GREEN}All done! ※\(^o^)/※${RESET}"
         msg
         msg "${BOLD}${BLUE}You need help or just wanna hang out with ${GREEN}THE NERDS${RESET}?:${RESET}"
-        msg "   ${URL[discord]}"
+        msg "   ${METADATA[discord-url]}"
         msg
         msg "${BOLD}${BLUE}Get your favorite mods from ${GREEN}THE FORGE${RESET}:"
-        msg "   ${URL[forge]}"
+        msg "   ${METADATA[forge-url]}"
         return 0
     done
 }
@@ -1645,7 +1613,7 @@ opt_selfupdate() {
         return 0
     fi
     msg "> ${BOLD}The script will attempt to download the latest version from:${RESET}"
-    msg "> ${UNDERLINE}${URL[installer-script]}${RESET}"
+    msg "> ${UNDERLINE}${METADATA[installer-script-url]}${RESET}"
     msg
     yesno "Do you want to continue?" || return 1
     install_additions "${SCRIPT_DIR}"
@@ -1929,6 +1897,9 @@ main() {
 
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
+
+    # Load initial metadata file (7 days time-to-live)
+    if ! check_ttl "${METADATA_PATH}" "604800"; then load_metadata; fi
 
     # Export paths
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
