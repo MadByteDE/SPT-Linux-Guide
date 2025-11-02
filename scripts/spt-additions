@@ -1905,7 +1905,8 @@ main() {
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
 
     # Load initial metadata file (7 days time-to-live)
-    if ! check_ttl "${METADATA_PATH}" "604800"; then load_metadata; fi
+    if ! check_ttl "${METADATA_PATH}" "604800"; then load_metadata
+    else load_array metadata; fi
 
     # Export paths
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
