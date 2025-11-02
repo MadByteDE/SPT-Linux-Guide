@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.5-wip2"
+VERSION="1.0.5"
 DATE="2025-11-02"
 
 # ANSI codes
@@ -86,7 +86,7 @@ readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
 
 # Metadata file
-readonly METADATA_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv4-Dev/scripts/metadata.conf"
+readonly METADATA_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
 
 # Shortcut paths
 SHORTCUT[bsg-launcher]="${APP_DIR}/BSG - Launcher.desktop"
