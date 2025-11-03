@@ -49,6 +49,8 @@ BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
 RED="\e[31m"; GREEN="\e[32m"; BLUE="\e[36m"
 YELLOW="\e[33m"; GRAY="\e[90m"
 
+declare -A CONFIG ENV METADATA CACHE SHORTCUT
+
 # System directories
 readonly SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
 readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
@@ -69,8 +71,6 @@ readonly DEFAULT_PROTONPATH="GE-Proton"
 readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 readonly DEFAULT_INSTALL_MODE="native"
-
-declare -A CONFIG ENV METADATA CACHE URL SHORTCUT
 
 # File path variables
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
@@ -574,7 +574,7 @@ check_aspnet() {
     fi
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
-        msg "> ${YELLOW}Please install it first & retry running this script.${RESET}"
+        msg "   ► ${YELLOW}Please install it first & retry running this script.${RESET}"
         err "\"ASP.NET Runtime 9.0\" is not installed"
     fi
 }
@@ -657,9 +657,7 @@ check_ttl() {
     local modified_time; modified_time=$( date -r "${file_path}" +%s )
     ((elapsed_time = current_time - modified_time))
     # If elapsed time >= TTL - fail the check
-    if [[ $elapsed_time -ge $ttl ]]; then
-        return 1
-    fi
+    if [[ $elapsed_time -ge $ttl ]]; then return 1; fi
 }
 
 
@@ -1331,8 +1329,7 @@ opt_guided_install() {
         # Ask to install the script & remove all cached files if not
         msg; msg "Checking script install..."
         if ! opt_selfinstall; then
-            export NO_PROMPT=1
-            opt_clean cache
+            export NO_PROMPT=1 && opt_clean cache
         fi
 
         # All done!
@@ -1472,12 +1469,13 @@ opt_shortcut() {
     local option="$1" && shift
     local env=$( get_env )
     CACHE[_id]="app-shortcut"
+    CACHE[env]="${env}"
+    CACHE[args]=""
 
     case "${option}" in
         eft|bsg|bsg-launcher)
             CACHE[name]="BSG - Launcher"
             CACHE[exe_path]="BsgLauncher.exe"
-            CACHE[env]="${env}"
             CACHE[args]="--disable-software-rasterizer"
             CACHE[working_dir]="${BSG_DIR}/BsgLauncher"
             CACHE[icon]="bsg_launcher"
@@ -1485,8 +1483,6 @@ opt_shortcut() {
         launcher)
             CACHE[name]="SPT - Launcher"
             CACHE[exe_path]="SPT.Launcher.exe"
-            CACHE[env]="${env}"
-            CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
             CACHE[icon]="spt_launcher"
         ;;
@@ -1494,15 +1490,12 @@ opt_shortcut() {
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="launch-server.sh"
             CACHE[env]=""
-            CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
             CACHE[icon]="spt_server"
         ;;
         legacy-server)
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="SPT.Server.exe"
-            CACHE[env]="${env}"
-            CACHE[args]=""
             CACHE[working_dir]="${SPT_DIR}"
             CACHE[icon]="spt_server"
         ;; 
@@ -1512,9 +1505,7 @@ opt_shortcut() {
             else opt_shortcut server; fi
             return 0
         ;;
-        all)
-            opt_shortcut bsg-launcher;  opt_shortcut spt;  return 0
-        ;;
+        all) opt_shortcut bsg-launcher;  opt_shortcut spt;  return 0 ;;
         "") err "Option \"shortcut\" requires an argument" ;;
         *)
             # Create custom shortcut
@@ -1525,7 +1516,6 @@ opt_shortcut() {
             [[ "${working_dir}" == "${option}" ]] && working_dir="${PWD}"
             CACHE[name]="${name}"
             CACHE[exe_path]="${option##*/}"
-            CACHE[env]="${env}"
             CACHE[args]="$*"
             CACHE[working_dir]="${working_dir}"
             CACHE[path]="${APP_DIR}/${CACHE[name]}.desktop"
