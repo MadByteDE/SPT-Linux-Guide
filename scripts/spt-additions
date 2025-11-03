@@ -1314,8 +1314,21 @@ opt_guided_install() {
         # Install SPT
         opt_install spt
 
+        # Ask for desktop shortcuts
+        if command -v "xdg-user-dir" &>/dev/null; then
+            msg; yesno "Do you want to add additional desktop shortcuts?"
+            if [[ "$?" == 0 ]]; then
+                for path in "${SHORTCUT[@]}"; do
+                    local name="${path##*/}"
+                    local desktop_dir; desktop_dir=$( xdg-user-dir DESKTOP )
+                    msg "Creating \"${name}\" desktop shortcut..."
+                    ln -s -f "${APP_DIR}/${name}" "${desktop_dir}/${name}"
+                done
+            fi
+        fi
+
         # Ask to install the script & remove all cached files if not
-        msg "Checking script install..."
+        msg; msg "Checking script install..."
         if ! opt_selfinstall; then
             export NO_PROMPT=1
             opt_clean cache
