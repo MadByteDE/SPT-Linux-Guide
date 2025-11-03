@@ -462,8 +462,9 @@ get_hash() { md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null; }
 check_target_path() {
     local target_path="${1%/}"
     case "${1}" in
-        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${HOME}/.local/bin"* | *"${COMPAT_DIR}"* | \
-        *"${HOME}/bin"* | *"${CONFIG_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${TMP_DIR}"*) ;;
+        "") err "Target path is not set" ;;
+        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | \
+        *"${HOME}/.local/bin"* | *"${HOME}/bin"* | *"${COMPAT_DIR}"* | *"${CONFIG_DIR}"* | *"${TMP_DIR}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
 }
