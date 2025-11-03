@@ -191,7 +191,7 @@ m_download() {
 
     if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "Downloading: ${filename}..."
-        if [[ $silent -eq 1 ]]; then m_curl --silent --create-dirs -L "${url}" -o "${target_path}"
+        if [[ $silent -eq 1 ]]; then m_curl -S -s --create-dirs -L "${url}" -o "${target_path}"
         else m_curl --create-dirs -L "${url}" -o "${target_path}"; fi
     fi
 }
