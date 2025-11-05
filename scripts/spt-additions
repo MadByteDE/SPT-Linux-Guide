@@ -356,7 +356,7 @@ set_prefix() {
     [[ -z "${target_path}" ]] && err "Path argument is not set"
 
     # Validate path
-    check_prefix_path "${1%/}"
+    check_prefix_path "${target_path}"
 
     # Update WINEPREFIX environment variable
     export WINEPREFIX="${target_path}"
