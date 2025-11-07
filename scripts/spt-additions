@@ -1574,9 +1574,15 @@ opt_selfinstall() {
     # Check if PATH contains any of the user bin paths
     for path in "${bin_paths[@]}"; do
         if [[ -n $( echo "${PATH}" | grep "${path}" ) ]]; then break; fi
-        msg "${BOLD}${GREEN}${TITLE}${YELLOW} provides useful CLI commands for managing your wine prefix!${RESET}"
-        msg "   ► Consider adding the script to your PATH variable for ease of use!"
-        msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" after installing it for more details."
+        {   msg; warn "${BOLD}PATH variable does not contain a local bin directory!${RESET}"
+            msg
+            msg "   ► ${GREEN}${TITLE}${RESET} provides useful CLI commands to manage your wine prefix."
+            msg "   ► Please consider installing the script to a local bin directory & adding"
+            msg "   ► the directory to your PATH environment variable, e.g. by adding:"
+            msg "   ► ${GREEN}export PATH=\$HOME/bin:\$HOME/.local/bin:\$PATH${RESET}"
+            msg "   ► to your .bashrc / .zshrc file."
+            msg "   ► After installing the script, you can run \"${GREEN}${TITLE} -h${RESET}\" for more details."
+        } | more
         return 1
     done
 
