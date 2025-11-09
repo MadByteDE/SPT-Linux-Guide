@@ -114,10 +114,13 @@ The game randomly hangs for ~3-5 seconds without RAM or VRAM being maxed out.
 
 **Solution**
 
+**#1:** 
 In Lutris on the game shortcut, enable:
 - `Configure` → `system options` → `Disable Lutris Runtime`
 
-That should reduce the stuttering significantly.
+**#2:** 
+If you use an Unheard edition profile, switch from the Unheard menu background in the game settings to any other background:
+- `Settings` → `Main menu background`
 
 [Back](#table-of-content)
 
