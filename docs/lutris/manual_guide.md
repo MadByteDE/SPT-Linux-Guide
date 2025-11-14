@@ -1,6 +1,9 @@
 # SPT installation using Lutris
 
 > [!WARNING]
+> This guide is currently **not compatible** with the Steam version of Escape From Tarkov
+
+> [!WARNING]
 > Never install SPT into your live EFT's game directory!
 
 ## What you need

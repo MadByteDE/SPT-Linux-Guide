@@ -1,6 +1,8 @@
 
 # SPT Lutris installer (Additions)
 
+> [!WARNING]
+> This guide is currently **not compatible** with the Steam version of Escape From Tarkov
 
 This *.yml script uses a **custom**, native Linux install script.
 

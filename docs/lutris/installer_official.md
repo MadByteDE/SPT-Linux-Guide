@@ -1,6 +1,9 @@
 
 # SPT Lutris installer (Official)
 
+> [!WARNING]
+> This guide is currently **not compatible** with the Steam version of Escape From Tarkov
+
 This *.yml script uses the regular windows installer to install SPT on your system.
 
 ## What you need

@@ -16,9 +16,8 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ## Overview
 
-> [!NOTE]
-> SPT 4.0 has been released! Please check out [my write up](./docs/news/spt40-release.md) about Linux support & the [official release announcement](https://github.com/sp-tarkov/build/releases/tag/4.0.0)!
-
+> [!WARNING]
+> This guide is currently **not compatible** with the Steam version of Escape From Tarkov - we're working on it, stay tuned!
 
 ### Automated install
 
