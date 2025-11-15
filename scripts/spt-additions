@@ -437,6 +437,7 @@ get_patcher_eft_version() {
     # Split filename to get version infos from it
     local filename; filename=$( echo "${path##*/}" | tr "_." " " )
     local version; version=$( echo "${filename}" | cut -d " " -f5 )
+    [[ -z "${version}" ]] && exit 12
     printf "%s\n" "${version}"
 }
 
@@ -1001,7 +1002,7 @@ load_metadata() {
             METADATA[mod-path]="${LEGACY_MOD_PATH}"
             METADATA[patcher-url]="${METADATA[lts-patcher-url]}"
             METADATA[patcher-hash]="${METADATA[lts-patcher-hash]}"
-            METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" )
+            METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" ) || err "Failed to get required EFT version for patcher" "$?"
             METADATA[patcher-path]="${LEGACY_PATCHER_PATH}"
         ;;
         eft)
