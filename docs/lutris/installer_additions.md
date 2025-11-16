@@ -37,7 +37,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 
 ## What you need
 
-### - **~120GB free disk space**
+### - **~150GB free disk space**
 
 ### - **[Lutris](https://lutris.net/downloads)**
 - Check if GPU and vulkan drivers are installed

@@ -8,7 +8,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 ## What you need
 
-### - **~120GB free disk space**
+### - **~150GB free disk space**
 
 ### - **[Lutris](https://lutris.net/downloads)**
 - Check if GPU and vulkan drivers are installed!

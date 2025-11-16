@@ -8,7 +8,7 @@
 
 ## What you need
 
-### - **~120GB free disk space**
+### - **~150GB free disk space**
 
 ### - **[Bottles](https://usebottles.com/)**
 - Make sure GPU and vulkan drivers are installed and working.
