@@ -436,7 +436,7 @@ get_patcher_eft_version() {
     local path="${1}"
     # Split filename to get version infos from it
     local filename; filename=$( echo "${path##*/}" | tr "_." " " )
-    local version; version=$( echo "${filename}" | cut -d " " -f5 )
+    local version; version=$( echo "${filename}" | cut -d " " -f6 )
     [[ -z "${version}" ]] && exit 12
     printf "%s\n" "${version}"
 }
