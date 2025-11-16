@@ -41,8 +41,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.7"
-DATE="2025-11-07"
+VERSION="1.0.8"
+DATE="2025-11-16"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1285,7 +1285,7 @@ opt_guided_install() {
         fi
 
         init_prefix "${prefix_path}"; check_eft_running; check_aspnet
-        
+
         local install_eft=1
          # Ask to skip EFT installation if it's already installed
         if check_eft_installed; then
