@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.8-1"
+VERSION="1.0.8-2"
 DATE="2025-11-19"
 
 # ANSI codes
@@ -823,6 +823,14 @@ install_spt() {
     # Set Windows version to 8.1
     msg "Setting Windows version to \"8.1\"..."
     m_umu winetricks -q "win81" 1>> "${LOG_PATH}"
+
+    # Steam library directory workaround
+    local steam_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Steam/steamapps"
+    if [[ ! -f "${steam_dir}/libraryfolders.vdf" ]]; then
+        msg "Adding Steam library file workaround..."
+        m_mkdir "${steam_dir}"
+        touch "${steam_dir}/libraryfolders.vdf"
+    fi
 
     if [[ "${install_mode}" == "legacy" ]]; then set_value env "PROTON_VERB=run"
     else
