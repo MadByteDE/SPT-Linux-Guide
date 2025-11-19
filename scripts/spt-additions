@@ -41,8 +41,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
-VERSION="1.0.8"
-DATE="2025-11-16"
+VERSION="1.0.8-1"
+DATE="2025-11-19"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1864,16 +1864,16 @@ handle_opts() {
 
     local option="${1}" && shift
     
-    # Initialize wine prefix
-    case "${option}" in
-        shortcut|uninstall) set_prefix "${WINEPREFIX}" 1>/dev/null ;;
-        install|update|dlloverride|run) init_prefix ;;
-    esac
-
     # Check native dependencies
     case "${option}" in
         "") [[ $OPTIND -eq 1 ]] && check_native_deps ;;
         install|shortcut|uninstall|patch|update|dlloverride|run) check_native_deps ;;
+    esac
+
+    # Initialize wine prefix
+    case "${option}" in
+        shortcut|uninstall) set_prefix "${WINEPREFIX}" 1>/dev/null ;;
+        install|update|dlloverride|run) init_prefix ;;
     esac
 
     # Handle options
