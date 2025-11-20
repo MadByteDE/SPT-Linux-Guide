@@ -1166,6 +1166,7 @@ opt_update() {
                 m_extract "${TMP_DIR}/${latest_version}.tar.zst" "${COMPAT_DIR}"
                 m_rm -rf "${COMPAT_DIR}/${old_version}"
                 set_value env "PROTONPATH=${latest_version}"
+                opt_shortcut all
                 msg "${GREEN}Done!${RESET}"
             else
                 msg "${BOLD}Proton is up-to-date!${RESET}"
