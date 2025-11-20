@@ -42,7 +42,7 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 TITLE="spt-additions"
 VERSION="1.0.8-2"
-DATE="2025-11-19"
+DATE="2025-11-20"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
