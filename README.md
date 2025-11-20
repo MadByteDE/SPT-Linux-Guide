@@ -21,7 +21,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ### Automated install
 
-Additions CLI installer <font size="3">(recommended)</font>
+Additions CLI installer ⭐
   - 
 
   > [!WARNING]
