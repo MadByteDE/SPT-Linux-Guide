@@ -417,21 +417,6 @@ get_eft_path() {
 }
 
 
-get_patcher_urls() {
-    local json_path="${1:-"${PATCHER_JSON_PATH}"}"
-    local index="${2}"
-    local urls; urls=$( cat "${json_path}" | jq -r '.Mirrors[].Link' )
-    [[ -z "${urls}" ]] && exit 12
-    # Return single url
-    if [[ -n "${index}" ]]; then
-        echo "${urls}" | sed "${index}q;d" 2>/dev/null
-        return 0
-    fi
-    # Return list
-    printf "%s\n" "${urls}"
-}
-
-
 get_patcher_eft_version() {
     local path="${1}"
     # Split filename to get version infos from it
@@ -952,17 +937,17 @@ install_fika() {
         if ! check_ttl "${json_path}"; then m_download "${METADATA[${release}-json-url]}" "${json_path}"; fi
 
         # Get archive url
-        local archive_url=$( cat "${json_path}" | grep -o "\"browser_download_url\": \"[^}]*" | cut -d "\"" -f4 2>/dev/null )
+        local archive_url; archive_url=$( cat "${json_path}" | grep -o "\"browser_download_url\": \"[^}]*" | cut -d "\"" -f4 2>/dev/null )
         [[ -z "${archive_url}" ]] && err "Failed to get release file URL"
 
         if [[ "$release" == "fika-core" ]]; then
             # Get Fika version
-            local fika_version=$( echo "${archive_url##*/}" | cut -d "." -f3-5 2>/dev/null )
+            local fika_version; fika_version=$( echo "${archive_url##*/}" | cut -d "." -f3-5 2>/dev/null )
             [[ -z "${fika_version}" ]] && err "Failed to get Fika version"
             msg "${BOLD}Latest Fika version is \"${fika_version}\"${RESET}"
 
             # SPT-EFT compatibility check
-            local compatible_eft=$( cat "${json_path}" | grep -o "## Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null )
+            local compatible_eft; compatible_eft=$( cat "${json_path}" | grep -o "## Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null )
             compatible_eft=$( echo "${compatible_eft}" | cut -d "." -f4 | cut -d "\\" -f1 )
             [[ -z "${compatible_eft}" ]] && err "Failed to get compatible EFT version"
             if [[ "${METADATA[inst-mod-eft]}" -eq "${compatible_eft}" ]]; then msg "Installed SPT-EFT version is compatible!"
@@ -1378,8 +1363,7 @@ opt_guided_install() {
 
         # Ask for desktop shortcuts
         if command -v "xdg-user-dir" &>/dev/null; then
-            msg; yesno "Do you want to add additional desktop shortcuts?"
-            if [[ "$?" == 0 ]]; then
+            if msg && yesno "Do you want to add additional desktop shortcuts?"; then
                 for path in "${SHORTCUT[@]}"; do
                     local name="${path##*/}"
                     local desktop_dir; desktop_dir=$( xdg-user-dir DESKTOP )
@@ -1391,8 +1375,7 @@ opt_guided_install() {
 
         # Ask to install the script & remove all cached files if not
         if ! opt_selfinstall; then
-            msg; yesno "Do you want to clean cached files in \"${CACHE_DIR}\"?"
-            if [[ "$?" == 0 ]]; then
+            if msg && yesno "Do you want to clean cached files in \"${CACHE_DIR}\"?"; then
                 export NO_PROMPT=1
                 opt_clean metadata; opt_clean files
             fi
@@ -1984,7 +1967,7 @@ main() {
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
 
     # Load initial metadata file (7 days time-to-live)
-    if ! check_ttl "${METADATA_PATH}" "604800"; then load_metadata
+    if ! check_ttl "${METADATA_PATH}" 604800; then load_metadata
     else load_array metadata; fi
 
     # Export paths
