@@ -862,7 +862,6 @@ install_spt() {
 
 install_spt_native() {
     local install_mode="${CONFIG[install-mode]}"
-    load_metadata eft
 
     case "${install_mode}" in
         # SPT 3.11.x
@@ -924,6 +923,56 @@ install_spt_native() {
     fi
 
     install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
+}
+
+
+install_fika() {
+    local releases=( "fika-core" "fika-server" )
+    msg "${BOLD}Launching \"Fika\" installer...${RESET}"
+
+    if ! check_eft_installed; then
+        warn "${BOLD}Escape from Tarkov is not installed${RESET}"
+        msg "   ► make sure to install the game inside the BSG Launcher & try again!"
+        err "Escape from Tarkov not found."
+    elif ! check_latest_installed; then
+        warn "${BOLD}SPTarkov is not installed${RESET}"
+        msg "   ► make sure to install it & try again!"
+        err "SPTarkov not found."
+    elif [[ -d "${SPT_DIR}/BepInEx/plugins/Fika" ]]; then
+        # Ask for confirmation
+        warn "${BOLD}Fika is already installed${RESET}"
+        yesno "Do you want to update/re-install Fika?" || return 0
+    fi
+
+    for release in "${releases[@]}"; do
+        local json_path="${CACHE_DIR}/${release}.json"
+        local archive_path="${FILES_DIR}/${release}.zip"
+        
+        # Get metadata json
+        if ! check_ttl "${json_path}"; then m_download "${METADATA[${release}-json-url]}" "${json_path}"; fi
+
+        # Get archive url
+        local archive_url=$( cat "${json_path}" | grep -o "\"browser_download_url\": \"[^}]*" | cut -d "\"" -f4 2>/dev/null )
+        [[ -z "${archive_url}" ]] && err "Failed to get release file URL"
+
+        if [[ "$release" == "fika-core" ]]; then
+            # Get & print Fika version
+            local fika_version=$( echo "${archive_url##*/}" | cut -d "." -f3-5 2>/dev/null )
+            [[ -z "${fika_version}" ]] && err "Failed to get Fika version"
+            msg "${BOLD}Latest Fika version is \"${fika_version}\"${RESET}"
+
+            # SPT-EFT Compatibility check
+            local compatible_eft=$( cat "${json_path}" | grep -o "## Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null )
+            compatible_eft=$( echo "${compatible_eft}" | cut -d "." -f4 | cut -d "\\" -f1 )
+            [[ -z "${compatible_eft}" ]] && err "Failed to get compatible EFT version"
+            if [[ "${METADATA[inst-mod-eft]}" -eq "${compatible_eft}" ]]; then msg "Installed SPT-EFT version is compatible!"
+            else err "Incompatible EFT version (installed: ${METADATA[inst-mod-eft]} != Required: ${compatible_eft})"; fi
+        fi
+
+        # Install archive
+        m_download -s -f "${archive_url}" "${archive_path}"
+        m_extract "${archive_path}" "${SPT_DIR}"
+    done
 }
 
 
@@ -1041,7 +1090,8 @@ opt_install() {
     local option="$1" && shift
     case "${option}" in
         eft|tarkov|bsg) install_eft ;;
-        spt|sptarkov) install_spt "${CONFIG[install-mode]}" ;;
+        spt|sptarkov) load_metadata eft; install_spt "${CONFIG[install-mode]}" ;;
+        fika) load_metadata mod-eft; install_fika "${CONFIG[install-mode]}" ;;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
