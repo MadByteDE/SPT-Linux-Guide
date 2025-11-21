@@ -856,7 +856,7 @@ install_spt() {
         ;;
         lutris) ;;
     esac
-    msg "SPTarkov is installed!"
+    msg "SPTarkov has been installed!"
 }
 
 
@@ -956,12 +956,12 @@ install_fika() {
         [[ -z "${archive_url}" ]] && err "Failed to get release file URL"
 
         if [[ "$release" == "fika-core" ]]; then
-            # Get & print Fika version
+            # Get Fika version
             local fika_version=$( echo "${archive_url##*/}" | cut -d "." -f3-5 2>/dev/null )
             [[ -z "${fika_version}" ]] && err "Failed to get Fika version"
             msg "${BOLD}Latest Fika version is \"${fika_version}\"${RESET}"
 
-            # SPT-EFT Compatibility check
+            # SPT-EFT compatibility check
             local compatible_eft=$( cat "${json_path}" | grep -o "## Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null )
             compatible_eft=$( echo "${compatible_eft}" | cut -d "." -f4 | cut -d "\\" -f1 )
             [[ -z "${compatible_eft}" ]] && err "Failed to get compatible EFT version"
@@ -972,7 +972,10 @@ install_fika() {
         # Install archive
         m_download -s -f "${archive_url}" "${archive_path}"
         m_extract "${archive_path}" "${SPT_DIR}"
+
     done
+
+    msg "Fika has been installed!"
 }
 
 
@@ -1713,8 +1716,9 @@ opt_help() {
             {   msg "${BOLD}Available options:${RESET}"
                 msg "eft|bsg|tarkov                 - Install the BSG Launcher"
                 msg "spt|sptarkov                   - Install SPTarkov"
+                msg "fika                           - Install Fika (core + server mod)"
                 msg 
-                msg "${BOLD}Available install modes:${RESET}"
+                msg "${BOLD}SPTarkov install modes (-m switch):${RESET}"
                 msg "native                         - Use the native install method to install the latest SPTarkov release"
                 msg "proton                         - Use Proton to install the latest version of SPTarkov"
                 msg "legacy                         - Install the legacy version of SPTarkov"
