@@ -1692,13 +1692,15 @@ opt_selfupdate() {
     msg "${BOLD}Remote hash${RESET}:   ${METADATA[additions-hash]}"
     if [[ "${current_hash}" == "${METADATA[additions-hash]}" ]]; then
         msg "${BOLD}The script is up-to-date.${RESET}"
-        return 0
+        return 1
     fi
-    msg "> ${BOLD}The script will attempt to download the latest version from:${RESET}"
-    msg "> ${UNDERLINE}${METADATA[installer-script-url]}${RESET}"
+    msg; msg "${BOLD}A new spt-additions version is available!${RESET}"
+    msg "   ► ${BOLD}The script will attempt to download the latest version from:${RESET}"
+    msg "   ► ${UNDERLINE}${METADATA[installer-script-url]}${RESET}"
     msg
-    yesno "Do you want to continue?" || return 1
+    yesno "Do you want to update now?" || return 1
     install_additions "${SCRIPT_DIR}"
+    return 0
 }
 
 
@@ -1990,6 +1992,17 @@ main() {
     export WINEPREFIX="${ENV[WINEPREFIX]}"
     export PROTONPATH="${ENV[PROTONPATH]}"
     export PATH=$RUNTIME_DIR:$PATH
+
+    # Check for updates (7 days interval)
+    if [[ -f "${SCRIPT_DIR}/${TITLE}" ]] && ! check_ttl "${SCRIPT_DIR}/${TITLE}" 604800; then
+        if opt_selfupdate; then
+            [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
+            exec "${SCRIPT_DIR}/${TITLE}" "$@"
+        else
+            # Reset modified time
+            touch "${SCRIPT_DIR}/${TITLE}"
+        fi
+    fi
 
     # Handle command line arguments
     handle_opts "$@"
