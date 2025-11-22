@@ -73,6 +73,7 @@ readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
 readonly DEFAULT_INSTALL_MODE="native"
 
 # File path variables
+readonly SCRIPT_PATH="${SCRIPT_DIR}/${TITLE}"
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
 readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/app.conf"
@@ -1665,7 +1666,7 @@ opt_selfinstall() {
 
 
 opt_selfupdate() {
-    local current_hash; current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" ) || err "Failed to get script hash"
+    local current_hash; current_hash=$( get_hash "${SCRIPT_PATH}" ) || err "Failed to get script hash"
     [[ -z "${current_hash}" ]] && err "Failed to get script hash"
 
     # Load required metadata
@@ -1689,7 +1690,7 @@ opt_selfupdate() {
 
 opt_version() {
     msg "${BOLD}Version: ${RESET}${VERSION} (${DATE})"
-    local current_hash; current_hash=$( get_hash "${SCRIPT_DIR}/${TITLE}" 2>/dev/null )
+    local current_hash; current_hash=$( get_hash "${SCRIPT_PATH}" 2>/dev/null )
     [[ -n "${current_hash}" ]] && msg "${BOLD}Hash: ${RESET}${current_hash}"
 }
 
@@ -1977,13 +1978,13 @@ main() {
     export PATH=$RUNTIME_DIR:$PATH
 
     # Check for updates (7 days interval)
-    if [[ -f "${SCRIPT_DIR}/${TITLE}" ]] && ! check_ttl "${SCRIPT_DIR}/${TITLE}" 604800; then
+    if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 604800; then
         if opt_selfupdate; then
             [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
-            exec "${SCRIPT_DIR}/${TITLE}" "$@"
+            exec "${SCRIPT_PATH}" "$@"
         else
             # Reset modified time
-            touch "${SCRIPT_DIR}/${TITLE}"
+            touch "${SCRIPT_PATH}"
         fi
     fi
 
