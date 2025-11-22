@@ -40,9 +40,9 @@ shopt -s extglob
 # Make sure to throw an error and exit on SIGINT
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
-TITLE="spt-additions"
-VERSION="1.0.8-2"
-DATE="2025-11-20"
+readonly TITLE="spt-additions"
+readonly VERSION="1.0.9"
+readonly DATE="2025-11-21"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -1980,6 +1980,7 @@ main() {
     # Check for updates (7 days interval)
     if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 604800; then
         if opt_selfupdate; then
+            # Clear temp & replace shell with updated script
             [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
             exec "${SCRIPT_PATH}" "$@"
         else
