@@ -62,7 +62,7 @@ readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 readonly COMPAT_DIR="${DATA_HOME}/Steam/compatibilitytools.d"
 readonly RUNTIME_DIR="${DATA_DIR}/runtime"
 readonly FILES_DIR="${CACHE_DIR}/files"
-readonly TMP_DIR="$( mktemp -d "/tmp/spt-XXXXX" )"
+readonly TMP_DIR="$( mktemp -d "${TMPDIR:-/tmp}/spt-XXXXX" )"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
 
