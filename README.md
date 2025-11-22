@@ -17,7 +17,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 ## Overview
 
 > [!WARNING]
-> This guide is currently **not compatible** with the Steam version of Escape From Tarkov - we're working on it, stay tuned!
+> This guide is currently **not compatible** with the Steam version of Escape From Tarkov!
 
 ### Automated install
 
