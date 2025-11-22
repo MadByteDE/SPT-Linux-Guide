@@ -763,9 +763,9 @@ install_spt() {
     install_verb "dotnetdesktop8" ".NET Desktop Runtime 8.0"
 
     # Download & install .NET Desktop Runtime 9.0
-    # WORKAROUND: Fixes issues with outdated winetricks verb
-    m_download "${METADATA[dotnetcore-url]}" "${FILES_DIR}/dotnet-runtime.exe"
-    msg "Installing: .NET Desktop Runtime 9.0..." && m_umu "${FILES_DIR}/dotnet-runtime.exe" /q
+    local dotnet_file="${FILES_DIR}/dotnet-runtime.exe"
+    if [[ ! -f "${dotnet_file}" ]] || ! check_ttl "${dotnet_file}" 604800; then m_download -f "${METADATA[dotnetcore-url]}" "${dotnet_file}"; fi
+    msg "Installing: .NET Desktop Runtime 9.0..." && m_umu "${dotnet_file}" /q
 
     # Add DLL overrides
     opt_dlloverride winhttp n,b
@@ -1980,8 +1980,9 @@ main() {
     # Check for updates (7 days interval)
     if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 604800; then
         if opt_selfupdate; then
-            # Clear temp & replace shell with updated script
+            # Clear temp
             [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
+            # replace shell with updated script
             exec "${SCRIPT_PATH}" "$@"
         else
             # Reset modified time
