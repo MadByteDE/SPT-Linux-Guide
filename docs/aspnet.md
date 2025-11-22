@@ -34,6 +34,25 @@ rpm-ostree install aspnetcore-runtime-9.0
 sudo pacman -S aspnet-runtime
 ```
 
+**Nixpkgs (NixOS or Other OS using Nix)**
+> [!NOTE]
+> This was accurate as of NixOS Stable version `25.05`, and the package name may have changed if using a newer version. Check [Here](https://search.nixos.org/packages?&query=aspnetcore) for the correct package name.
+
+To install system-wide, add `dotnet-aspnetcore_9` to `environment.systempackages` in your `configuration.nix`.
+
+```nix
+environment.systemPackages = with pkgs; [
+  dotnet-aspnetcore_9
+];
+```
+
+Similarly, with home-manager, to install for your user only, add `dotnet-aspnetcore_9` to `home.packages` in your `home.nix`.
+```nix
+home.packages = with pkgs; [
+  dotnet-aspnetcore_9
+];
+```
+
 ***
 Still having issues? Visit our [issues section](../../docs/issues.md).
 
