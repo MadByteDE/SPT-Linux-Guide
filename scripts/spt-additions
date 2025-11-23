@@ -405,16 +405,13 @@ init_prefix() {
 get_eft_path() {
     local entry; local path
     # get windows path
-    [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg" )
     path=$( echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
+    # Convert to unix path
+    path=$( m_umu winepath -u "${path}" 2>/dev/null )
     [[ -z "${path}" ]] && exit 12
-    # Replace backslashes with slashes
-    path="${path//\\\\/\/}"
-    # Replace disk letter
-    path="${path//C:/drive_c}"
     # Finally assemble the full path & return it
-    printf "%s/%s\n" "${WINEPREFIX}" "${path%/*}"
+    printf "%s\n" "${path%/*}"
 }
 
 
@@ -532,7 +529,6 @@ check_spt_path() {
 
 
 check_eft_installed() {
-    EFT_DIR=$( get_eft_path )
     if [[ -z "${EFT_DIR}" || ! -d "${EFT_DIR}" || -z $( m_ls -A "${EFT_DIR}" ) ]]; then
         return 1
     fi
@@ -793,8 +789,7 @@ install_spt() {
             ln -s -n "${FILES_DIR}" "${cache_dir}" &>> "${LOG_PATH}"
 
             # Convert SPT directory path to windows path
-            local path="${CONFIG[spt-path]//\//\\}"
-            path="${path//drive_c/C:}"
+            local path; path=( m_umu winepath -w "${CONFIG[spt-path]}}" )
 
             # Run SPT Installer
             msg "Launching SPT Installer..."
@@ -1335,7 +1330,7 @@ opt_guided_install() {
         init_prefix "${prefix_path}"; check_eft_running; check_aspnet
 
         local install_eft=1
-         # Ask to skip EFT installation if it's already installed
+        # Ask to skip EFT installation if it's already installed
         if check_eft_installed; then
             msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
             [[ "$?" == 0 ]] && install_eft=0
@@ -1351,6 +1346,7 @@ opt_guided_install() {
             opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
             # Update EFT path
+            EFT_DIR=$( get_eft_path )
             if ! check_eft_installed; then
                 warn "${YELLOW} Looks like EFT is not installed!${RESET}"
                 msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
