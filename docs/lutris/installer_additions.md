@@ -40,6 +40,7 @@ To get rid of this extra step and also improve on stability and usability, we be
 ### - **~150GB free disk space**
 
 ### - **[Lutris](https://lutris.net/downloads)**
+- Native package is recommended - Flatpak can cause issues!
 - Check if GPU and vulkan drivers are installed
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - Tested wine versions:
