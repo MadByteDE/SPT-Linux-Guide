@@ -393,7 +393,7 @@ init_prefix() {
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
 
         # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
-        local proton_path="$( find "${COMPAT_DIR}" \( -name "${PROTONPATH}*" -type d \) | tail -n 1 )"
+        local proton_path="$( dir -1 -v "${COMPAT_DIR}" | grep "GE-Proton*" | tail -1 )"
         if [[ "${PROTONPATH}" == "GE-Proton" ]]; then
             msg "Pinning Proton version to \"${proton_path##*/}\""
             set_value env "PROTONPATH=${proton_path##*/}"
