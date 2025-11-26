@@ -11,6 +11,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 ### - **~150GB free disk space**
 
 ### - **[Lutris](https://lutris.net/downloads)**
+- Native package is recommended - Flatpak can cause issues!
 - Check if GPU and vulkan drivers are installed!
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - Tested wine versions:
