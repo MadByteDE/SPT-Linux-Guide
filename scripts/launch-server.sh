@@ -2,11 +2,11 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 #       SPT - Server pre-launch script        #
-#                v2025.11-1                   #
+#                v2025.11-2                   #
 # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Uncomment line below if you installed ASP.NET in your home directory
-# DOTNET_ROOT=$HOME/.dotnet
+# export DOTNET_ROOT=$HOME/.dotnet
 ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
             "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
