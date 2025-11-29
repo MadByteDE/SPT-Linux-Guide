@@ -1414,6 +1414,16 @@ opt_guided_install() {
         if [[ "${steam_install}" == 1 ]]; then
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
+            if command -v steam &>/dev/null; then
+                msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
+                msg "   ► Please ensure the launcher works & the \"${GREEN}Play${RESET}\" button is visible."
+                msg "   ► Then close it again to continue..."
+                opt_run bsg-launcher || err "Failed to launch Escape from Tarkov with Steam"
+            else
+                warn "Cannot launch Steam on your system!"
+                msg "   ► You might need to launch the BSG Launcher once manually to create important metadata"
+                sleep 3
+            fi
         else
             # Ask to skip EFT installation if it's already installed
             local inst_eft=1
@@ -1500,7 +1510,7 @@ opt_run() {
                 ;;
                 *)
                     local args="--disable-software-rasterizer"
-            cd "${BSG_DIR}" && m_umu "BsgLauncher.exe" "$args" "$@"
+                    cd "${BSG_DIR}" && m_umu "BsgLauncher.exe" "$args" "$@"
                 ;;
             esac
         ;;
