@@ -1704,9 +1704,9 @@ opt_help() {
                 msg "fika                           - Install Fika (core + server mod)"
                 msg 
                 msg "${BOLD}SPTarkov install modes (-m switch):${RESET}"
-                msg "native                         - Use the native install method to install the latest SPTarkov release"
-                msg "proton                         - Use Proton to install the latest version of SPTarkov"
+                msg "latest                         - Use the latest install method to install the latest SPTarkov release"
                 msg "legacy                         - Install the legacy version of SPTarkov"
+                msg "proton                         - Use Proton to install the latest version of SPTarkov"
                 msg
                 opt_help switches
             } | more
@@ -1830,7 +1830,7 @@ opt_help() {
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
                 msg "-e <KEY=VALUE>                 - Set an environment variable for the prefix"
-                msg "-m <mode>                      - Set the install mode for SPTarkov (native, proton, legacy)"
+                msg "-m <mode>                      - Set the install mode for SPTarkov (latest, legacy, proton)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
@@ -1878,7 +1878,7 @@ handle_opts() {
             e) opt_env set "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    native|proton|legacy|lutris)
+                    latest|proton|legacy|lutris)
                         msg "Setting install mode to \"${OPTARG}\"..."
                         set_value config "install-mode=${OPTARG}"
                     ;;
