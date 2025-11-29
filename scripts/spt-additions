@@ -386,6 +386,14 @@ set_prefix_path() {
     # Update prefix paths
     case "${WINEPREFIX}" in
         *"steamapps/compatdata/3932890"*)
+            if [[ ! -d "${WINEPREFIX}" ]]; then
+                warn "Game prefix not found!"
+                msg "   ► ${BOLD}Ensure that Escape from Tarkov is installed inside Steam & the prefix directory exists!${RESET}"
+                err "Game prefix not found"
+            fi
+            local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
+            [[ -z "${spt_path}" ]] && spt_path="${HOME}"
+            set_value config "spt-path=${spt_path%/}/Games/SPTarkov"
             BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
             EFT_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
         ;;
@@ -1403,15 +1411,19 @@ opt_guided_install() {
         install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
         install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
 
+        if [[ "${steam_install}" == 1 ]]; then
+            # Launch the BSG Launcher
+            if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
+        else
         # Ask to skip EFT installation if it's already installed
         local inst_eft=1
-        if check_eft_installed && [[ "${steam_install}" == 0 ]]; then
+            if check_eft_installed; then
             msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
             [[ "$?" == 0 ]] && inst_eft=0
         fi
 
         # Install EFT
-        if [[ "${inst_eft}" == 1 && "${steam_install}" == 0 ]]; then
+            if [[ "${inst_eft}" == 1 ]]; then
             opt_install eft
             
             # Run BSG Launcher
@@ -1426,6 +1438,7 @@ opt_guided_install() {
                 msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
                 msg "   ► & that you can see the \"${GREEN}Play${RESET}\" button"
                 err "Failed to get EFT install path"
+                fi
             fi
         fi
 
