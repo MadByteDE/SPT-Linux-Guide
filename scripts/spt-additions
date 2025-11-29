@@ -1976,8 +1976,8 @@ main() {
     export PROTONPATH="${ENV[PROTONPATH]}"
     export PATH=$RUNTIME_DIR:$PATH
 
-    # Check for updates (7 days interval)
-    if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 604800; then
+    # Check for updates (5 days interval)
+    if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 432000; then
         if opt_selfupdate; then
             # Clear temp
             [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
