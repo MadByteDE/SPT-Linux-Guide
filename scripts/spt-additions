@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 readonly TITLE="spt-additions"
-readonly VERSION="1.1.0"
+readonly VERSION="1.1.0-1"
 readonly DATE="2025-11-29"
 
 # ANSI codes
@@ -526,13 +526,13 @@ check_disk_space() {
 
 
 check_prefix_dir() {
-    local check_paths=( "${WINEPREFIX}/system.reg" "${WINEPREFIX}/dosdevices" "${WINEPREFIX}/drive_c" )
+    local target_path="${1%/}"
+    local check_paths=( "${target_path}/system.reg" "${target_path}/dosdevices" "${target_path}/drive_c" )
+    [[ -z "$( m_ls -A "${target_path}" 2>/dev/null )" ]] && return 1
     # Check directory content
-    if [[ -n "$( m_ls -A "${path}" 2>/dev/null )" ]]; then
-        for path in "${check_paths[@]}"; do
-            [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
-        done
-    fi
+    for path in "${check_paths[@]}"; do
+        [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
+    done
     return 0
 }
 
