@@ -41,7 +41,7 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 readonly TITLE="spt-additions"
-readonly VERSION="1.1.0-1"
+readonly VERSION="1.1.0-2"
 readonly DATE="2025-11-29"
 
 # ANSI codes
@@ -538,9 +538,9 @@ check_prefix_dir() {
     local check_paths=( "${target_path}/system.reg" "${target_path}/dosdevices" "${target_path}/drive_c" )
     # Check directory content
     if [[ -d "${target_path}" && -n "$( m_ls -A "${target_path}" 2>/dev/null )" ]]; then
-    for path in "${check_paths[@]}"; do
-        [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
-    done
+        for path in "${check_paths[@]}"; do
+            [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
+        done
     fi
     return 0
 }
@@ -1415,29 +1415,29 @@ opt_guided_install() {
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
         else
-        # Ask to skip EFT installation if it's already installed
-        local inst_eft=1
+            # Ask to skip EFT installation if it's already installed
+            local inst_eft=1
             if check_eft_installed; then
-            msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
-            [[ "$?" == 0 ]] && inst_eft=0
-        fi
+                msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
+                [[ "$?" == 0 ]] && inst_eft=0
+            fi
 
-        # Install EFT
+            # Install EFT
             if [[ "${inst_eft}" == 1 ]]; then
-            opt_install eft
-            
-            # Run BSG Launcher
-            msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
-            msg "   ► When the game is installed, close the Launcher to continue${RESET}"
-            opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
+                opt_install eft
+                
+                # Run BSG Launcher
+                msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
+                msg "   ► When the game is installed, close the Launcher to continue${RESET}"
+                opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
-            # Update EFT path
-            EFT_DIR=$( get_eft_path )
-            if ! check_eft_installed; then
-                warn "${YELLOW} Looks like EFT is not installed!${RESET}"
-                msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
-                msg "   ► & that you can see the \"${GREEN}Play${RESET}\" button"
-                err "Failed to get EFT install path"
+                # Update EFT path
+                EFT_DIR=$( get_eft_path )
+                if ! check_eft_installed; then
+                    warn "${YELLOW} Looks like EFT is not installed!${RESET}"
+                    msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
+                    msg "   ► & that you can see the \"${GREEN}Play${RESET}\" button"
+                    err "Failed to get EFT install path"
                 fi
             fi
         fi
