@@ -67,6 +67,7 @@ readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
 
 # Default setting variables
+readonly DEFAULT_INSTALL_MODE="latest"
 readonly DEFAULT_PROTONPATH="GE-Proton"
 readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
@@ -740,6 +741,10 @@ install_spt() {
     [[ "${install_mode}" == "lutris" ]] && opt_version
 
     msg "${BOLD}Launching \"SPTarkov\" installer...${RESET}"
+    # WORKAROUND: Fixes older config files
+    [[ "${install_mode}" == "native" ]] && set_value config "install-mode=latest"
+    # WORKAROUND: Shows script version for Lutris installs
+    [[ "${install_mode}" == "lutris" ]] && opt_version
     msg "Selected install mode is \"${install_mode}\"..."
 
     if ! check_eft_installed; then
@@ -772,7 +777,7 @@ install_spt() {
 
     # Install SPT
     case "$install_mode" in
-        legacy|native|lutris) install_spt_native ;;
+        latest|legacy|lutris) install_spt_native ;;
         proton)
             # Download & install ASP.NET Desktop Runtime 9.0
             # WORKAROUND: Fixes SPTInstaller requirement check failing
@@ -825,7 +830,7 @@ install_spt() {
     fi
 
     case "${install_mode}" in
-        native|proton|legacy)
+        latest|legacy|proton)
             # Download icons to icons directory
             local launcher_icon="${ICO_DIR}/spt_launcher.png"
             local server_icon="${ICO_DIR}/spt_server.png"
@@ -848,7 +853,7 @@ install_spt_native() {
         # SPT 3.11.x
         legacy) load_metadata legacy && msg "${BOLD}Installing legacy SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
         # SPT 4.x.x
-        native|lutris) load_metadata latest && msg "${BOLD}Installing latest SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
+        latest|lutris) load_metadata latest && msg "${BOLD}Installing latest SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
         *) err "Invalid install mode \"${install_mode}\"" ;;
     esac
 
