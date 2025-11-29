@@ -259,7 +259,10 @@ yesno() {
 
 read_input() {
     if [[ $NO_PROMPT == 1 ]]; then msg "NO_PROMPT variable set - returning 0" && return 0; fi
-    read -e -r -p "│    ► " input; printf "$input\n"
+    read -e -r -p "│    ► " input
+    # HACK: Special input check for canceling the action
+    [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
+    printf "$input\n"
 }
 
 
@@ -1325,10 +1328,9 @@ opt_guided_install() {
         # Choose a custom prefix install location
         msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${WINEPREFIX}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
-        local input; input=$(read_input)
+
+            input=$( read_input ) || return 1
         if [[ -n "$input" ]]; then
-            # HACK: Special input check for canceling the action
-            [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
             local prefix_path="${input//[~]/"$HOME"}"
         fi
 
