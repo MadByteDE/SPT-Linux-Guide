@@ -336,7 +336,7 @@ load_array() {
 
 
 save_array() {
-    local key; local array_name="${1}" || err "Missing argument: \"array_name\""
+    local key; local array_name="${1}"
     [[ ! -d "${CONFIG_DIR}" ]] && return 1
     case "${array_name}" in
         config)
