@@ -1386,7 +1386,7 @@ opt_guided_install() {
 
         if [[ "${steam_install}" == 0 ]]; then
             # Choose a custom prefix install location
-            msg; msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${WINEPREFIX}\")${RESET}"
+            msg; msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${DEFAULT_WINEPREFIX}\")${RESET}"
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
             input=$( read_input ) || return 1
@@ -1394,7 +1394,7 @@ opt_guided_install() {
                 local prefix_path="${input//[~]/"$HOME"}"
             fi
 
-            init_prefix "${prefix_path:-${WINEPREFIX}}"
+            init_prefix "${prefix_path:-${DEFAULT_WINEPREFIX}}"
         fi
 
         check_eft_running
