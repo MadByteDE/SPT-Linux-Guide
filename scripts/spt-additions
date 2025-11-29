@@ -555,14 +555,10 @@ check_latest_installed() {
 
 
 check_aspnet() {
-    if [[ -n "${FLATPAK_SANDBOX_DIR}" ]]; then
-        warn "Flatpak environment detected!"
-        msg "   ► Skipping native ASP.NET dependency check" & return 0
-    fi
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
-        msg "   ► ${YELLOW}Please install it first & retry running this script.${RESET}"
-        err "\"ASP.NET Runtime 9.0\" is not installed"
+        msg "   ► ASP.NET is ${BOLD}REQUIRED${RESET} to run then SPT Linux server!"
+        sleep 3
     fi
 }
 
