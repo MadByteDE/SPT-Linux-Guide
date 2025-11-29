@@ -1491,9 +1491,18 @@ opt_run() {
     
     case "${option}" in
         eft|tarkov|bsg|bsg-launcher)
-            local args="--disable-software-rasterizer"
             msg "${BOLD}Launching BSG Launcher...${RESET}"
+            case "${WINEPREFIX}" in
+                *"steamapps/compatdata/3932890"*)
+                    steam steam://rungameid/3932890 || err "Failed to launch Steam"
+                    local pid; while [[ -z "$pid" ]]; do pid=$( pidof "BsgLauncher.exe" ); done
+                    waitpid $pid
+                ;;
+                *)
+                    local args="--disable-software-rasterizer"
             cd "${BSG_DIR}" && m_umu "BsgLauncher.exe" "$args" "$@"
+                ;;
+            esac
         ;;
         launcher)
             check_eft_running
