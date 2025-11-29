@@ -53,25 +53,30 @@ declare -A CONFIG ENV METADATA CACHE SHORTCUT
 
 # System directories
 readonly SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
-readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
-readonly CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
-readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
-readonly DATA_DIR="${DATA_HOME}/${TITLE}"
-readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
-readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
-readonly COMPAT_DIR="${DATA_HOME}/Steam/compatibilitytools.d"
-readonly RUNTIME_DIR="${DATA_DIR}/runtime"
-readonly FILES_DIR="${CACHE_DIR}/files"
 readonly TMP_DIR="$( mktemp -d "${TMPDIR:-/tmp}/spt-XXXXX" )"
+# Data dirs
+readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+readonly DATA_DIR="${DATA_HOME}/${TITLE}"
 readonly ICO_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 readonly APP_DIR="${DATA_HOME}/applications"
+readonly RUNTIME_DIR="${DATA_DIR}/runtime"
+# Steam data dirs
+readonly STEAM_DIR="${DATA_HOME}/Steam"
+readonly COMPAT_DIR="${STEAM_DIR}/compatibilitytools.d"
+# Cache dirs
+readonly CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
+readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
+readonly FILES_DIR="${CACHE_DIR}/files"
+# Config dirs
+readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 
 # Default setting variables
 readonly DEFAULT_INSTALL_MODE="latest"
 readonly DEFAULT_PROTONPATH="GE-Proton"
 readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
-readonly DEFAULT_SPT_DIR="drive_c/SPTarkov"
-readonly DEFAULT_INSTALL_MODE="native"
+readonly DEFAULT_SPT_DIR="${HOME}/Games/SPTarkov"
+readonly DEFAULT_STEAM_LIBRARY_PATH="${STEAM_DIR}/steamapps"
 
 # File path variables
 readonly SCRIPT_PATH="${SCRIPT_DIR}/${TITLE}"
@@ -356,12 +361,21 @@ save_array() {
 }
 
 
-set_prefix() {
+set_spt_path() {
+    local target_path="$( realpath -m "${1%/}" )"
+    [[ -z "${target_path}" ]] && err "Path argument is not set"
+    check_path "${target_path}"
+    set_value config "spt-path=${target_path}"
+}
+
+
+set_prefix_path() {
     local target_path="$( realpath -m "${1%/}" )"
     [[ -z "${target_path}" ]] && err "Path argument is not set"
 
-    # Validate path
-    check_prefix_path "${target_path}"
+    # Validate prefix path
+    check_path "${target_path}"
+    check_prefix_dir "${target_path}" || err "Given directory is not empty or the prefix is corrupted: \"${target_path}\""
 
     # Update WINEPREFIX environment variable
     export WINEPREFIX="${target_path}"
@@ -370,17 +384,26 @@ set_prefix() {
     set_value env "WINEPREFIX=${target_path}"
 
     # Update prefix paths
-    check_spt_path "${CONFIG[spt-path]}"
-    SPT_DIR="${WINEPREFIX%/}/${CONFIG[spt-path]%/}"
-    BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games"
-    EFT_DIR=$( get_eft_path )
-    msg "Prefix path has been set to \"${WINEPREFIX}\""
+    case "${WINEPREFIX}" in
+        *"steamapps/compatdata/3932890"*)
+            BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
+            EFT_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
+        ;;
+        *)
+            set_value config "spt-path=${WINEPREFIX%/}/drive_c/SPTarkov"
+            BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
+            EFT_DIR=$( get_eft_path )
+        ;;
+    esac
+
+    msg "${BOLD}Prefix path has been set to:${RESET}"
+    msg "   ► ${WINEPREFIX}"
 }
 
 
 init_prefix() {
     local prefix_path=${1:-"${WINEPREFIX}"}
-    set_prefix "${prefix_path}"
+    set_prefix_path "${prefix_path}"
 
     local missing_proton_dir
     [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && missing_proton_dir=1
@@ -393,7 +416,7 @@ init_prefix() {
      # Check if we need to update the prefix
     if [[ "${PROTONPATH}" == "GE-Proton" || "${missing_proton_dir}" || ! -d "${WINEPREFIX}" ]]; then
         # Update the prefix
-        msg "Initializing wine prefix..." && m_umu wineboot -u
+        msg; msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
 
         # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
@@ -409,6 +432,7 @@ init_prefix() {
 get_eft_path() {
     local entry; local path
     # get windows path
+    [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg" )
     path=$( echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
     # Convert to unix path
@@ -416,6 +440,22 @@ get_eft_path() {
     [[ -z "${path}" ]] && exit 12
     # Finally assemble the full path & return it
     printf "%s\n" "${path%/*}"
+}
+
+
+get_steam_game_libraries() {
+    local config_path="${STEAM_DIR}/config/libraryfolders.vdf"
+    local paths; paths=$( cat "${config_path}" | grep "\"path\"" | cut -d "\"" -f4 2>/dev/null )
+    printf "%s\n" "${paths}"
+}
+
+
+get_steam_eft_path() {
+    local library_path="${1}"
+    [[ -z "${library_path}" ]] && exit 12
+    eft_path="${library_path}/steamapps/common/Escape from Tarkov"
+    [[ ! -d "${eft_path}" ]] && exit 10
+    printf "%s\n" "${eft_path}"
 }
 
 
@@ -437,8 +477,8 @@ get_file_version() {
 
 
 get_eft_version() { get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
-get_mod_eft_version() { get_file_version "${SPT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
-get_spt_version() { get_file_version "${SPT_DIR}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
+get_mod_eft_version() { get_file_version "${CONFIG[spt-path]}/EscapeFromTarkov.exe" | cut -d "." -f4; }
+get_spt_version() { get_file_version "${CONFIG[spt-path]}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
 get_env() { local key; printf "$( for key in "${!ENV[@]}"; do printf "${key}=\"${ENV[$key]}\" "; done )\n"; }
 get_hash() { md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null; }
 
@@ -451,7 +491,7 @@ check_target_path() {
     local target_path="${1%/}"
     case "${1}" in
         "") err "Target path is not set" ;;
-        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | \
+        *"${WINEPREFIX}"* | *"${DATA_DIR}"* | *"${CACHE_DIR}"* | *"${ICO_DIR}"* | *"${APP_DIR}"* | *"${CONFIG[spt-path]}"* | \
         *"${HOME}/.local/bin"* | *"${HOME}/bin"* | *"${COMPAT_DIR}"* | *"${CONFIG_DIR}"* | *"${TMP_DIR}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
@@ -485,50 +525,44 @@ check_disk_space() {
 }
 
 
-check_prefix_path() {
-    local status=0; local path
-    local prefix_path="${1%/}"
-    [[ ! "${prefix_path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path format: \"${prefix_path}\""
-    prefix_path="$( realpath -m "${prefix_path}" )"
-    local check_paths=( "${prefix_path}/system.reg" "${prefix_path}/dosdevices" "${prefix_path}/drive_c" )
+check_prefix_dir() {
+    local check_paths=( "${WINEPREFIX}/system.reg" "${WINEPREFIX}/dosdevices" "${WINEPREFIX}/drive_c" )
+    # Check directory content
+    if [[ -n "$( m_ls -A "${path}" 2>/dev/null )" ]]; then
+        for path in "${check_paths[@]}"; do
+            [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
+        done
+    fi
+    return 0
+}
+
+
+check_path() {
+    local status=0
+    local path="${1%/}"
+    [[ ! "${path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path format: \"${path}\""
+    path="$( realpath -m "${path}" )"
 
     while true; do
-        [[ -f "${prefix_path}" ]] && status=1 && break
+        [[ -f "${path}" ]] && status=1 && break
 
         # Check for write permissions
-        local recursive_path="${prefix_path}"
+        local recursive_path="${path}"
         while [[ ! -d "${recursive_path}" ]]; do
             recursive_path="${recursive_path%/*}"
             [[ "${recursive_path}" == "" ]] && status=2 && break
         done
         [[ ! -w "${recursive_path}" ]] && status=3 && break
-
-        # Check directory content
-        if [[ -n "$( m_ls -A "${prefix_path}" 2>/dev/null )" ]]; then
-            for path in "${check_paths[@]}"; do
-                [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && status=4 && break
-            done
-        fi
         break
     done
 
     if [[ $status != 0 ]]; then
         case $status in
-            1) err "Given path is a file: \"${prefix_path}\"" ;;
-            2) err "Failed to resolve prefix path: \"${prefix_path}\"" ;;
-            3) err "No write permission for directory: \"${prefix_path}\"" ;;
-            4) err "Given directory is not empty or the prefix is corrupted: \"${prefix_path}\"" ;;
+            1) err "Given path is a file: \"${path}\"" ;;
+            2) err "Failed to resolve prefix path: \"${path}\"" ;;
+            3) err "No write permission for directory: \"${path}\"" ;;
         esac
     fi
-}
-
-
-check_spt_path() {
-    local spt_path="${1%/}"
-    if [[ "${spt_path}" == "drive_c/"* ]]; then return; fi
-    # Reset to default path
-    set_value config "spt-path=${DEFAULT_SPT_DIR}"
-    err "Invalid spt path: \"${spt_path}\""
 }
 
 
@@ -540,16 +574,23 @@ check_eft_installed() {
 }
 
 
-check_lts_installed() {
-    [[ -z "${SPT_DIR}" || ! -d "${SPT_DIR}" ]] && return 1
-    [[ ! -d "${SPT_DIR}/SPT_Data" || ! -f "${SPT_DIR}/SPT.Launcher.exe" ]] && return 1
+check_legacy_installed() {
+    [[ -z "${CONFIG[spt-path]}" || ! -d "${CONFIG[spt-path]}" ]] && return 1
+    [[ ! -d "${CONFIG[spt-path]}/SPT_Data" || ! -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] && return 1
     return 0
 }
 
 
 check_latest_installed() {
-    [[ -z "${SPT_DIR}" || ! -d "${SPT_DIR}" ]] && return 1
-    [[ ! -d "${SPT_DIR}/SPT" || ! -f "${SPT_DIR}/SPT.Launcher.exe" ]] && return 1
+    [[ -z "${CONFIG[spt-path]}" || ! -d "${CONFIG[spt-path]}" ]] && return 1
+    [[ ! -d "${CONFIG[spt-path]}/SPT" || ! -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] && return 1
+    return 0
+}
+
+
+check_steam_install() {
+    local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${EFT_DIR}" )
+    for path in "${paths[@]}"; do [[ "${path}" != **"/steamapps/"** ]] && return 1; done
     return 0
 }
 
@@ -689,7 +730,7 @@ install_mod_archive() {
         m_download "${url}" "${source_path}"
         check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
     fi
-    m_extract "${source_path}" "${SPT_DIR}"
+    m_extract "${source_path}" "${CONFIG[spt-path]}"
 }
 
 
@@ -704,23 +745,15 @@ install_additions() {
 
 
 install_eft() {
-    msg "${BOLD}Launching \"Tarkov / BSG Launcher\" installer...${RESET}"
+    msg "${BOLD}Launching \"Escape from Tarkov\" installer...${RESET}"
 
     if ! check_eft_installed; then check_disk_space 60; fi
 
-    # Install game dependencies
-    install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
-    install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
-
-    # Add mouse focus workaround
-    msg "Adding mouse focus workaround..."
-    m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
-
-    # Download BSG Launcher setup file
-    m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
-
     # Install BSG Launcher
-    if [[ ! -d "${BSG_DIR}/BsgLauncher" ]]; then
+    if [[ ! -d "${BSG_DIR}" ]]; then
+        # Download BSG Launcher setup file
+        m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
+        
         msg "Installing BSG Launcher..."
         m_umu "${FILES_DIR}/BsgLauncher.exe" /VERYSILENT
     fi
@@ -737,8 +770,6 @@ install_eft() {
 
 install_spt() {
     local install_mode="${CONFIG[install-mode]}"
-    [[ "${install_mode}" == "lutris" ]] && opt_version
-
     msg "${BOLD}Launching \"SPTarkov\" installer...${RESET}"
     # WORKAROUND: Fixes older config files
     [[ "${install_mode}" == "native" ]] && set_value config "install-mode=latest"
@@ -750,8 +781,8 @@ install_spt() {
         warn "${BOLD}Escape from Tarkov is not installed${RESET}"
         msg "   ► make sure to install the game inside the BSG Launcher & try again!"
         err "Escape from Tarkov not found."
-    elif [[ -d "${SPT_DIR}" ]]; then
-        warn "${BOLD}\"${SPT_DIR}\"${RESET} already exists"
+    elif check_latest_installed || check_legacy_installed; then
+        warn "${BOLD}\"${CONFIG[spt-path]}\"${RESET} already exists"
         msg "   ► If you want to reinstall, make sure to move or delete the current installation first!"
         err "SPTarkov directory already exists."
     fi
@@ -769,10 +800,6 @@ install_spt() {
 
     # Add DLL overrides
     opt_dlloverride winhttp n,b
-
-    # Add prefix update pop-up workaround
-    msg "Adding \"RUNDLL32\" pop-up workaround..."
-    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
 
     # Install SPT
     case "$install_mode" in
@@ -798,10 +825,10 @@ install_spt() {
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu "${FILES_DIR}/SPTInstaller.exe" installpath="${path}"
-            if ! check_latest_installed && ! check_lts_installed; then err "Failed to install SPTarkov"; fi
+            if ! check_latest_installed && ! check_legacy_installed; then err "Failed to install SPTarkov"; fi
 
             # Make the Linux server executable
-            m_chmod +x "${SPT_DIR}/SPT/SPT.Server.Linux"
+            m_chmod +x "${CONFIG[spt-path]}/SPT/SPT.Server.Linux"
         ;;
     esac
 
@@ -820,11 +847,11 @@ install_spt() {
     if [[ "${install_mode}" == "legacy" ]]; then set_value env "PROTON_VERB=run"
     else
         # Install the latest server launch script
-        m_download -s "${METADATA[server-script-url]}" "${SPT_DIR}"
-        m_chmod +x "${SPT_DIR}/launch-server.sh"
+        m_download -s "${METADATA[server-script-url]}" "${CONFIG[spt-path]}"
+        m_chmod +x "${CONFIG[spt-path]}/launch-server.sh"
 
         # Create launcher shortcut inside the root directory
-        ln -s "${SPT_DIR}/SPT/SPT.Launcher.exe" "${SPT_DIR}" &>> "${LOG_PATH}"\
+        ln -s "${CONFIG[spt-path]}/SPT/SPT.Launcher.exe" "${CONFIG[spt-path]}" &>> "${LOG_PATH}"\
         || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
     fi
 
@@ -890,20 +917,20 @@ install_spt_native() {
             m_extract "${METADATA[patcher-path]}" "${TMP_DIR}"
 
             # Copy EFT files
-            msg "Copying game files to \"${SPT_DIR}\""
-            m_cp "${EFT_DIR}/" "${SPT_DIR}"
+            msg "Copying game files to \"${CONFIG[spt-path]}\""
+            m_cp "${EFT_DIR}/" "${CONFIG[spt-path]}"
 
             # Move patcher files to install directory
-            msg "Copying patch files to \"${SPT_DIR}\""
+            msg "Copying patch files to \"${CONFIG[spt-path]}\""
             local patch_dir; patch_dir="$(find "${TMP_DIR}" -type d -name '*SPT_Patches*')"
-            m_cp "${patch_dir}" "${SPT_DIR}/SPT_Patches" || err "Failed to copy patch files" 
+            m_cp "${patch_dir}" "${CONFIG[spt-path]}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
-            opt_patch "${SPT_DIR}" || err "Failed to patch game files"
+            opt_patch "${CONFIG[spt-path]}" || err "Failed to patch game files"
         else
             msg "Installed EFT version is compatible with \"SPT ${METADATA[mod-version]}\""
-            msg "Copying game files to \"${SPT_DIR}\""
-            m_cp "${EFT_DIR}/" "${SPT_DIR}"
+            msg "Copying game files to \"${CONFIG[spt-path]}\""
+            m_cp "${EFT_DIR}/" "${CONFIG[spt-path]}"
         fi
     fi
 
@@ -923,7 +950,7 @@ install_fika() {
         warn "${BOLD}SPTarkov is not installed${RESET}"
         msg "   ► make sure to install it & try again!"
         err "SPTarkov not found."
-    elif [[ -d "${SPT_DIR}/BepInEx/plugins/Fika" ]]; then
+    elif [[ -d "${CONFIG[spt-path]}/BepInEx/plugins/Fika" ]]; then
         # Ask for confirmation
         warn "${BOLD}Fika is already installed${RESET}"
         yesno "Do you want to update/re-install Fika?" || return 0
@@ -956,7 +983,7 @@ install_fika() {
 
         # Install archive
         m_download -s -f "${archive_url}" "${archive_path}"
-        m_extract "${archive_path}" "${SPT_DIR}"
+        m_extract "${archive_path}" "${CONFIG[spt-path]}"
 
     done
 
@@ -970,17 +997,23 @@ install_fika() {
 
 uninstall_eft() {
     local no_prompt="${1:-$NO_PROMPT}"
-    [[ ! -d "${BSG_DIR}" ]] && msg "EFT is not installed" && return 0
+    if check_steam_install; then
+        warn "Steam installation of Escape from Tarkov detected!"
+        msg "   ► Please uninstall the game inside Steam instead."
+        return 1
+    fi
 
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
-        msg "Prefix directory: ${UNDERLINE}${WINEPREFIX}${RESET}"
+        msg "   ► EFT: ${BSG_DIR}"
+        msg "   ► BSG Launcher: ${EFT_DIR}"
         yesno "Do you want to continue?" || return 1
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
-    m_rm -r "${BSG_DIR}"
+    m_rm -r "${BSG_DIR}"; m_rm -r "${EFT_DIR}"
+    m_rm -r "${WINEPREFIX}/drive_c/Battlestate Games"
 
     msg "Removing \"BSG Launcher\" shortcut..."
     [[ -f "${SHORTCUT[bsg-launcher]}" ]] && m_rm "${SHORTCUT[bsg-launcher]}"
@@ -990,17 +1023,17 @@ uninstall_eft() {
 
 uninstall_spt() {
     local no_prompt="${1:-$NO_PROMPT}"
-    [[ ! -d "${SPT_DIR}" ]] && msg "SPT is not installed" && return 0
+    [[ ! -d "${CONFIG[spt-path]}" ]] && msg "SPT is not installed" && return 0
 
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
-        msg "SPT directory: ${UNDERLINE}${SPT_DIR}${RESET}"
+        msg "SPT directory: ${UNDERLINE}${CONFIG[spt-path]}${RESET}"
         yesno "Do you want to continue?" || return 1
     fi
 
     msg "Uninstalling \"SPTarkov\"..."
-    m_rm -r "${SPT_DIR}"
+    m_rm -r "${CONFIG[spt-path]}"
 
     msg "Removing \"SPTarkov\" shortcuts..."
     [[ -f "${SHORTCUT[spt-server]}" ]] && m_rm "${SHORTCUT[spt-server]}"
@@ -1011,6 +1044,11 @@ uninstall_spt() {
 
 uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
+    if check_steam_install; then
+        warn "Steam installation of Escape from Tarkov detected!"
+        msg "   ► Please uninstall the game inside Steam instead."
+        return 1
+    fi
     [[ ! -d "${WINEPREFIX}" ]] && msg "Prefix directory does not exist" && return 0
     msg "Removing Prefix directory: \"${WINEPREFIX}\""
     m_rm -r "${WINEPREFIX}"
@@ -1095,17 +1133,16 @@ opt_uninstall() {
         all)
             # Ask for confirmation
             if [[ "${NO_PROMPT}" != 1 ]]; then
-                msg "${BOLD}This action will remove the installed wine prefix!${RESET}"
-                msg "The following directory will be deleted ${BOLD}permanently${RESET}:"
-                msg "${UNDERLINE}${WINEPREFIX}${RESET}"
+                msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
+                msg "   ► ${WINEPREFIX}"
+                msg "   ► ${EFT_DIR}"
+                msg "   ► ${CONFIG[spt-path]}"
                 yesno "Do you want to continue?" || return 1
             fi
+            uninstall_spt 1
+            uninstall_eft 1
             uninstall_prefix 1
-            for shortcut in "${!SHORTCUT[@]}"; do
-                msg "Removing \"${shortcut}\" shortcut..."
-                [[ -f "${SHORTCUT[${shortcut}]}" ]] && m_rm "${SHORTCUT[${shortcut}]}"
-            done
-            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}Done!${RESET}"
+            [[ "${NO_PROMPT}" != 1 ]] && msg "${GREEN}All done!${RESET}"
         ;;
         "") err "Option \"uninstall\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
@@ -1122,7 +1159,7 @@ opt_update() {
 
             # Get metadata
             if check_latest_installed; then load_metadata latest
-            elif check_lts_installed; then load_metadata legacy
+            elif check_legacy_installed; then load_metadata legacy
             else msg "SPTarkov is not installed"; return 0; fi
             
             load_metadata mod-eft
@@ -1148,7 +1185,7 @@ opt_update() {
                     msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
-                    msg "   2. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
+                    msg "   2. Backup or delete your old SPTarkov directory in \"${CONFIG[spt-path]}\""
                     msg "   3. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   4. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 } | more
@@ -1161,10 +1198,10 @@ opt_update() {
                     msg
                     msg "   ${BOLD}How to update:${RESET}"
                     msg "   1. Download the latest release archive: ${METADATA[mod-url]}"
-                    msg "   2. Extract its content into \"${SPT_DIR}\" & override when asked"
+                    msg "   2. Extract its content into \"${CONFIG[spt-path]}\" & override when asked"
                     msg
                     msg "   ${BOLD}How to re-install:${RESET}"
-                    msg "   1. Backup or delete your old SPTarkov directory in \"${SPT_DIR}\""
+                    msg "   1. Backup or delete your old SPTarkov directory in \"${CONFIG[spt-path]}\""
                     msg "   2. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   3. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 }
@@ -1220,7 +1257,7 @@ opt_update() {
 opt_patch() {
     msg "${BOLD}Launching patcher...${RESET}"
     local files_total; local progress=1
-    local target_path="${1:-"${SPT_DIR}"}";  local source_path="${2:-"${target_path}"}"
+    local target_path="${1:-"${CONFIG[spt-path]}"}";  local source_path="${2:-"${target_path}"}"
     target_path=$( realpath -m "${target_path%/}" );  source_path=$( realpath -m "${source_path%/}" )
     [[ -z "${target_path}" ]] && err "Target path is not set"
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
@@ -1287,7 +1324,7 @@ opt_patch() {
     if [[ "$status" -ne "0" ]]; then
         # Failed patching
         msg "Removing corrupted game files..."
-        m_rm -r "${SPT_DIR}" || err "Failed to remove corrupted game files" $status
+        m_rm -r "${CONFIG[spt-path]}" || err "Failed to remove corrupted game files" $status
         return 1
     fi
     
@@ -1317,30 +1354,63 @@ opt_guided_install() {
         msg "   ► Install the BSG Launcher"
         msg "   ► Install SPTarkov"
         msg "   ► Add application menu shortcuts"
-        msg
     } | more
     
     while true; do
-        # Choose a custom prefix install location
-        msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${WINEPREFIX}\")${RESET}"
-        msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
+        # Check if Steam version of EFT is installed
+        local steam_paths=( $( get_steam_game_libraries ) )
+        local steam_install=0
+        local input
+
+        for path in "${steam_paths[@]}"; do
+            local steam_eft_dir; steam_eft_dir=$( get_steam_eft_path "${path}" )
+            if [[ -n "${steam_eft_dir}" && -n "$( m_ls -A "${steam_eft_dir}" 2>/dev/null )" ]]; then
+                # Found EFT in a Steam library
+                msg; msg "${BOLD}Found Steam version of \"Escape from Tarkov\" in:${RESET}"
+                msg "   ► ${steam_eft_dir}"
+                set_value config "steam-library-path=${path}/steamapps"
+                msg; init_prefix "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
+                steam_install=1
+                break
+            fi
+        done
+
+        if [[ "${steam_install}" == 0 ]]; then
+            # Choose a custom prefix install location
+            msg; msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${WINEPREFIX}\")${RESET}"
+            msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
             input=$( read_input ) || return 1
-        if [[ -n "$input" ]]; then
-            local prefix_path="${input//[~]/"$HOME"}"
+            if [[ -n "$input" ]]; then
+                local prefix_path="${input//[~]/"$HOME"}"
+            fi
+
+            init_prefix "${prefix_path:-${WINEPREFIX}}"
         fi
 
-        init_prefix "${prefix_path}"; check_eft_running; check_aspnet
+        check_eft_running
 
-        local install_eft=1
+        # Add prefix update pop-up workaround
+        msg; msg "Adding \"RUNDLL32\" pop-up workaround..."
+        m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
+
+        # Add mouse focus workaround
+        msg "Adding mouse focus workaround..."
+        m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${LOG_PATH}"
+
+        # Install EFT dependencies
+        install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
+        install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
+
         # Ask to skip EFT installation if it's already installed
-        if check_eft_installed; then
+        local inst_eft=1
+        if check_eft_installed && [[ "${steam_install}" == 0 ]]; then
             msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
-            [[ "$?" == 0 ]] && install_eft=0
+            [[ "$?" == 0 ]] && inst_eft=0
         fi
 
         # Install EFT
-        if [[ "$install_eft" == 1 ]]; then
+        if [[ "${inst_eft}" == 1 && "${steam_install}" == 0 ]]; then
             opt_install eft
             
             # Run BSG Launcher
@@ -1357,6 +1427,12 @@ opt_guided_install() {
                 err "Failed to get EFT install path"
             fi
         fi
+
+        # Choose SPTarkov install path
+        msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPTarkov (Leave blank for \"${CONFIG[spt-path]}\")${RESET}"
+        msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
+        input=$( read_input ) || return 1
+        set_spt_path "${input:-${CONFIG[spt-path]}}"
 
         # Install SPT
         opt_install spt
@@ -1403,18 +1479,18 @@ opt_run() {
         eft|tarkov|bsg|bsg-launcher)
             local args="--disable-software-rasterizer"
             msg "${BOLD}Launching BSG Launcher...${RESET}"
-            cd "${BSG_DIR}/BsgLauncher" && m_umu "BsgLauncher.exe" "$args" "$@"
+            cd "${BSG_DIR}" && m_umu "BsgLauncher.exe" "$args" "$@"
         ;;
         launcher)
             check_eft_running
             msg "${BOLD}Launching SPT Launcher...${RESET}"
-            cd "${SPT_DIR}" && m_umu "SPT.Launcher.exe" "$@"
+            cd "${CONFIG[spt-path]}" && m_umu "SPT.Launcher.exe" "$@"
         ;;
         server)
             check_eft_running
             msg "${BOLD}Launching SPT Server...${RESET}"
-            cd "${SPT_DIR}" || exit
-            if check_lts_installed; then m_umu "SPT.Server.exe" "$@"
+            cd "${CONFIG[spt-path]}" || exit
+            if check_legacy_installed; then m_umu "SPT.Server.exe" "$@"
             else "./launch-server.sh" "$@"; fi
         ;;
         "") err "Option \"run\" requires an argument" ;;
@@ -1526,31 +1602,31 @@ opt_shortcut() {
             CACHE[name]="BSG - Launcher"
             CACHE[exe_path]="BsgLauncher.exe"
             CACHE[args]="--disable-software-rasterizer"
-            CACHE[working_dir]="${BSG_DIR}/BsgLauncher"
+            CACHE[working_dir]="${BSG_DIR}"
             CACHE[icon]="bsg_launcher"
         ;;
         launcher)
             CACHE[name]="SPT - Launcher"
             CACHE[exe_path]="SPT.Launcher.exe"
-            CACHE[working_dir]="${SPT_DIR}"
+            CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_launcher"
         ;;
         server)
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="launch-server.sh"
             CACHE[env]=""
-            CACHE[working_dir]="${SPT_DIR}"
+            CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
         ;;
         legacy-server)
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="SPT.Server.exe"
-            CACHE[working_dir]="${SPT_DIR}"
+            CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
         ;; 
         spt|sptarkov)
             opt_shortcut launcher
-            if check_lts_installed; then opt_shortcut legacy-server
+            if check_legacy_installed; then opt_shortcut legacy-server
             else opt_shortcut server; fi
             return 0
         ;;
@@ -1874,7 +1950,7 @@ handle_opts() {
     # Handle switches
     while getopts ":p:e:a:m:h:v:-:" subopt; do
         case ${subopt} in
-            p) set_prefix "${OPTARG}" ;;
+            p) set_prefix_path "${OPTARG}" ;;
             e) opt_env set "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
@@ -1920,7 +1996,7 @@ handle_opts() {
 
     # Initialize wine prefix
     case "${option}" in
-        shortcut|uninstall) set_prefix "${WINEPREFIX}" 1>/dev/null ;;
+        shortcut|uninstall) set_prefix_path "${WINEPREFIX}" 1>/dev/null ;;
         install|update|dlloverride|run) init_prefix ;;
     esac
 
@@ -1952,8 +2028,9 @@ main() {
 
     # Set default config variables
     [[ -f "${CONFIG_PATH}" ]] && load_array config
-    set_value config "spt-path=${CONFIG[spt-path]:-"${DEFAULT_SPT_DIR}"}"
+    set_spt_path "${CONFIG[spt-path]:-${DEFAULT_SPT_DIR}}"
     set_value config "install-mode=${CONFIG[install-mode]:-"${DEFAULT_INSTALL_MODE}"}"
+    set_value config "steam-library-path=${CONFIG[steam-library-path]:-"${DEFAULT_STEAM_LIBRARY_PATH}"}"
 
     # Set default environment variables
     [[ -f "${ENV_PATH}" ]] && load_array env
