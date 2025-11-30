@@ -1415,7 +1415,7 @@ opt_guided_install() {
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
             if command -v steam &>/dev/null; then
-                msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
+                msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
                 msg "   ► Please ensure the launcher works & the \"${GREEN}Play${RESET}\" button is visible."
                 msg "   ► Then close it again to continue..."
                 opt_run bsg-launcher || err "Failed to launch Escape from Tarkov with Steam"
@@ -1505,7 +1505,11 @@ opt_run() {
             case "${WINEPREFIX}" in
                 *"steamapps/compatdata/3932890"*)
                     steam steam://rungameid/3932890 || err "Failed to launch Steam"
-                    local pid; while [[ -z "$pid" ]]; do pid=$( pidof "BsgLauncher.exe" ); done
+                    local pid; local c; while [[ -z "$pid" ]]; do
+                        pid=$( pidof "BsgLauncher.exe" )
+                        ((c++)) && ((c==15)) && break
+                        sleep 1
+                    done
                     waitpid $pid
                 ;;
                 *)
