@@ -1504,10 +1504,11 @@ opt_run() {
             msg "${BOLD}Launching BSG Launcher...${RESET}"
             case "${WINEPREFIX}" in
                 *"steamapps/compatdata/3932890"*)
-                    steam steam://rungameid/3932890 || err "Failed to launch Steam"
+                    steam steam://rungameid/3932890 || err "Failed to launch Steam / BSG Launcher"
                     local pid; local c; while [[ -z "$pid" ]]; do
                         pid=$( pidof "BsgLauncher.exe" )
-                        ((c++)) && ((c==15)) && break
+                        # Timeout
+                        ((c++)) && ((c==30)) && break
                         sleep 1
                     done
                     waitpid $pid
