@@ -388,7 +388,8 @@ set_prefix_path() {
         *"steamapps/compatdata/3932890"*)
             if [[ ! -d "${WINEPREFIX}" ]]; then
                 warn "Game prefix not found!"
-                msg "   ► ${BOLD}Ensure that Escape from Tarkov is installed inside Steam & the prefix directory exists!${RESET}"
+                msg "   ► ${BOLD}Ensure that Escape from Tarkov is installed inside Steam${RESET}"
+                msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
                 err "Game prefix not found"
             fi
             local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
