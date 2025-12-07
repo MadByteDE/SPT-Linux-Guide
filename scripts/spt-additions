@@ -1334,7 +1334,7 @@ opt_patch() {
     if [[ "$status" -ne "0" ]]; then
         # Failed patching
         msg "Removing corrupted game files..."
-        m_rm -r "${CONFIG[spt-path]}" || err "Failed to remove corrupted game files" $status
+        m_rm -r "${target_path}" || err "Failed to remove corrupted game files" $status
         return 1
     fi
     
