@@ -67,6 +67,7 @@ readonly COMPAT_DIR="${STEAM_DIR}/compatibilitytools.d"
 readonly CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
 readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly FILES_DIR="${CACHE_DIR}/files"
+readonly METADATA_DIR="${CACHE_DIR}/metadata"
 # Config dirs
 readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
@@ -84,13 +85,13 @@ readonly LOG_PATH="${CACHE_DIR}/installer.log"
 readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/app.conf"
 readonly ENV_PATH="${CONFIG_DIR}/env.conf"
-readonly METADATA_PATH="${CACHE_DIR}/metadata.conf"
+readonly METADATA_PATH="${METADATA_DIR}/metadata.conf"
 readonly MOD_PATH="${FILES_DIR}/spt.7z"
 readonly LEGACY_MOD_PATH="${FILES_DIR}/legacy-spt.7z"
 readonly PATCHER_PATH="${FILES_DIR}/patcher.7z"
 readonly LEGACY_PATCHER_PATH="${FILES_DIR}/legacy-patcher.7z"
-readonly MOD_JSON_PATH="${CACHE_DIR}/release.json"
-readonly PATCHER_JSON_PATH="${CACHE_DIR}/mirrors.json"
+readonly MOD_JSON_PATH="${METADATA_DIR}/release.json"
+readonly PATCHER_JSON_PATH="${METADATA_DIR}/mirrors.json"
 
 # Metadata file
 readonly METADATA_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
@@ -967,7 +968,7 @@ install_fika() {
     fi
 
     for release in "${releases[@]}"; do
-        local json_path="${CACHE_DIR}/${release}.json"
+        local json_path="${METADATA_DIR}/${release}.json"
         local archive_path="${FILES_DIR}/${release}.zip"
         
         # Get metadata json
@@ -1699,7 +1700,7 @@ opt_clean() {
     local path; local paths=()
 
     case "${option}" in
-        metadata) paths=( "${CACHE_DIR}/metadata.conf" "${CACHE_DIR}/release.json" "${CACHE_DIR}/mirrors.json" ) ;;
+        metadata) paths=( "${METADATA_DIR}" ) ;;
         cache) paths=( "${CACHE_DIR}" ) ;;
         config) paths=( "${CONFIG_DIR}" ) ;;
         data) paths=( "${DATA_DIR}" ) ;;
