@@ -1532,7 +1532,7 @@ opt_run() {
             msg "${BOLD}Launching SPT Server...${RESET}"
             cd "${CONFIG[spt-path]}" || exit
             if check_legacy_installed; then m_umu "SPT.Server.exe" "$@"
-            else "./launch-server.sh" "$@"; fi
+            else "./launch-server.sh" "$@" &>> "${LOG_PATH}"; fi
         ;;
         "") err "Option \"run\" requires an argument" ;;
         *)
