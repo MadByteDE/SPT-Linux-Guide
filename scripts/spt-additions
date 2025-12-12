@@ -1229,6 +1229,7 @@ opt_update() {
                 err "Unhandled exception"
             fi
         ;;
+        fika) load_metadata mod-eft; NO_PROMPT=1 install_fika ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
             [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
@@ -1839,6 +1840,7 @@ opt_help() {
         update)
             {   msg "${BOLD}Available options:${RESET}"
                 msg "spt|sptarkov                   - Update SPTarkov to the latest version"
+                msg "fika                           - Update Fika to the latest version"
                 msg "proton                         - Update GE-Proton to the latest version"
                 msg "additions|script               - Update this additions script"
                 msg
