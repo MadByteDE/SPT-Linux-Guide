@@ -1498,7 +1498,7 @@ opt_guided_install() {
 
 
 opt_run() {
-    # SYNTAX: spt-additions -e MANGOHUD=1 run spt-launcher 
+    # SYNTAX: spt-additions -e MANGOHUD=1 run launcher
     local option="$1" && shift
     [[ -z "${option}" ]] && err "Option \"run\" requires an argument"
     
@@ -1631,7 +1631,7 @@ add_app_shortcut() {
 
 
 opt_shortcut() {
-    # SYNTAX: spt-additions -p "" -e "" -a "" shortcut spt-launcher
+    # SYNTAX: spt-additions -p "" -e "" -a "" shortcut launcher
     local option="$1" && shift
     local env=$( get_env )
     CACHE[_id]="app-shortcut"
@@ -1696,7 +1696,7 @@ opt_shortcut() {
 
 
 opt_clean() {
-    # SYNTAX: spt-additions clean all --no-prompt
+    # SYNTAX: spt-additions --no-prompt clean all 
     local option="$1" && shift
     local path; local paths=()
 
@@ -1707,7 +1707,7 @@ opt_clean() {
         data) paths=( "${DATA_DIR}" ) ;;
         runtime) paths=( "${RUNTIME_DIR}" )  ;;
         files) paths=( "${FILES_DIR}" )  ;;
-        all) paths+=( "${CACHE_DIR}" "${DATA_DIR}" "${CONFIG_DIR}" ) ;;
+        all) paths=( "${CACHE_DIR}" "${CONFIG_DIR}" "${DATA_DIR}" ) ;;
         "") err "Option \"clean\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
