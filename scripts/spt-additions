@@ -696,6 +696,27 @@ check_ttl() {
 }
 
 
+add_battleeye_workaround() {
+    # Derived from: https://github.com/nmlynch94/tarkov-flatpak/blob/main/scripts/tarkov-run.sh#L109
+    local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
+    local binary_path="${EFT_DIR}/BattlEye/BEService_x64.exe"
+    local dst_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Common Files/BattlEye"
+
+    msg "Adding BattleEye service workaround (This might take a bit) ..."
+    if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
+    if [[ ! -f "${dst_dir}/BEService_x64.exe" ]]; then m_cp "${binary_path}" "${dst_dir}/BEService_x64.exe"; fi
+
+    m_umu reg add "${key}" /v DisplayName /t REG_SZ /d "BattlEye Service" /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v ImagePath   /t REG_SZ /d 'C:\Program Files (x86)\Common Files\BattlEye\BEService_x64.exe' /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v ObjectName  /t REG_SZ /d "LocalSystem" /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v ErrorControl       /t REG_DWORD /d 1      /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v PreshutdownTimeout /t REG_DWORD /d 180000 /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v Start              /t REG_DWORD /d 2      /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v Type               /t REG_DWORD /d 16     /f 1>> "${LOG_PATH}"
+    m_umu reg add "${key}" /v WOW64              /t REG_DWORD /d 1      /f 1>> "${LOG_PATH}"
+}
+
+
 # # # # # # # # # # # # #
 #  Installer functions  #
 # # # # # # # # # # # # #
@@ -1417,6 +1438,10 @@ opt_guided_install() {
         if [[ "${steam_install}" == 1 ]]; then
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
+
+            # Add BattleEye workaround 
+            msg; add_battleeye_workaround
+
             if command -v steam &>/dev/null; then
                 msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
                 msg "   ► Please ensure the launcher works & the \"${GREEN}Play${RESET}\" button is visible."
@@ -1438,6 +1463,9 @@ opt_guided_install() {
             # Install EFT
             if [[ "${inst_eft}" == 1 ]]; then
                 opt_install eft
+                
+                # Add BattleEye workaround 
+                msg; add_battleeye_workaround
                 
                 # Run BSG Launcher
                 msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
