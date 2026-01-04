@@ -53,7 +53,6 @@ declare -A CONFIG ENV METADATA CACHE SHORTCUT
 
 # System directories
 readonly SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
-readonly TMP_DIR="$( mktemp -d "${TMPDIR:-/tmp}/spt-XXXXX" )"
 # Data dirs
 readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly DATA_DIR="${DATA_HOME}/${TITLE}"
@@ -68,6 +67,7 @@ readonly CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
 readonly CACHE_DIR="${CACHE_HOME}/${TITLE}"
 readonly FILES_DIR="${CACHE_DIR}/files"
 readonly METADATA_DIR="${CACHE_DIR}/metadata"
+readonly TMP_DIR="${CACHE_DIR}/tmp"
 # Config dirs
 readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
@@ -2065,8 +2065,8 @@ handle_opts() {
 
 main() {
     # Create dirs
-    local dir; local dirs=( "${DATA_DIR}" "${RUNTIME_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${APP_DIR}" "${ICO_DIR}" "${FILES_DIR}" )
-    for dir in "${dirs[@]}"; do [[ ! -d "${dir}" ]] && mkdir -p "${dir}"; done
+    local dirs=( "${TMP_DIR}" "${DATA_DIR}" "${RUNTIME_DIR}" "${CONFIG_DIR}" "${APP_DIR}" "${ICO_DIR}" "${FILES_DIR}" )
+    local dir; for dir in "${dirs[@]}"; do [[ ! -d "${dir}" ]] && mkdir -p "${dir}"; done
 
     # Set default config variables
     [[ -f "${CONFIG_PATH}" ]] && load_array config
