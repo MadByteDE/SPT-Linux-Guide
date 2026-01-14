@@ -22,7 +22,7 @@ Additions CLI installer ⭐
   - 
 
   > [!WARNING]
-  > NixOS is currently not supported ([#14](https://github.com/MadByteDE/SPT-Linux-Guide/pull/14))
+  > NixOS is currently not supported ([#14](https://github.com/zephyrgaldrikian-stack/SPT-Linux-Guide/pull/14))
 
   - Guided installer for EFT/SPT using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
@@ -31,7 +31,7 @@ Additions CLI installer ⭐
   3. Run the following command in a terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/main/scripts/spt-additions)"
 ```
 
 [Lutris installer](docs/lutris/installer_additions.md) (Additions)
@@ -54,8 +54,8 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 
 ## Contributions
 If you want to contribute to the guide, feel free to:
-- Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare)
-- Open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose)
+- Send us a [pull request](https://github.com/zephyrgaldrikian-stack/SPT-Linux-Guide/compare)
+- Open a [new issue](https://github.com/zephyrgaldrikian-stack/SPT-Linux-Guide/issues/new/choose)
 - Contact us on [Discord](https://discord.com/invite/Xn9msqQZan)
 
 If you want to send us a PR, please make sure the formatting of your addition matches the existing content in our guide.

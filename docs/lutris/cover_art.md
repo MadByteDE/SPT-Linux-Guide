@@ -1,9 +1,9 @@
 
 ## Bonus: Lutris cover/banner
 
-<img src="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart_overview.webp" >
+<img src="https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart_overview.webp" >
 
-[Download archive (*.tar.gz)](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
+[Download archive (*.tar.gz)](https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
 
 >**Credits:** @Rasdow (OG Artist), SPT team, MadByte (Edit)
 
@@ -11,7 +11,7 @@
 
 Here is the easiest way to install:
 
-- Download and extract the [archive (*.tar.gz)](https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
+- Download and extract the [archive (*.tar.gz)](https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/refs/heads/main//media/coverart/coverart.tar.gz)
 
 - Right click the `SPTarkov shortcut` → `Configure`
 - Click on the desired format & navigate to the downloaded cover/banner/icon

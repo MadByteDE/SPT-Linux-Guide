@@ -94,7 +94,7 @@ readonly MOD_JSON_PATH="${METADATA_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${METADATA_DIR}/mirrors.json"
 
 # Metadata file
-readonly METADATA_URL="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
+readonly METADATA_URL="https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/main/scripts/metadata.conf"
 
 # Shortcut paths
 SHORTCUT[bsg-launcher]="${APP_DIR}/BSG - Launcher.desktop"

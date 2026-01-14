@@ -7,7 +7,7 @@
 
 description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
 notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
-credits: "https://github.com/MadByteDE/SPT-Linux-Guide"
+credits: "https://github.com/zephyrgaldrikian-stack/SPT-Linux-Guide"
 game_slug: sptarkov
 installer_slug: sptarkov-additions-installer
 name: SPTarkov - Launcher
@@ -25,7 +25,7 @@ script:
     requires: escape-from-tarkov
     installer:
     # Install SPT using the native installer script
-    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
+    # Source - https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/main/scripts/spt-additions
     - merge:
         src: spt-additions
         dst: $GAMEDIR
