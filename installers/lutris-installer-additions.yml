@@ -15,7 +15,7 @@ runner: wine
 script:
     files:
     - spt-additions:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
+        url: https://raw.githubusercontent.com/zephyrgaldrikian-stack/SPT-Linux-Guide/main/scripts/spt-additions
         filename: spt-additions
     game:
         arch: win64
