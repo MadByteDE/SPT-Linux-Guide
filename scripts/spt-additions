@@ -1270,8 +1270,8 @@ opt_update() {
                     msg "   ► ${COMPAT_DIR}/${old_version}"
                 } | more
                 yesno "Do you want to update?" || return 0
-                m_download "${METADATA[ge-proton-url]}/download/${latest_version}/${latest_version}.tar.zst" "${TMP_DIR}"
-                m_extract "${TMP_DIR}/${latest_version}.tar.zst" "${COMPAT_DIR}"
+                m_download "${METADATA[ge-proton-url]}/download/${latest_version}/${latest_version}.tar.gz" "${TMP_DIR}"
+                m_extract "${TMP_DIR}/${latest_version}.tar.gz" "${COMPAT_DIR}"
                 m_rm -rf "${COMPAT_DIR}/${old_version}"
                 set_value env "PROTONPATH=${latest_version}"
                 opt_shortcut all
