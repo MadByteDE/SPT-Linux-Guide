@@ -515,7 +515,8 @@ check_verb() {
 
 
 check_disk_space() {
-    local total_gb=${1}; local path="${2:-"${WINEPREFIX}"}"
+    local total_gb=${1};
+    local path="${2:-"${CONFIG[spt-path]}"}"
     [[ -z "${path}" ]] && err "Missing path argument"
     [[ ! -d "${path}" ]] && err "Directory does not exist: ${path}"
     # Get required values
