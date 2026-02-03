@@ -518,7 +518,10 @@ check_disk_space() {
     local total_gb=${1};
     local path="${2:-"${CONFIG[spt-path]}"}"
     [[ -z "${path}" ]] && err "Missing path argument"
-    [[ ! -d "${path}" ]] && err "Directory does not exist: ${path}"
+    # Get next existing directory path to check available disk space
+    while [[ ! -d "${path}" ]]; do
+        path="${path%/*}"; [[ "${path}" == "" ]] && err "Invalid path: ${path}"
+    done
     # Get required values
     local free_kb; free_kb=$( df -k "${path}" | tail -1 | awk '{print $4}' )
     local free_gb; free_gb=$( echo "${free_kb}" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }' )
