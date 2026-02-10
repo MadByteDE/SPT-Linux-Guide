@@ -18,13 +18,18 @@ We provide two methods to patch the game files on Linux.
 
 ### Installation
 
-- **1) Move `SPT_Patches` to your install directory**
+- **1) Download the [spt-additions](../scripts/spt-additions) script**
+    - Then, launch a terminal from within the script's directory & make the script executable:
+
+          chmod +x ./spt-additions
+
+- **2) Move `SPT_Patches` to your install directory**
     - Extract the downgrade patcher archive, then copy and paste the `SPT_Patches` directory to your SPT install directory
 
-- **2) Run the script**
-    - Launch a terminal from within the script's directory and run the following command - pointing to the correct SPT install directory, e.g. :
+- **3) Run the script**
+    -  Now run the script with the `patch` command pointing to your SPT install directory, e.g. :
 
-          ./spt-linux-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
+           ./spt-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
 
 > [!TIP]
 > For more details, run `./spt-additions help patch`.
