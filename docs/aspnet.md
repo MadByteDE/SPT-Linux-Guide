@@ -8,8 +8,21 @@ To run the native Linux server you need to install the native ASP.NET Runtime 9 
 ## How to install
 
 **Ubuntu / Debian (based)**
+Add Microsoft package siging key and add the package repository
 ```
-sudo apt install aspnetcore-runtime-9.0
+wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+```
+```
+sudo dpkg -i packages-microsoft-prod.deb
+```
+```
+rm packages-microsoft-prod.deb
+```
+
+Then update and download runtime
+```
+sudo apt-get update && \
+sudo apt-get install -y aspnetcore-runtime-9.0
 ```
 
 > [!NOTE]
