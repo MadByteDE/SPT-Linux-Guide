@@ -7,10 +7,12 @@ To run the native Linux server you need to install the native ASP.NET Runtime 9 
 
 ## How to install
 
-**Ubuntu / Debian (based)**
-Add Microsoft package siging key and add the package repository
+### Ubuntu / Debian
+
+> [!NOTE]
+> On Debian you might need to add the Microsoft package repository first:
 ```
-wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+curl https://packages.microsoft.com/config/debian/13/packages-microsoft-prod.deb -o packages-microsoft-prod.deb
 ```
 ```
 sudo dpkg -i packages-microsoft-prod.deb
@@ -19,30 +21,31 @@ sudo dpkg -i packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb
 ```
 
-Then update and download runtime
-```
-sudo apt-get update && \
-sudo apt-get install -y aspnetcore-runtime-9.0
-```
-
 > [!NOTE]
-> On some distributions you might need to add the `dotnet/backports` PPA:
+> On Ubuntu-based distributions you might need to add the `dotnet/backports` PPA:
 
 ```
 sudo add-apt-repository ppa:dotnet/backports
 sudo apt update
 ```
-**Fedora (based)**
+
+After adding the repository / PPA, you can install the package:
+```
+sudo apt-get update && \
+sudo apt-get install -y aspnetcore-runtime-9.0
+```
+
+### Fedora (based)
 ```
 sudo dnf install aspnetcore-runtime-9.0
 ```
 
-**Fedora Atomic (e.g. Bazzite/Aurora/Bluefin)**
+### Fedora Atomic (e.g. Bazzite/Aurora/Bluefin)
 ```
 rpm-ostree install aspnetcore-runtime-9.0
 ```
 
-**Arch (based)**
+### Arch (based)
 ```
 sudo pacman -S aspnet-runtime-9.0
 ```
