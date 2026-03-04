@@ -54,7 +54,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 
 ## Contributions
 If you want to contribute to the guide, feel free to:
-- Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare)
+- Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare/SPTv4-Dev...main)
 - Open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose)
 - Contact us on [Discord](https://discord.com/invite/Xn9msqQZan)
 
