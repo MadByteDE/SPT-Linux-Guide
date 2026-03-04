@@ -29,7 +29,7 @@ sudo add-apt-repository ppa:dotnet/backports
 sudo apt update
 ```
 
-After adding the repository / PPA, you can install the package:
+Now you can install the package:
 ```
 sudo apt-get update && \
 sudo apt-get install -y aspnetcore-runtime-9.0
