@@ -41,8 +41,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 readonly TITLE="spt-additions"
-readonly VERSION="1.1.2"
-readonly DATE="2026-02-03"
+readonly VERSION="1.1.3"
+readonly DATE="2026-03-30"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -930,13 +930,13 @@ install_spt_native() {
             msg "    ► This usually happens when EFT has been updated recently."
             msg "    ► Please wait for the SPT team to generate a new patcher."
             msg "    ► Usually, this will take less then 24 hours."
-            err "No patcher available"
+            err "No patcher available (Installed version: ${METADATA[inst-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
             # EFT is outdated!
             warn "Looks like your installed EFT version is out-of-date"
             msg "    ► Please update your live EFT installation & try again"
-            err "EFT is out-of-date"
+            err "EFT is out-of-date (Patch: ${METADATA[patcher-eft]} <-> Installed: ${METADATA[inst-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -eq "${METADATA[inst-eft]}" ]]; then
             # Downpatcher is compatible!
@@ -2111,6 +2111,7 @@ main() {
     [[ -z "${ENV[WINEPREFIX]}" ]] && set_value env "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
     [[ -z "${ENV[PROTONPATH]}" ]] && set_value env "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
     [[ -z "${ENV[PROTON_USE_XALIA]}" ]] && set_value env "PROTON_USE_XALIA=0"
+    [[ -z "${ENV[PROTON_MEDIA_USE_GST]}" ]] && set_value env "PROTON_MEDIA_USE_GST=1"
     [[ -z "${ENV[DOTNET_BUNDLE_EXTRACT_BASE_DIR]}" ]] && set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
     [[ -z "${ENV[DOTNET_ROOT]}" ]] && set_value env "DOTNET_ROOT="
 
