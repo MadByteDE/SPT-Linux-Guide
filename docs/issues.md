@@ -119,8 +119,12 @@ In Lutris on the game shortcut, enable:
 - `Configure` → `system options` → `Disable Lutris Runtime`
 
 **#2:** 
-If you use an Unheard edition profile, switch from the Unheard menu background in the game settings to any other background:
+If you use an Unheard edition profile, you can either switch from the Unheard menu background in the game settings to any other background:
 - `Settings` → `Main menu background`
+
+Or you can try adding `PROTON_MEDIA_USE_GST=1` as environment variable:
+- Lutris: `Configure` → `system options` → `Environment variables`
+- Additions script: `spt-additions -e PROTON_MEDIA_USE_GST=1 shortcut all`
 
 [Back](#table-of-content)
 
