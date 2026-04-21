@@ -589,6 +589,12 @@ check_eft_installed() {
 }
 
 
+# True when BSG Launcher was installed into the prefix (exe present under BSG_DIR).
+check_bsg_launcher_installed() {
+    [[ -n "${BSG_DIR}" && -f "${BSG_DIR}/BsgLauncher.exe" ]]
+}
+
+
 check_legacy_installed() {
     [[ -z "${CONFIG[spt-path]}" || ! -d "${CONFIG[spt-path]}" ]] && return 1
     [[ ! -d "${CONFIG[spt-path]}/SPT_Data" || ! -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] && return 1
@@ -792,6 +798,15 @@ install_eft() {
         
         msg "Installing BSG Launcher..."
         m_umu "${FILES_DIR}/BsgLauncher.exe" /VERYSILENT
+    fi
+
+    # Silent setup can exit 0 even when the installer crashed in Wine
+    if ! check_bsg_launcher_installed; then
+        warn "${BOLD}BSG Launcher did not appear in the wine prefix after setup.${RESET}"
+        msg "   ► You may try to install manually with the same prefix, e.g.:"
+        msg "   ► ${BOLD}WINEPREFIX=\"${WINEPREFIX}\" ${UMU_PATH} \"${FILES_DIR}/BsgLauncher.exe\"${RESET}"
+        msg "   ► (omit /VERYSILENT). Expected path: ${BOLD}${BSG_DIR}/BsgLauncher.exe${RESET}"
+        err "BSG Launcher setup failed or was incomplete"
     fi
 
     # Download icon to icons directory
