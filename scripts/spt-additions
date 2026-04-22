@@ -1517,15 +1517,12 @@ opt_guided_install() {
             # Install EFT
             if [[ "${inst_eft}" == 1 ]]; then
                 opt_install eft
-                
-                # Add BattleEye workaround 
-                msg; add_battleeye_workaround
 
                 # Run BSG Launcher
                 msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
                 msg "   ► When the game is installed, close the Launcher to continue${RESET}"
                 opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
-
+                
                 # Update EFT path
                 EFT_DIR=$( get_eft_path )
                 if ! check_eft_installed; then
@@ -1534,6 +1531,9 @@ opt_guided_install() {
                     msg "   ► & that you can see the \"${GREEN}Play${RESET}\" button"
                     err "Failed to get EFT install path"
                 fi
+
+                # Add BattleEye workaround 
+                msg; add_battleeye_workaround
             fi
         fi
 
