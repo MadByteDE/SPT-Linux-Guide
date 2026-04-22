@@ -589,6 +589,41 @@ check_eft_installed() {
 }
 
 
+# True when BSG Launcher was installed into the prefix (exe present under BSG_DIR).
+check_bsg_launcher_installed() {
+    [[ -n "${BSG_DIR}" && -f "${BSG_DIR}/BsgLauncher.exe" ]]
+}
+
+
+# Unpack BsgLauncher.exe with innoextract when umu-run /VERYSILENT fails (common on Arch/umu).
+install_bsg_launcher_innoextract_fallback() {
+    if [[ ! -f "${FILES_DIR}/BsgLauncher.exe" ]]; then
+        m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
+    fi
+
+    if ! command -v innoextract &>/dev/null; then
+        msg "   ► Install a package that provides ${BOLD}innoextract${RESET} (e.g. Arch: ${BOLD}sudo pacman -S innoextract${RESET})."
+        msg "   ► Unpack and copy the launcher yourself, e.g.:"
+        msg "   ► ${BOLD}innoextract \"${FILES_DIR}/BsgLauncher.exe\" -d /tmp/bsg-extract${RESET}"
+        msg "   ► ${BOLD}mkdir -p \"${BSG_DIR}\" && cp -a /tmp/bsg-extract/app/. \"${BSG_DIR}/\"${RESET}"
+        err "innoextract not found in PATH"
+    fi
+
+    local extract_root="${TMP_DIR}/bsg-innoextract"
+    [[ -d "${extract_root}" ]] && m_rm -r "${extract_root}"
+    m_mkdir "${extract_root}"
+
+    msg "Extracting BSG Launcher installer with innoextract..."
+    innoextract "${FILES_DIR}/BsgLauncher.exe" -d "${extract_root}" &>> "${LOG_PATH}" || err "Command \"innoextract ${FILES_DIR}/BsgLauncher.exe -d ${extract_root}\" failed" "$?"
+
+    local app_dir="${extract_root}/app"
+    [[ -f "${app_dir}/BsgLauncher.exe" ]] || err "innoextract did not produce \"app/BsgLauncher.exe\" (unexpected installer layout)"
+
+    m_mkdir "${BSG_DIR}"
+    m_cp "${app_dir}/" "${BSG_DIR}/"
+}
+
+
 check_legacy_installed() {
     [[ -z "${CONFIG[spt-path]}" || ! -d "${CONFIG[spt-path]}" ]] && return 1
     [[ ! -d "${CONFIG[spt-path]}/SPT_Data" || ! -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] && return 1
@@ -789,9 +824,24 @@ install_eft() {
     if [[ ! -d "${BSG_DIR}" ]]; then
         # Download BSG Launcher setup file
         m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
-        
+
         msg "Installing BSG Launcher..."
-        m_umu "${FILES_DIR}/BsgLauncher.exe" /VERYSILENT
+        if ! "${UMU_PATH}" "${FILES_DIR}/BsgLauncher.exe" /VERYSILENT 2>> "${LOG_PATH}"; then
+            warn "Silent BSG Launcher install failed (umu-run exited with a non-zero status)."
+        fi
+    fi
+
+    if ! check_bsg_launcher_installed; then
+        warn "${BOLD}BSG Launcher is not present in the wine prefix.${RESET}"
+        msg "   ► Silent setup (/VERYSILENT) is unreliable under Wine/Proton; attempting innoextract fallback..."
+        install_bsg_launcher_innoextract_fallback
+    fi
+
+    if ! check_bsg_launcher_installed; then
+        msg "   ► You may try a manual GUI install with the same prefix, e.g.:"
+        msg "   ► ${BOLD}WINEPREFIX=\"${WINEPREFIX}\" ${UMU_PATH} \"${FILES_DIR}/BsgLauncher.exe\"${RESET}"
+        msg "   ► (omit /VERYSILENT). Expected path: ${BOLD}${BSG_DIR}/BsgLauncher.exe${RESET}"
+        err "BSG Launcher setup failed or was incomplete"
     fi
 
     # Download icon to icons directory
