@@ -1060,7 +1060,7 @@ install_fika() {
             msg "${BOLD}Latest Fika version is \"${fika_version}\"${RESET}"
 
             # SPT-EFT compatibility check
-            local compatible_eft; compatible_eft=$( cat "${json_path}" | grep -o "## Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null )
+            local compatible_eft; compatible_eft=$( cat "${json_path}" | grep -o "# Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null )
             compatible_eft=$( echo "${compatible_eft}" | cut -d "." -f4 | cut -d "\\" -f1 )
             [[ -z "${compatible_eft}" ]] && err "Failed to get compatible EFT version"
             if [[ "${METADATA[inst-mod-eft]}" -eq "${compatible_eft}" ]]; then msg "Installed SPT-EFT version is compatible!"
