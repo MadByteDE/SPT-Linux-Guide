@@ -74,7 +74,7 @@ readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 
 # Default setting variables
 readonly DEFAULT_INSTALL_MODE="latest"
-readonly DEFAULT_PROTONPATH="GE-Proton"
+readonly DEFAULT_PROTONPATH="GE-Proton10-32"
 readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
 readonly DEFAULT_SPT_DIR="${HOME}/Games/SPTarkov"
 readonly DEFAULT_STEAM_LIBRARY_PATH="${STEAM_DIR}/steamapps"
@@ -393,9 +393,9 @@ set_prefix_path() {
                 msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
                 err "Game prefix not found"
             fi
-            if [[ "${CONFIG[steam-library-path]}" != **"${HOME}"** ]]; then 
-            local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
-            [[ -z "${spt_path}" ]] && spt_path="${HOME}"
+            if [[ "${CONFIG[steam-library-path]}" != *"${HOME}"* ]]; then 
+                local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
+                [[ -z "${spt_path}" ]] && spt_path="${HOME}"
                 set_spt_path "${spt_path%/}/Games/SPTarkov"
             fi
             BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
@@ -419,10 +419,14 @@ init_prefix() {
 
     local missing_proton_dir
     [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && missing_proton_dir=1
-    if [[ "${PROTONPATH}" != "GE-Proton" && "${missing_proton_dir}" ]]; then
+    if [[ "${PROTONPATH}" != *"GE-Proton"* && "${missing_proton_dir}" ]]; then
         msg "Invalid Proton path: ${PROTONPATH}"
-        msg "   ► Defaulting to \"GE-Proton\"..."
-        set_value env "PROTONPATH=GE-Proton"
+        msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
+        set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
+    fi
+    
+    if [[ "${missing_proton_dir}" ]]; then
+        update_proton -y "${DEFAULT_PROTONPATH}"
     fi
 
      # Check if we need to update the prefix
