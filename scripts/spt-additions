@@ -737,13 +737,13 @@ check_ttl() {
 }
 
 
-add_battleeye_workaround() {
+add_battleye_workaround() {
     # Derived from: https://github.com/nmlynch94/tarkov-flatpak/blob/main/scripts/tarkov-run.sh#L109
     local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
     local binary_path="${EFT_DIR}/BattlEye/BEService_x64.exe"
     local dst_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Common Files/BattlEye"
 
-    msg "Adding BattleEye service workaround (This might take a bit) ..."
+    msg "Adding BattlEye service workaround (This might take a bit) ..."
     if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
     if [[ ! -f "${dst_dir}/BEService_x64.exe" ]]; then m_cp "${binary_path}" "${dst_dir}/BEService_x64.exe"; fi
 
@@ -1495,8 +1495,8 @@ opt_guided_install() {
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
 
-            # Add BattleEye workaround 
-            msg; add_battleeye_workaround
+            # Add BattlEye workaround 
+            msg; add_battleye_workaround
 
             if command -v steam &>/dev/null; then
                 msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
@@ -1534,8 +1534,8 @@ opt_guided_install() {
                     err "Failed to get EFT install path"
                 fi
 
-                # Add BattleEye workaround 
-                msg; add_battleeye_workaround
+                # Add BattlEye workaround 
+                msg; add_battleye_workaround
             fi
         fi
 
