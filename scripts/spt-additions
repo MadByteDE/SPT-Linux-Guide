@@ -1699,14 +1699,13 @@ add_app_shortcut() {
     # Generate the exec string
     local exec_string
     case "${CACHE[exe_path]}" in
-        *exe*|*bat*|*msi*) exec_string="Exec=${env}\"${UMU_PATH}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *exe*|*bat*|*msi*) exec_string="Exec=${env}\"${UMU_PATH}\" \"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
         *) exec_string="Exec=${env}\"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
     esac
 
     # Write desktop file
     {   echo "[Desktop Entry]"
         echo "Categories=Game;ActionGame;Simulation"
-        echo "Path=${CACHE[working_dir]}"
         echo "${exec_string}"
         echo "Name=${CACHE[name]}"
         echo "Icon=${CACHE[icon]}"
