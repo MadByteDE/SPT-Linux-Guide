@@ -1684,6 +1684,7 @@ add_app_shortcut() {
     # Warn if the executable does not exist
     if [[ ! -f "${CACHE[working_dir]}/${CACHE[exe_path]}" ]]; then
         warn "File \"${CACHE[working_dir]}/${CACHE[exe_path]}\" does not exist"
+        return 0
     fi 
 
     # Remove existing shortcut
