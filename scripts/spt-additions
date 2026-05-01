@@ -642,7 +642,7 @@ check_latest_installed() {
 
 check_steam_install() {
     local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${EFT_DIR}" )
-    for path in "${paths[@]}"; do [[ "${path}" != **"/steamapps/"** ]] && return 1; done
+    for path in "${paths[@]}"; do [[ "${path}" != *"/steamapps/"* ]] && return 1; done
     return 0
 }
 
@@ -814,6 +814,34 @@ install_additions() {
     check_hash "${TMP_DIR}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
     msg "Installing ${TITLE}..."
     m_mv "${TMP_DIR}/${TITLE}" "${target_path}/${TITLE}" && m_chmod +x "${target_path}/${TITLE}"
+}
+
+
+update_proton() {
+    case "$1" in
+        -y) local no_prompt=1; shift ;;
+    esac
+    local version="${1:-"latest"}"
+    local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/${version}" 2>> "${LOG_PATH}" )
+    [[ $? != 0 || -z "${url}" ]] && err "Invalid Proton version: ${version}"
+    local version="${url##*/}"
+    # Skip if the specified version is already installed
+    if [[ -d "${COMPAT_DIR}/${version}" && -n $( m_ls -A "${COMPAT_DIR}/${version}" ) ]]; then
+        msg "${version} is already installed."
+    else
+        # Found the given Proton version - ask user to continue
+        msg "${BOLD}${YELLOW}${version} is available!${RESET}"
+        if [[ -z "${no_prompt}" ]]; then yesno "Do you want to install it?" || return 0; fi
+        m_download "${METADATA[ge-proton-url]}/download/${version}/${version}.tar.gz" "${TMP_DIR}"
+        m_extract "${TMP_DIR}/${version}.tar.gz" "${COMPAT_DIR}"
+    fi
+    # Skip if the given version is already set
+    if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
+    msg "Setting PROTONPATH environment variable to \"${version}\""
+    set_value env "PROTONPATH=${version}"
+    [[ check_latest_installed || check_legacy_installed ]] && opt_shortcut all
+    msg "${GREEN}Successfully installed \"${version}\"!${RESET}"
+    return 0
 }
 
 
@@ -1311,31 +1339,7 @@ opt_update() {
         ge-proton|proton-ge|proton)
             [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
             [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
-
-            local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/latest" 2>> "${LOG_PATH}" )
-            [[ -z "${url}" ]] && err "Failed to get latest Proton version"
-            local latest_version="${url##*/}"
-            local old_version="${PROTONPATH}"
-
-            msg "Installed version: ${old_version}"
-            msg "Latest version: ${latest_version}"
-
-            if [[ "${old_version}" != "${latest_version}" ]]; then
-                {   msg "${BOLD}${YELLOW}${latest_version} is available!${RESET}"
-                    msg "   ► The following directory will be removed:"
-                    msg "   ► ${COMPAT_DIR}/${old_version}"
-                } | more
-                yesno "Do you want to update?" || return 0
-                m_download "${METADATA[ge-proton-url]}/download/${latest_version}/${latest_version}.tar.gz" "${TMP_DIR}"
-                m_extract "${TMP_DIR}/${latest_version}.tar.gz" "${COMPAT_DIR}"
-                m_rm -rf "${COMPAT_DIR}/${old_version}"
-                set_value env "PROTONPATH=${latest_version}"
-                opt_shortcut all
-                msg "${GREEN}Done!${RESET}"
-            else
-                msg "${BOLD}Proton is up-to-date!${RESET}"
-            fi
-            return 0
+            update_proton "$@"
         ;;
         "") err "Option \"update\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
@@ -1925,7 +1929,7 @@ opt_help() {
             {   msg "${BOLD}Available options:${RESET}"
                 msg "spt|sptarkov                   - Update SPTarkov to the latest version"
                 msg "fika                           - Update Fika to the latest version"
-                msg "proton                         - Update GE-Proton to the latest version"
+                msg "proton                         - Update GE-Proton to another version (latest by default)"
                 msg "additions|script               - Update this additions script"
                 msg
                 opt_help switches
@@ -2046,9 +2050,9 @@ opt_help() {
                 msg "${YELLOW}$TITLE [SWITCHES] <option> [ARGS...]${RESET}"
                 msg
                 msg "${BOLD}Available options:${RESET}"
-                msg "install                        - Install EFT/SPT"
+                msg "install                        - Install EFT/SPT/Fika"
                 msg "uninstall                      - Uninstall EFT/SPT"
-                msg "update                         - Update EFT/SPT or this script"
+                msg "update                         - Update EFT/SPT, Proton or this script"
                 msg "run                            - Run EFT/SPT or custom commands inside the prefix"
                 msg "dlloverride                    - Add a DLL override to the wine prefix"
                 msg "env                            - Set, unset and list environment variables for the wine prefix"
