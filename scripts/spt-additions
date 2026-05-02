@@ -393,16 +393,10 @@ set_prefix_path() {
                 msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
                 err "Game prefix not found"
             fi
-            if [[ "${CONFIG[steam-library-path]}" != *"${HOME}"* ]]; then 
-                local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
-                [[ -z "${spt_path}" ]] && spt_path="${HOME}"
-                set_spt_path "${spt_path%/}/Games/SPTarkov"
-            fi
             BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
             EFT_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
         ;;
         *)
-            set_spt_path "${WINEPREFIX%/}/drive_c/SPTarkov"
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
             EFT_DIR=$( get_eft_path )
         ;;
@@ -1545,6 +1539,12 @@ opt_guided_install() {
                 # Add BattlEye workaround 
                 msg; add_battleye_workaround
             fi
+        fi
+
+        if [[ "${steam_install}" && "${CONFIG[steam-library-path]}" != *"${HOME}"* ]]; then 
+            local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
+            [[ -z "${spt_path}" ]] && spt_path="${HOME}"
+            set_spt_path "${spt_path%/}/Games/SPTarkov"
         fi
 
         # Choose SPTarkov install path
