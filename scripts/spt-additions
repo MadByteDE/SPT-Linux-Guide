@@ -1120,8 +1120,8 @@ uninstall_eft() {
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
-        msg "   ► EFT: ${BSG_DIR}"
-        msg "   ► BSG Launcher: ${EFT_DIR}"
+        msg "   ► EFT: ${EFT_DIR}"
+        msg "   ► BSG Launcher: ${BSG_DIR}"
         yesno "Do you want to continue?" || return 1
     fi
 
@@ -1450,7 +1450,7 @@ opt_guided_install() {
     while true; do
         # Check if Steam version of EFT is installed
         local steam_paths=( $( get_steam_game_libraries ) )
-        local steam_install=0
+        local steam_install
         local input
 
         for path in "${steam_paths[@]}"; do
@@ -1466,7 +1466,7 @@ opt_guided_install() {
             fi
         done
 
-        if [[ "${steam_install}" == 0 ]]; then
+        if [[ ! "${steam_install}" ]]; then
             # Choose a custom prefix install location
             msg; msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${DEFAULT_WINEPREFIX}\")${RESET}"
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
@@ -1482,7 +1482,7 @@ opt_guided_install() {
         check_eft_running
 
         # Add prefix update pop-up workaround
-        msg; msg "Adding \"RUNDLL32\" pop-up workaround..."
+        msg "Adding \"RUNDLL32\" pop-up workaround..."
         m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${LOG_PATH}"
 
         # Add mouse focus workaround
@@ -1493,12 +1493,12 @@ opt_guided_install() {
         install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
         install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
 
-        if [[ "${steam_install}" == 1 ]]; then
+        if [[ "${steam_install}" ]]; then
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
 
             # Add BattlEye workaround 
-            msg; add_battleye_workaround
+            add_battleye_workaround
 
             if command -v steam &>/dev/null; then
                 msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
@@ -1515,11 +1515,11 @@ opt_guided_install() {
             local inst_eft=1
             if check_eft_installed; then
                 msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?"
-                [[ "$?" == 0 ]] && inst_eft=0
+                [[ "$?" == 0 ]] && unset inst_eft
             fi
 
             # Install EFT
-            if [[ "${inst_eft}" == 1 ]]; then
+            if [[ "${inst_eft}" ]]; then
                 opt_install eft
 
                 # Run BSG Launcher
@@ -1537,7 +1537,7 @@ opt_guided_install() {
                 fi
 
                 # Add BattlEye workaround 
-                msg; add_battleye_workaround
+                add_battleye_workaround
             fi
         fi
 
