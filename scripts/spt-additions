@@ -885,10 +885,14 @@ install_eft() {
 install_spt() {
     local install_mode="${CONFIG[install-mode]}"
     msg "${BOLD}Launching \"SPTarkov\" installer...${RESET}"
-    # WORKAROUND: Fixes older config files
-    [[ "${install_mode}" == "native" ]] && set_value config "install-mode=latest"
-    # WORKAROUND: Shows script version for Lutris installs
-    [[ "${install_mode}" == "lutris" ]] && opt_version
+
+    case "${install_mode}" in
+        # WORKAROUND: Fixes older config files
+        native) set_value config "install-mode=latest" ;;
+        # WORKAROUND: Shows missing script version & fixes SPT install path
+        lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPTarkov" ;;
+    esac
+
     msg "Selected install mode is \"${install_mode}\"..."
 
     if ! check_eft_installed; then
@@ -916,7 +920,7 @@ install_spt() {
     opt_dlloverride winhttp n,b
 
     # Install SPT
-    case "$install_mode" in
+    case "${install_mode}" in
         latest|legacy|lutris) install_spt_native ;;
         proton)
             # Download & install ASP.NET Desktop Runtime 9.0
