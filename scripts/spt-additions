@@ -409,23 +409,25 @@ set_prefix_path() {
 
 init_prefix() {
     local prefix_path=${1:-"${WINEPREFIX}"}
-    set_prefix_path "${prefix_path}"
 
-    local missing_proton_dir
-    [[ ! -d "${COMPAT_DIR}/${PROTONPATH}" && ! -d "${PROTONPATH}" ]] && missing_proton_dir=1
-    if [[ "${PROTONPATH}" != *"GE-Proton"* && "${missing_proton_dir}" ]]; then
-        msg "Invalid Proton path: ${PROTONPATH}"
+    # Reset proton version if needed
+    if [[ "${PROTONPATH}" != *"GE-Proton"* ]] && ! check_proton_installed; then
+        msg "Invalid Proton path: ${ENV[PROTONPATH]}"
         msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
         set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
+        export PROTONPATH="${ENV[PROTONPATH]}"
     fi
     
-    if [[ "${missing_proton_dir}" ]]; then
-        update_proton -y "${DEFAULT_PROTONPATH}"
+    # Download default proton runner if needed
+    if ! check_proton_installed; then
+        update_proton -y "${PROTONPATH}"
     fi
 
-     # Check if we need to update the prefix
-    if [[ "${PROTONPATH}" == "GE-Proton" || "${missing_proton_dir}" || ! -d "${WINEPREFIX}" ]]; then
-        # Update the prefix
+    # Update prefix path(s)
+    set_prefix_path "${prefix_path}"
+
+     # Check if we need to initialize/update the prefix
+    if [[ ! -d "${WINEPREFIX}" ]]; then
         msg; msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
 
@@ -578,6 +580,11 @@ check_path() {
             3) err "No write permission for directory: \"${path}\"" ;;
         esac
     fi
+}
+
+
+check_proton_installed() {
+    [[ -d "${COMPAT_DIR}/${PROTONPATH}" || -d "${PROTONPATH}" ]]
 }
 
 
