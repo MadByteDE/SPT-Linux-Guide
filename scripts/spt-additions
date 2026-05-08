@@ -430,13 +430,6 @@ init_prefix() {
     if [[ ! -d "${WINEPREFIX}" ]]; then
         msg; msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${LOG_PATH}"
-
-        # WORKAROUND: Fixes umu-launcher always re-downloading the latest GE-Proton version
-        local proton_path="$( dir -1 -v "${COMPAT_DIR}" | grep "GE-Proton*" | tail -1 )"
-        if [[ "${PROTONPATH}" == "GE-Proton" ]]; then
-            msg "Pinning Proton version to \"${proton_path##*/}\""
-            set_value env "PROTONPATH=${proton_path##*/}"
-        fi
     fi
 }
 
@@ -857,7 +850,6 @@ install_eft() {
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}" ]]; then
-        # Download BSG Launcher setup file
         m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
 
         msg "Installing BSG Launcher..."
@@ -894,8 +886,6 @@ install_spt() {
     msg "${BOLD}Launching \"SPTarkov\" installer...${RESET}"
 
     case "${install_mode}" in
-        # WORKAROUND: Fixes older config files
-        native) set_value config "install-mode=latest" ;;
         # WORKAROUND: Shows missing script version & fixes SPT install path
         lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPTarkov" ;;
     esac
