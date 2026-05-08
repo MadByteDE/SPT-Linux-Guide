@@ -279,9 +279,13 @@ set_value() {
     local value; value="$( echo "${keyval//["\""]}" | cut -d '=' -f 2- )"
 
     # Filter for invalid keys
-    [[ -z "${key}" ]] && err "Missing key for array \"${array_name}\""
-    [[ ! "${key}" =~ ^[A-Za-z0-9_-]+$ ]] && err "Key contains invalid characters: \"${key}\""
-    [[ -n "${value}" && ! "${value}" =~ ^[\ A-Za-z0-9/@()/:.,_+=-]+$ ]] && err "Value contains invalid characters: \"${value}\""
+    if [[ -z "${key}" ]]; then
+        err "Missing key for array \"${array_name}\""
+    elif [[ ! "${key}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+        err "Key contains invalid characters: \"${key}\""
+    elif [[ -n "${value}" && ! "${value}" =~ ^[\ A-Za-z0-9/@()/:.,_+=-]+$ ]]; then
+        err "Value contains invalid characters: \"${value}\""
+    fi
 
     # Set value
     case "${array_name}" in
@@ -378,11 +382,9 @@ set_prefix_path() {
     check_path "${target_path}"
     check_prefix_dir "${target_path}" || err "Given directory is not empty or the prefix is corrupted: \"${target_path}\""
 
-    # Update WINEPREFIX environment variable
-    export WINEPREFIX="${target_path}"
-
-    # Update prefix config
+    # Update WINEPREFIX environment variables
     set_value env "WINEPREFIX=${target_path}"
+    export WINEPREFIX="${target_path}"
 
     # Update prefix paths
     case "${WINEPREFIX}" in
@@ -436,13 +438,16 @@ init_prefix() {
 
 get_eft_path() {
     local entry; local path
+
     # get windows path
     [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
     entry=$( sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg" )
     path=$( echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null )
+
     # Convert to unix path
     path=$( m_umu winepath -u "${path}" 2>/dev/null )
     [[ -z "${path}" ]] && exit 12
+
     # Finally assemble the full path & return it
     printf "%s\n" "${path%/*}"
 }
@@ -582,14 +587,10 @@ check_proton_installed() {
 
 
 check_eft_installed() {
-    if [[ -z "${EFT_DIR}" || ! -d "${EFT_DIR}" || -z $( m_ls -A "${EFT_DIR}" ) ]]; then
-        return 1
-    fi
-    return 0
+    [[ -n "${EFT_DIR}" && -d "${EFT_DIR}" && -n $( m_ls -A "${EFT_DIR}" ) ]]
 }
 
 
-# True when BSG Launcher was installed into the prefix (exe present under BSG_DIR).
 check_bsg_launcher_installed() {
     [[ -n "${BSG_DIR}" && -f "${BSG_DIR}/BsgLauncher.exe" ]]
 }
@@ -625,22 +626,20 @@ install_bsg_launcher_innoextract_fallback() {
 
 
 check_legacy_installed() {
-    [[ -z "${CONFIG[spt-path]}" || ! -d "${CONFIG[spt-path]}" ]] && return 1
-    [[ ! -d "${CONFIG[spt-path]}/SPT_Data" || ! -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] && return 1
-    return 0
+    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
+    [[ -d "${CONFIG[spt-path]}/SPT_Data" && -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] || return 1
 }
 
 
 check_latest_installed() {
-    [[ -z "${CONFIG[spt-path]}" || ! -d "${CONFIG[spt-path]}" ]] && return 1
-    [[ ! -d "${CONFIG[spt-path]}/SPT" || ! -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] && return 1
-    return 0
+    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
+    [[ -d "${CONFIG[spt-path]}/SPT" && -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] || return 1
 }
 
 
 check_steam_install() {
     local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${EFT_DIR}" )
-    for path in "${paths[@]}"; do [[ "${path}" != *"/steamapps/"* ]] && return 1; done
+    for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
     return 0
 }
 
@@ -823,6 +822,7 @@ update_proton() {
     local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/${version}" 2>> "${LOG_PATH}" )
     [[ $? != 0 || -z "${url}" ]] && err "Invalid Proton version: ${version}"
     local version="${url##*/}"
+
     # Skip if the specified version is already installed
     if [[ -d "${COMPAT_DIR}/${version}" && -n $( m_ls -A "${COMPAT_DIR}/${version}" ) ]]; then
         msg "${version} is already installed."
@@ -833,6 +833,7 @@ update_proton() {
         m_download "${METADATA[ge-proton-url]}/download/${version}/${version}.tar.gz" "${TMP_DIR}"
         m_extract "${TMP_DIR}/${version}.tar.gz" "${COMPAT_DIR}"
     fi
+
     # Skip if the given version is already set
     if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
     msg "Setting PROTONPATH environment variable to \"${version}\""
