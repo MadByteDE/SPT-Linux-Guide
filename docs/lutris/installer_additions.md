@@ -43,9 +43,6 @@ To get rid of this extra step and also improve on stability and usability, we be
 - Native package is recommended - Flatpak can cause issues!
 - Check if GPU and vulkan drivers are installed
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-- Tested wine versions:
-    - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
-    - **[wine-kron4ek-10.17 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.17)** (install & play)
 
 ### - **[SPT Lutris installer](../../installers/lutris-installer-additions.yml) (*.yml)**
 
