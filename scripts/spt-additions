@@ -414,7 +414,7 @@ init_prefix() {
 
     # Reset proton version if needed
     if [[ "${PROTONPATH}" != *"GE-Proton"* ]] && ! check_proton_installed; then
-        msg "Invalid Proton path: ${ENV[PROTONPATH]}"
+        msg "Invalid Proton path: ${PROTONPATH}"
         msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
         set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
         export PROTONPATH="${ENV[PROTONPATH]}"
