@@ -18,7 +18,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
 
 ### Automated install
 
-Additions CLI installer ⭐
+Additions CLI installer
   - 
 
   > [!WARNING]
@@ -38,13 +38,16 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
   - 
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
-[Lutris installer](docs/lutris/installer_official.md) (Official)
-  -
+
+### Others
+
+#### [Lutris installer](docs/lutris/installer_official.md) (Windows SPTInstaller - unsupported)
+
   - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
   - ⚠️ Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
 
 
-### Manual install
+#### Manual install (Unsupported)
 - [Using Lutris](docs/lutris/manual_guide.md)
 - [Using Bottles](docs/bottles/manual_guide.md)
 
@@ -74,7 +77,6 @@ Thanks to everyone helping out and contributing to the guide <3 !
 - **dj3hac**
 - **Laserpulse**
 - **LinuxFromMars**
-- **MadByte**
 - **nyuware**
 - **Penkov**
 - **TheSpectator**
