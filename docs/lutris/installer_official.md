@@ -17,9 +17,6 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - Native package is recommended - Flatpak can cause issues!
 - Check if GPU and vulkan drivers are installed!
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-- Tested wine versions:
-    - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
-    - **[wine-kron4ek-10.17 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.17)** (install & play)
         
 ### - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 
@@ -44,6 +41,8 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 
 > [!TIP]
 > You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!
+
+For the `SPTInstaller` to run, you might need to switch to another wine runner like `Wine-Kron4ek` or `Wine-TKG`.
 
 - Install your preferred wine version
 
