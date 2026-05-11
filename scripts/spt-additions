@@ -384,7 +384,6 @@ set_prefix_path() {
 
     # Update WINEPREFIX environment variables
     set_value env "WINEPREFIX=${target_path}"
-    export WINEPREFIX="${target_path}"
 
     # Update prefix paths
     case "${WINEPREFIX}" in
@@ -417,7 +416,6 @@ init_prefix() {
         msg "Invalid Proton path: ${PROTONPATH}"
         msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
         set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
-        export PROTONPATH="${ENV[PROTONPATH]}"
     fi
     
     # Download default proton runner if needed
@@ -2186,8 +2184,6 @@ main() {
 
     # Export paths
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
-    export WINEPREFIX="${ENV[WINEPREFIX]}"
-    export PROTONPATH="${ENV[PROTONPATH]}"
     export PATH=$RUNTIME_DIR:$PATH
 
     # Check for updates (5 days interval)
