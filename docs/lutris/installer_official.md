@@ -17,7 +17,10 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 - Native package is recommended - Flatpak can cause issues!
 - Check if GPU and vulkan drivers are installed!
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-
+- Tested wine versions:
+    - **[GE-Proton-10.x](https://github.com/GloriousEggroll/proton-ge-custom/releases)** (play only)
+    - **[wine-kron4ek-10.17 amd64](https://github.com/Kron4ek/Wine-Builds/releases/tag/10.17)** (install & play)
+        
 ### - **[SPT Lutris installer](../../installers/lutris-installer-official.yml) (*.yml)**
 
 ### - ASP.NET Runtime 9.0 ([How to install](../aspnet.md))
@@ -37,7 +40,7 @@ This *.yml script uses the regular windows installer to install SPT on your syst
 > **You need to install the game client inside the launcher before continuing with the next step!**
 
 
-**2. Preparing the wine runner (Optional)**
+**2. Preparing the wine runner**
 
 > [!TIP]
 > You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!
