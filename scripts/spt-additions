@@ -458,15 +458,6 @@ get_steam_game_libraries() {
 }
 
 
-get_steam_eft_path() {
-    local library_path="${1}"
-    [[ -z "${library_path}" ]] && exit 12
-    eft_path="${library_path}/steamapps/common/Escape from Tarkov"
-    [[ ! -d "${eft_path}" ]] && exit 10
-    printf "%s\n" "${eft_path}"
-}
-
-
 get_patcher_eft_version() {
     local path="${1}"
     # Split filename to get version infos from it
@@ -638,7 +629,6 @@ check_latest_installed() {
 check_steam_install() {
     local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${EFT_DIR}" )
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
-    return 0
 }
 
 
@@ -972,10 +962,8 @@ install_spt() {
     case "${install_mode}" in
         latest|legacy|proton)
             # Download icons to icons directory
-            local launcher_icon="${ICO_DIR}/spt_launcher.png"
-            local server_icon="${ICO_DIR}/spt_server.png"
-            m_download -s "${METADATA[launcher-ico-url]}" "${launcher_icon}"
-            m_download -s "${METADATA[server-ico-url]}" "${server_icon}"
+            m_download -s "${METADATA[launcher-ico-url]}" "${ICO_DIR}/spt_launcher.png"
+            m_download -s "${METADATA[server-ico-url]}" "${ICO_DIR}/spt_server.png"
 
             # Create application shortcuts
             opt_shortcut spt
@@ -1440,7 +1428,7 @@ opt_guided_install() {
         msg "${BOLD}Hello mercenary! ${BLUE}(･_･)ゞ${RESET}"
         msg
         msg "${BOLD}${YELLOW}This CLI installer will perform the following steps:${RESET}"
-        msg "   ► Install latest GE-Proton (if not installed already)"
+        msg "   ► Install ${DEFAULT_PROTONPATH} (if not installed already)"
         msg "   ► Setup the wine prefix, install dependencies & apply game specific workarounds"
         msg "   ► Install the BSG Launcher"
         msg "   ► Install SPTarkov"
@@ -1454,8 +1442,8 @@ opt_guided_install() {
         local input
 
         for path in "${steam_paths[@]}"; do
-            local steam_eft_dir; steam_eft_dir=$( get_steam_eft_path "${path}" )
-            if [[ -n "${steam_eft_dir}" && -n "$( m_ls -A "${steam_eft_dir}" 2>/dev/null )" ]]; then
+            local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov"
+            if [[ -n "$( m_ls -A "${steam_eft_dir}" 2>/dev/null )" ]]; then
                 # Found EFT in a Steam library
                 msg; msg "${BOLD}Found Steam version of \"Escape from Tarkov\" in:${RESET}"
                 msg "   ► ${steam_eft_dir}"
@@ -1914,8 +1902,8 @@ opt_help() {
                 msg "fika                           - Install Fika (core + server mod)"
                 msg 
                 msg "${BOLD}SPTarkov install modes (-m switch):${RESET}"
-                msg "latest                         - Use the latest install method to install the latest SPTarkov release"
-                msg "legacy                         - Install the legacy version of SPTarkov"
+                msg "latest                         - Install the latest version of SPTarkov"
+                msg "legacy                         - Install the legacy version of SPTarkov (3.11.x)"
                 msg "proton                         - Use Proton to install the latest version of SPTarkov"
                 msg
                 opt_help switches
@@ -2183,7 +2171,7 @@ main() {
     if ! check_ttl "${METADATA_PATH}" 604800; then load_metadata
     else load_array metadata; fi
 
-    # Export paths
+    # Export additional environment variables
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
     export PATH=$RUNTIME_DIR:$PATH
 
