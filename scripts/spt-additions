@@ -1554,6 +1554,7 @@ opt_guided_install() {
         set_spt_path "${input:-${CONFIG[spt-path]}}"
 
         # Install SPT
+        set_value config "install-mode=${DEFAULT_INSTALL_MODE}"
         opt_install spt
 
         # Ask for desktop shortcuts
