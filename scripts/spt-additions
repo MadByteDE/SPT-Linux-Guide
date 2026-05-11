@@ -1440,6 +1440,7 @@ opt_guided_install() {
         local steam_paths=( $( get_steam_game_libraries ) )
         local steam_install
         local input
+        local spt_install_path="${DEFAULT_SPT_DIR}"
 
         for path in "${steam_paths[@]}"; do
             local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov"
@@ -1532,14 +1533,14 @@ opt_guided_install() {
         if [[ "${steam_install}" && "${CONFIG[steam-library-path]}" != *"${HOME}"* ]]; then 
             local spt_path; spt_path="$( cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null )"
             [[ -z "${spt_path}" ]] && spt_path="${HOME}"
-            set_spt_path "${spt_path%/}/Games/SPTarkov"
+            spt_install_path="${spt_path%/}/Games/SPTarkov"
         fi
 
         # Choose SPTarkov install path
-        msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPTarkov (Leave blank for \"${CONFIG[spt-path]}\")${RESET}"
+        msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPTarkov (Leave blank for \"${spt_install_path}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
         input=$( read_input ) || return 1
-        set_spt_path "${input:-${CONFIG[spt-path]}}"
+        set_spt_path "${input:-${spt_install_path}}"
 
         # Install SPT
         set_value config "install-mode=${DEFAULT_INSTALL_MODE}"
