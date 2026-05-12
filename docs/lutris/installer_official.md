@@ -61,6 +61,9 @@ For the `SPTInstaller` to run, you might need to switch to another wine runner l
 
 <img src="../../media/lutris/install_script.jpg" alt="drawing" width="580"/>
 
+> [!IMPORTANT]
+> **Don't change the default install path for SPTarkov, otherwise the generated Lutris shortcuts will not work. Instead, choose your desired install path for the wine prefix in step 1 when installing Escape from Tarkov.**
+
 - Now follow the steps & wait for the installation to complete.
 
 **4. Running SPT**
