@@ -589,7 +589,7 @@ check_aspnet() {
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
         msg "   ► ASP.NET is ${BOLD}REQUIRED${RESET} to run then SPT Linux server!"
-        sleep 3
+        yesno "Continue anyway?" || m_exit
     fi
 }
 
