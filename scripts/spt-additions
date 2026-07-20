@@ -49,7 +49,7 @@ BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
 RED="\e[31m"; GREEN="\e[32m"; BLUE="\e[36m"
 YELLOW="\e[33m"; GRAY="\e[90m"
 
-declare -A CONFIG ENV METADATA CACHE SHORTCUT
+declare -A CONFIG METADATA CACHE SHORTCUT
 
 # System directories
 readonly SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
@@ -84,12 +84,9 @@ readonly SCRIPT_PATH="${SCRIPT_DIR}/${TITLE}"
 readonly LOG_PATH="${CACHE_DIR}/installer.log"
 readonly UMU_PATH=$( command -v umu-run || echo "${RUNTIME_DIR}/umu-run" )
 readonly CONFIG_PATH="${CONFIG_DIR}/app.conf"
-readonly ENV_PATH="${CONFIG_DIR}/env.conf"
 readonly METADATA_PATH="${METADATA_DIR}/metadata.conf"
 readonly MOD_PATH="${FILES_DIR}/spt.7z"
-readonly LEGACY_MOD_PATH="${FILES_DIR}/legacy-spt.7z"
 readonly PATCHER_PATH="${FILES_DIR}/patcher.7z"
-readonly LEGACY_PATCHER_PATH="${FILES_DIR}/legacy-patcher.7z"
 readonly MOD_JSON_PATH="${METADATA_DIR}/release.json"
 readonly PATCHER_JSON_PATH="${METADATA_DIR}/mirrors.json"
 
@@ -109,7 +106,7 @@ SHORTCUT[spt-server]="${APP_DIR}/SPT - Server.desktop"
 m_exit() {
     local status=${1:-$?}
     if [[ ${BASH_SUBSHELL} -eq 0 ]]; then
-        save_array config;  save_array env
+        save_array config
         [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
     fi
     exit "${status}"
@@ -292,10 +289,10 @@ set_value() {
         config)
             [[ -z "${value}" ]] && err "Missing value for array \"${array_name}\""
             CONFIG[$key]="${value%/}"
-        ;;
-        env)
-            ENV[$key]="${value%/}"
-            export "${key}=${value%/}"  
+            
+            case "${key}" in
+                WINEPREFIX|PROTONPATH) export "${key}=${value%/}" ;;
+            esac
         ;;
         metadata) METADATA[$key]="${value}" ;;
         *) err "Invalid array name: \"${array_name}\""
@@ -315,7 +312,6 @@ unset_value() {
     # Unset key
     case "${array_name}" in
         config) unset CONFIG[$key] ;;
-        env) unset ENV[$key]; unset "${key}" ;;
         *) err "Invalid array name: \"${array_name}\""
     esac
 }
@@ -325,7 +321,6 @@ load_array() {
     local path; local array_name="${1}" || err "Missing argument: load_array [array_name]"
     case "${array_name}" in
         config) path="${CONFIG_PATH}" ;;
-        env) path="${ENV_PATH}" ;;
         metadata) path="${METADATA_PATH}" ;;
         *) err "Invalid argument \"${array_name}\"";;
     esac
@@ -355,12 +350,6 @@ save_array() {
                 echo "${key}=\"${CONFIG[$key]}\"" >> "${CONFIG_PATH}"
             done
         ;;
-        env)
-            [[ -f "${ENV_PATH}" ]] && m_rm "${ENV_PATH}"
-            for key in "${!ENV[@]}"; do
-                echo "${key}=\"${ENV[$key]}\"" >> "${ENV_PATH}"
-            done
-        ;;
         *) ;;
     esac
 }
@@ -383,7 +372,7 @@ set_prefix_path() {
     check_prefix_dir "${target_path}" || err "Given directory is not empty or the prefix is corrupted: \"${target_path}\""
 
     # Update WINEPREFIX environment variables
-    set_value env "WINEPREFIX=${target_path}"
+    set_value config "WINEPREFIX=${target_path}"
 
     # Update prefix paths
     case "${WINEPREFIX}" in
@@ -415,7 +404,7 @@ init_prefix() {
     if [[ "${PROTONPATH}" != *"GE-Proton"* ]] && ! check_proton_installed; then
         msg "Invalid Proton path: ${PROTONPATH}"
         msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
-        set_value env "PROTONPATH=${DEFAULT_PROTONPATH}"
+        set_value config "PROTONPATH=${DEFAULT_PROTONPATH}"
     fi
     
     # Download default proton runner if needed
@@ -478,7 +467,6 @@ get_file_version() {
 get_eft_version() { get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_mod_eft_version() { get_file_version "${CONFIG[spt-path]}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_spt_version() { get_file_version "${CONFIG[spt-path]}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
-get_env() { local key; printf "$( for key in "${!ENV[@]}"; do printf "${key}=\"${ENV[$key]}\" "; done )\n"; }
 get_hash() { md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null; }
 
 
@@ -585,48 +573,13 @@ check_bsg_launcher_installed() {
 }
 
 
-# Unpack BsgLauncher.exe with innoextract when umu-run /VERYSILENT fails (common on Arch/umu).
-install_bsg_launcher_innoextract_fallback() {
-    if [[ ! -f "${FILES_DIR}/BsgLauncher.exe" ]]; then
-        m_download "${METADATA[bsg-launcher-url]}" "${FILES_DIR}/BsgLauncher.exe"
-    fi
-
-    if ! command -v innoextract &>/dev/null; then
-        msg "   ► Install a package that provides ${BOLD}innoextract${RESET} (e.g. Arch: ${BOLD}sudo pacman -S innoextract${RESET})."
-        msg "   ► Unpack and copy the launcher yourself, e.g.:"
-        msg "   ► ${BOLD}innoextract \"${FILES_DIR}/BsgLauncher.exe\" -d /tmp/bsg-extract${RESET}"
-        msg "   ► ${BOLD}mkdir -p \"${BSG_DIR}\" && cp -a /tmp/bsg-extract/app/. \"${BSG_DIR}/\"${RESET}"
-        err "innoextract not found in PATH"
-    fi
-
-    local extract_root="${TMP_DIR}/bsg-innoextract"
-    [[ -d "${extract_root}" ]] && m_rm -r "${extract_root}"
-    m_mkdir "${extract_root}"
-
-    msg "Extracting BSG Launcher installer with innoextract..."
-    innoextract "${FILES_DIR}/BsgLauncher.exe" -d "${extract_root}" &>> "${LOG_PATH}" || err "Command \"innoextract ${FILES_DIR}/BsgLauncher.exe -d ${extract_root}\" failed" "$?"
-
-    local app_dir="${extract_root}/app"
-    [[ -f "${app_dir}/BsgLauncher.exe" ]] || err "innoextract did not produce \"app/BsgLauncher.exe\" (unexpected installer layout)"
-
-    m_mkdir "${BSG_DIR}"
-    m_cp "${app_dir}/" "${BSG_DIR}/"
-}
-
-
-check_legacy_installed() {
-    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
-    [[ -d "${CONFIG[spt-path]}/SPT_Data" && -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] || return 1
-}
-
-
-check_latest_installed() {
+check_spt_installed() {
     [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
     [[ -d "${CONFIG[spt-path]}/SPT" && -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] || return 1
 }
 
 
-check_steam_install() {
+check_steam_installed() {
     local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${EFT_DIR}" )
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
 }
@@ -824,9 +777,9 @@ update_proton() {
 
     # Skip if the given version is already set
     if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
-    msg "Setting PROTONPATH environment variable to \"${version}\""
-    set_value env "PROTONPATH=${version}"
-    [[ check_latest_installed || check_legacy_installed ]] && opt_shortcut all
+    msg "Setting PROTONPATH to \"${version}\""
+    set_value config "PROTONPATH=${version}"
+    [[ check_spt_installed ]] && opt_shortcut all
     msg "${GREEN}Successfully installed \"${version}\"!${RESET}"
     return 0
 }
@@ -845,12 +798,6 @@ install_eft() {
         if ! "${UMU_PATH}" "${FILES_DIR}/BsgLauncher.exe" /VERYSILENT 2>> "${LOG_PATH}"; then
             warn "Silent BSG Launcher install failed (umu-run exited with a non-zero status)."
         fi
-    fi
-
-    if ! check_bsg_launcher_installed; then
-        warn "${BOLD}BSG Launcher is not present in the wine prefix.${RESET}"
-        msg "   ► Silent setup (/VERYSILENT) is unreliable under Wine/Proton; attempting innoextract fallback..."
-        install_bsg_launcher_innoextract_fallback
     fi
 
     if ! check_bsg_launcher_installed; then
@@ -885,7 +832,7 @@ install_spt() {
         warn "${BOLD}Escape from Tarkov is not installed${RESET}"
         msg "   ► make sure to install the game inside the BSG Launcher & try again!"
         err "Escape from Tarkov not found."
-    elif check_latest_installed || check_legacy_installed; then
+    elif check_spt_installed; then
         warn "${BOLD}\"${CONFIG[spt-path]}\"${RESET} already exists"
         msg "   ► If you want to reinstall, make sure to move or delete the current installation first!"
         err "SPTarkov directory already exists."
@@ -907,7 +854,7 @@ install_spt() {
 
     # Install SPT
     case "${install_mode}" in
-        latest|legacy|lutris) install_spt_native ;;
+        latest|lutris) install_spt_native ;;
         proton)
             # Download & install ASP.NET Desktop Runtime 9.0
             # WORKAROUND: Fixes SPTInstaller requirement check failing
@@ -929,7 +876,7 @@ install_spt() {
             # Run SPT Installer
             msg "Launching SPT Installer..."
             m_umu "${FILES_DIR}/SPTInstaller.exe" installpath="${path}"
-            if ! check_latest_installed && ! check_legacy_installed; then err "Failed to install SPTarkov"; fi
+            if ! check_spt_installed; then err "Failed to install SPTarkov"; fi
 
             # Make the Linux server executable
             m_chmod +x "${CONFIG[spt-path]}/SPT/SPT.Server.Linux"
@@ -948,19 +895,16 @@ install_spt() {
         touch "${steam_dir}/libraryfolders.vdf"
     fi
 
-    if [[ "${install_mode}" == "legacy" ]]; then set_value env "PROTON_VERB=run"
-    else
-        # Install the latest server launch script
+    # Download & install server / launcher scripts
         m_download -s "${METADATA[server-script-url]}" "${CONFIG[spt-path]}"
-        m_chmod +x "${CONFIG[spt-path]}/launch-server.sh"
+    m_chmod +x "${CONFIG[spt-path]}/server.sh"
 
-        # Create launcher shortcut inside the root directory
-        ln -s "${CONFIG[spt-path]}/SPT/SPT.Launcher.exe" "${CONFIG[spt-path]}" &>> "${LOG_PATH}"\
-        || warn "Failed to create symbolic link for \"SPT.Launcher.exe\""
-    fi
+    # Install the latest server launch script
+    m_download -s "${METADATA[launcher-script-url]}" "${CONFIG[spt-path]}"
+    m_chmod +x "${CONFIG[spt-path]}/launcher.sh"
 
     case "${install_mode}" in
-        latest|legacy|proton)
+        latest|proton)
             # Download icons to icons directory
             m_download -s "${METADATA[launcher-ico-url]}" "${ICO_DIR}/spt_launcher.png"
             m_download -s "${METADATA[server-ico-url]}" "${ICO_DIR}/spt_server.png"
@@ -976,14 +920,7 @@ install_spt() {
 
 install_spt_native() {
     local install_mode="${CONFIG[install-mode]}"
-
-    case "${install_mode}" in
-        # SPT 3.11.x
-        legacy) load_metadata legacy && msg "${BOLD}Installing legacy SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
-        # SPT 4.x.x
-        latest|lutris) load_metadata latest && msg "${BOLD}Installing latest SPT version: \"${METADATA[mod-version]}\"${RESET}" ;;
-        *) err "Invalid install mode \"${install_mode}\"" ;;
-    esac
+    load_metadata latest && msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
 
     # Check if we need to patch the game files
     msg "Comparing installed EFT <--> required EFT versions"
@@ -1048,7 +985,7 @@ install_fika() {
         warn "${BOLD}Escape from Tarkov is not installed${RESET}"
         msg "   ► make sure to install the game inside the BSG Launcher & try again!"
         err "Escape from Tarkov not found."
-    elif ! check_latest_installed; then
+    elif ! check_spt_installed; then
         warn "${BOLD}SPTarkov is not installed${RESET}"
         msg "   ► make sure to install it & try again!"
         err "SPTarkov not found."
@@ -1099,7 +1036,7 @@ install_fika() {
 
 uninstall_eft() {
     local no_prompt="${1:-$NO_PROMPT}"
-    if check_steam_install; then
+    if check_steam_installed; then
         warn "Steam installation of Escape from Tarkov detected!"
         msg "   ► Please uninstall the game inside Steam instead."
         return 1
@@ -1146,7 +1083,7 @@ uninstall_spt() {
 
 uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
-    if check_steam_install; then
+    if check_steam_installed; then
         warn "Steam installation of Escape from Tarkov detected!"
         msg "   ► Please uninstall the game inside Steam instead."
         return 1
@@ -1176,19 +1113,6 @@ load_metadata() {
             METADATA[patcher-hash]=$( jq -r '.Mirrors[].Hash' "${PATCHER_JSON_PATH}" | head -1 ) || err "Failed to get patcher hash" "$?"
             METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" ) || err "Failed to get required EFT version for patcher" "$?"
             METADATA[patcher-path]="${PATCHER_PATH}"
-        ;;
-        legacy)
-            # Fetch metadata
-            load_metadata
-            METADATA[mod-url]="${METADATA[lts-spt-url]}"; [[ -z "${METADATA[mod-url]}" ]] && err "Failed to get mod url"
-            METADATA[mod-hash]="${METADATA[lts-spt-hash]}"; [[ -z "${METADATA[mod-hash]}" ]] && err "Failed to get mod hash"
-            METADATA[mod-eft]="$( echo "${METADATA[mod-url]##*/}" | cut -d "-" -f3 )"; [[ -z "${METADATA[mod-eft]}" ]] && err "Failed to get mod eft version"
-            METADATA[mod-version]="$( echo "${METADATA[mod-url]##*/}" | cut -d "-" -f2 )"; [[ -z "${METADATA[mod-version]}" ]] && err "Failed to get mod version"
-            METADATA[mod-path]="${LEGACY_MOD_PATH}"
-            METADATA[patcher-url]="${METADATA[lts-patcher-url]}"
-            METADATA[patcher-hash]="${METADATA[lts-patcher-hash]}"
-            METADATA[patcher-eft]=$( get_patcher_eft_version "${METADATA[patcher-url]}" ) || err "Failed to get required EFT version for patcher" "$?"
-            METADATA[patcher-path]="${LEGACY_PATCHER_PATH}"
         ;;
         eft)
              METADATA[inst-eft]=$( get_eft_version ) || err "Failed to get EFT version" "$?"
@@ -1260,8 +1184,7 @@ opt_update() {
             if ! check_eft_installed; then msg "Escape from Tarkov is not installed"; return 0; fi
 
             # Get metadata
-            if check_latest_installed; then load_metadata latest
-            elif check_legacy_installed; then load_metadata legacy
+            if check_spt_installed; then load_metadata latest
             else msg "SPTarkov is not installed"; return 0; fi
             
             load_metadata mod-eft
@@ -1323,7 +1246,7 @@ opt_update() {
         fika) load_metadata mod-eft; NO_PROMPT=1 install_fika ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
-            [[ -z "${PROTONPATH}" ]] && err "PROTONPATH environment variable is not set"
+            [[ -z "${PROTONPATH}" ]] && err "PROTONPATH is not set"
             [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
             update_proton "$@"
         ;;
@@ -1607,14 +1530,14 @@ opt_run() {
         launcher)
             check_eft_running
             msg "${BOLD}Launching SPT Launcher...${RESET}"
-            cd "${CONFIG[spt-path]}" && m_umu "SPT.Launcher.exe" "$@"
+            cd "${CONFIG[spt-path]}"
+            env WINEPREFIX="${WINEPREFIX}" PROTONPATH="${PROTONPATH}" "./launcher.sh" "$@" &>> "${LOG_PATH}";
         ;;
         server)
             check_eft_running
             msg "${BOLD}Launching SPT Server...${RESET}"
-            cd "${CONFIG[spt-path]}" || exit
-            if check_legacy_installed; then m_umu "SPT.Server.exe" "$@"
-            else "./launch-server.sh" "$@" &>> "${LOG_PATH}"; fi
+            cd "${CONFIG[spt-path]}"
+            "./server.sh" "$@" &>> "${LOG_PATH}"
         ;;
         "") err "Option \"run\" requires an argument" ;;
         *)
@@ -1643,38 +1566,6 @@ opt_dlloverride() {
 }
 
 
-opt_env() {
-    # SYNTAX: spt-additions env add MANGOHUD=1
-    local option="$1"; local keyval="$2" && shift 2
-    local key; key=$( echo "${keyval}" | cut -d "=" -f1 )
-    local value; value=$( echo "${keyval}" | cut -d "=" -f 2- )
-    [[ "${key}" == "${value}" ]] && unset value
-
-    # If the key begins with a '-' we actually wanna unset it!
-    if [[ $key == -* ]]; then
-        key="${key:1}"
-        opt_env unset "${key}"
-        return
-    fi
-
-    case "${option}" in
-        set|add)
-            if [[ "${ENV[$key]}" ]]; then msg "Updating environment variable: \"${keyval}\""
-            else msg "Adding environment variable: \"${keyval}\""; fi
-            set_value env "${key}=${value}"
-        ;;
-        unset|remove)
-            [[ ! "${ENV[$key]}" ]] && msg "Environment variable \"${key}\" is not set" && return
-            msg "Removing environment variable: \"$keyval\""
-            unset_value env "${key}"
-        ;;
-        list|-l) get_env ;;
-        "") err "Option \"env\" requires an argument" ;;
-        *) err "Invalid switch \"${option}\"" ;;
-    esac
-}
-
-
 add_app_shortcut() {
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "app-shortcut" ]] && err "Failed to load shortcut data from cache array"
@@ -1690,20 +1581,17 @@ add_app_shortcut() {
     # Remove existing shortcut
     [[ -f "${CACHE[path]}" ]] && m_rm "${CACHE[path]}"
 
-    # Prepare environment string
-    local env
-    [[ -n "${CACHE[env]}" ]] && env="env ${CACHE[env]}"
-
     # Generate the exec string
     local exec_string
     case "${CACHE[exe_path]}" in
-        *exe*|*bat*|*msi*) exec_string="Exec=${env}\"${UMU_PATH}\" \"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
-        *) exec_string="Exec=${env}\"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *exe*|*bat*|*msi*) exec_string="Exec=${CACHE[env]} \"${UMU_PATH}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *) exec_string="Exec=${CACHE[env]} \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
     esac
 
     # Write desktop file
     {   echo "[Desktop Entry]"
-        echo "Categories=Game;ActionGame;Simulation"
+        echo "Categories=ActionGame;Simulation"
+        echo "Path=${CACHE[working_dir]}"
         echo "${exec_string}"
         echo "Name=${CACHE[name]}"
         echo "Icon=${CACHE[icon]}"
@@ -1715,10 +1603,9 @@ add_app_shortcut() {
 opt_shortcut() {
     # SYNTAX: spt-additions -p "" -e "" -a "" shortcut launcher
     local option="$1" && shift
-    local env=$( get_env )
     CACHE[_id]="app-shortcut"
-    CACHE[env]="${env}"
     CACHE[args]=""
+    CACHE[env]="env WINEPREFIX=${WINEPREFIX} PROTONPATH=${PROTONPATH}"
 
     case "${option}" in
         eft|bsg|bsg-launcher)
@@ -1730,27 +1617,20 @@ opt_shortcut() {
         ;;
         launcher)
             CACHE[name]="SPT - Launcher"
-            CACHE[exe_path]="SPT.Launcher.exe"
+            CACHE[exe_path]="./launcher.sh"
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_launcher"
         ;;
         server)
             CACHE[name]="SPT - Server"
-            CACHE[exe_path]="launch-server.sh"
+            CACHE[exe_path]="./server.sh"
             CACHE[env]=""
-            CACHE[working_dir]="${CONFIG[spt-path]}"
-            CACHE[icon]="spt_server"
-        ;;
-        legacy-server)
-            CACHE[name]="SPT - Server"
-            CACHE[exe_path]="SPT.Server.exe"
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
         ;; 
         spt|sptarkov)
             opt_shortcut launcher
-            if check_legacy_installed; then opt_shortcut legacy-server
-            else opt_shortcut server; fi
+            opt_shortcut server
             return 0
         ;;
         all) opt_shortcut bsg-launcher;  opt_shortcut spt;  return 0 ;;
@@ -1852,9 +1732,8 @@ opt_selfinstall() {
         {   msg "${YELLOW}Found \"${path}\" in the PATH environment variable${RESET}"
             msg
             msg "   ► This script provides useful CLI commands to manage your wine prefix, e.g:"
-            msg "   ► \"${GREEN}${TITLE} -e MANGOHUD=1 shortcut launcher${RESET}\"  (Set an environment variable & update an app shortcut)"
             msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new SPT version)"
-            msg "   ► \"${GREEN}${TITLE} -m legacy install spt${RESET}\"            (Install legacy SPT [3.11.x])"
+            msg "   ► \"${GREEN}${TITLE} -m proton install spt${RESET}\"            (Install SPT using the windows installer)"
             msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
         } | more
         yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?" || return 1
@@ -1904,7 +1783,6 @@ opt_help() {
                 msg 
                 msg "${BOLD}SPTarkov install modes (-m switch):${RESET}"
                 msg "latest                         - Install the latest version of SPTarkov"
-                msg "legacy                         - Install the legacy version of SPTarkov (3.11.x)"
                 msg "proton                         - Use Proton to install the latest version of SPTarkov"
                 msg
                 opt_help switches
@@ -1977,23 +1855,11 @@ opt_help() {
                 opt_help switches
             } | more
         ;;
-        env)
-            {   msg "Set, unset and list environment variables for the wine prefix"
-                msg
-                msg "${BOLD}Available options:${RESET}"
-                msg "set|add [KEY=VALUE]            - Set or add an environment variable"
-                msg "unset|remove [KEY]             - Unset or remove an environment variable"
-                msg "list|-l                        - List all active environment variables"
-                msg
-                opt_help switches
-            } | more
-        ;;
         shortcut)
             {   msg "${BOLD}Available options:${RESET}"
                 msg "eft|bsg|bsg-launcher           - Create/update BSG Launcher shortcut"
                 msg "launcher                       - Create/update SPT Launcher shortcut"
                 msg "server                         - Create/update SPT Server shortcut"
-                msg "legacy-server                  - Create/update legacy SPT Server shortcut"
                 msg "spt|sptarkov                   - Create/update all SPT shortcuts"
                 msg "all                            - Create/update all available shortcuts"
                 msg "custom_executable              - Create/update custom shortcuts"
@@ -2029,8 +1895,7 @@ opt_help() {
         switches)
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
-                msg "-e <KEY=VALUE>                 - Set an environment variable for the prefix"
-                msg "-m <mode>                      - Set the install mode for SPTarkov (latest, legacy, proton)"
+                msg "-m <mode>                      - Set the install mode for SPTarkov (latest, proton)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
@@ -2049,7 +1914,6 @@ opt_help() {
                 msg "update                         - Update EFT/SPT, Proton or this script"
                 msg "run                            - Run EFT/SPT or custom commands inside the prefix"
                 msg "dlloverride                    - Add a DLL override to the wine prefix"
-                msg "env                            - Set, unset and list environment variables for the wine prefix"
                 msg "shortcut                       - Create application menu shortcuts"
                 msg "patch                          - Downpatch EFT game files to a supported version for SPTarkov"
                 msg "clean                          - Clean installer and prefix files"
@@ -2075,10 +1939,9 @@ handle_opts() {
     while getopts ":p:e:a:m:h:v:-:" subopt; do
         case ${subopt} in
             p) set_prefix_path "${OPTARG}" ;;
-            e) opt_env set "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    latest|proton|legacy|lutris)
+                    latest|proton|lutris)
                         msg "Setting install mode to \"${OPTARG}\"..."
                         set_value config "install-mode=${OPTARG}"
                     ;;
@@ -2132,7 +1995,6 @@ handle_opts() {
         patch) opt_patch "$@" ;;
         run) opt_run "$@" ;;
         dlloverride) opt_dlloverride "$@" ;;
-        env) opt_env "$@" ;;
         shortcut) opt_shortcut "$@" ;;
         clean) opt_clean "$@" ;;
         self-update) opt_selfupdate ;;
@@ -2155,15 +2017,8 @@ main() {
     set_spt_path "${CONFIG[spt-path]:-${DEFAULT_SPT_DIR}}"
     set_value config "install-mode=${CONFIG[install-mode]:-"${DEFAULT_INSTALL_MODE}"}"
     set_value config "steam-library-path=${CONFIG[steam-library-path]:-"${DEFAULT_STEAM_LIBRARY_PATH}"}"
-
-    # Set default environment variables
-    [[ -f "${ENV_PATH}" ]] && load_array env
-    [[ -z "${ENV[WINEPREFIX]}" ]] && set_value env "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
-    [[ -z "${ENV[PROTONPATH]}" ]] && set_value env "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
-    [[ -z "${ENV[PROTON_USE_XALIA]}" ]] && set_value env "PROTON_USE_XALIA=0"
-    [[ -z "${ENV[PROTON_MEDIA_USE_GST]}" ]] && set_value env "PROTON_MEDIA_USE_GST=1"
-    [[ -z "${ENV[DOTNET_BUNDLE_EXTRACT_BASE_DIR]}" ]] && set_value env "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
-    [[ -z "${ENV[DOTNET_ROOT]}" ]] && set_value env "DOTNET_ROOT="
+    [[ -z "${CONFIG[WINEPREFIX]}" ]] && set_value config "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
+    [[ -z "${CONFIG[PROTONPATH]}" ]] && set_value config "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
 
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
