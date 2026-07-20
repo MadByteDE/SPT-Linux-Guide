@@ -1409,9 +1409,6 @@ opt_guided_install() {
             # Launch the BSG Launcher
             if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
 
-            # Add BattlEye workaround 
-            add_battleye_workaround
-
             if command -v steam &>/dev/null; then
                 msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
                 msg "   ► Please ensure the launcher works & the \"${GREEN}Play${RESET}\" button is visible."
