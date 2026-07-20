@@ -788,7 +788,7 @@ update_proton() {
 install_eft() {
     msg "${BOLD}Launching \"Escape from Tarkov\" installer...${RESET}"
 
-    if ! check_eft_installed; then check_disk_space 82; fi
+    if ! check_eft_installed; then check_disk_space 90; fi
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}" ]]; then
