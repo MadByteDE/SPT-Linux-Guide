@@ -13,7 +13,8 @@ fi
 
 for term in "${TERMINALS[@]}"; do
     if ! command -v $term &>/dev/null; then continue; fi
-    cd "SPT" && $term -e "./SPT.Server.Linux"
+    cd "SPT" || exit 1
+    $term -e "./SPT.Server.Linux"
     exit
 done
 
