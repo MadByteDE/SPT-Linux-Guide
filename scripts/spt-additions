@@ -41,8 +41,8 @@ shopt -s extglob
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 readonly TITLE="spt-additions"
-readonly VERSION="1.1.7"
-readonly DATE="2026-05-12"
+readonly VERSION="1.2.0-dev"
+readonly DATE="2026-07-21"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
@@ -402,12 +402,12 @@ init_prefix() {
     case "${PROTONPATH}" in
         *"GE-Proton"*|latest) ;;
         *)
-    # Reset proton version if needed
+            # Reset proton version if needed
             if ! check_proton_installed; then
-        msg "Invalid Proton path: ${PROTONPATH}"
-        msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
-        set_value config "PROTONPATH=${DEFAULT_PROTONPATH}"
-    fi
+                msg "Invalid Proton path: ${PROTONPATH}"
+                msg "   ► Defaulting to \"${DEFAULT_PROTONPATH}\"..."
+                set_value config "PROTONPATH=${DEFAULT_PROTONPATH}"
+            fi
         ;;
     esac
     
@@ -904,7 +904,7 @@ install_spt() {
     fi
 
     # Download & install server / launcher scripts
-        m_download -s "${METADATA[server-script-url]}" "${CONFIG[spt-path]}"
+    m_download -s "${METADATA[server-script-url]}" "${CONFIG[spt-path]}"
     m_chmod +x "${CONFIG[spt-path]}/server.sh"
 
     # Install the latest server launch script
@@ -1479,8 +1479,8 @@ opt_guided_install() {
                 for path in "${SHORTCUT[@]}"; do
                     local name="${path##*/}"
                     local desktop_dir; desktop_dir=$( xdg-user-dir DESKTOP )
-                    msg "Creating \"${name}\" desktop shortcut..."
-                    ln -s -f "${APP_DIR}/${name}" "${desktop_dir}/${name}"
+                        msg "Creating \"${name}\" desktop shortcut..."
+                        ln -s -f "${APP_DIR}/${name}" "${desktop_dir}/${name}"
                 done
             fi
         fi
@@ -1634,7 +1634,7 @@ opt_shortcut() {
             CACHE[env]=""
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
-        ;; 
+        ;;
         spt|sptarkov)
             opt_shortcut launcher
             opt_shortcut server
@@ -2026,7 +2026,7 @@ main() {
     set_value config "steam-library-path=${CONFIG[steam-library-path]:-"${DEFAULT_STEAM_LIBRARY_PATH}"}"
     [[ -z "${CONFIG[WINEPREFIX]}" ]] && set_value config "WINEPREFIX=${WINEPREFIX:-"${DEFAULT_WINEPREFIX}"}"
     [[ -z "${CONFIG[PROTONPATH]}" ]] && set_value config "PROTONPATH=${PROTONPATH:-"${DEFAULT_PROTONPATH}"}"
-
+    
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
 
