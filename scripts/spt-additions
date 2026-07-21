@@ -583,7 +583,7 @@ check_bsg_launcher_installed() {
 
 check_spt_installed() {
     [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
-    [[ -d "${CONFIG[spt-path]}/SPT" && -f "${CONFIG[spt-path]}/SPT.Launcher.exe" ]] || return 1
+    [[ -d "${CONFIG[spt-path]}/SPT" ]] || return 1
 }
 
 
@@ -787,7 +787,7 @@ update_proton() {
     if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
     msg "Setting PROTONPATH to \"${version}\""
     set_value config "PROTONPATH=${version}"
-    [[ check_spt_installed ]] && opt_shortcut all
+    check_spt_installed && opt_shortcut all
     msg "${GREEN}Successfully installed \"${version}\"!${RESET}"
     return 0
 }
