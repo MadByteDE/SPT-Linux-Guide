@@ -388,7 +388,6 @@ set_prefix_path() {
         ;;
         *)
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
-            EFT_DIR=$( get_eft_path )
         ;;
     esac
 
@@ -569,6 +568,10 @@ check_proton_installed() {
 
 
 check_eft_installed() {
+    if [[ -z "${EFT_DIR}" ]]; then
+        msg "Getting EFT install path ..."
+        EFT_DIR=$( get_eft_path )
+    fi
     [[ -n "${EFT_DIR}" && -d "${EFT_DIR}" && -n $( m_ls -A "${EFT_DIR}" ) ]]
 }
 
@@ -1442,7 +1445,6 @@ opt_guided_install() {
                 opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
                 
                 # Update EFT path
-                EFT_DIR=$( get_eft_path )
                 if ! check_eft_installed; then
                     warn "${YELLOW} Looks like EFT is not installed!${RESET}"
                     msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
