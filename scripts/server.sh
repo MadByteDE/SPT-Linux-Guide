@@ -6,15 +6,20 @@
 TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
             "kgx" "konsole" "gnome-terminal" "xfce4-terminal" "kitty" "xterm" )
 
-if [[ -n $( pidof "SPT.Server.Linux" ) ]]; then
-    echo "ERROR: Another instance of the server is already running"
+m_run() {
+    if [[ -z "${FLATPAK_SANDBOX_DIR}" ]]; then "$@"
+    else flatpak-spawn --host "$@" || exit 1; fi
+}
+
+if [[ -n $( m_run pidof "SPT.Server.Linux" ) ]]; then
+    echo "ERROR: Another instance is already running"
     exit 1
 fi
 
 for term in "${TERMINALS[@]}"; do
-    if ! command -v $term &>/dev/null; then continue; fi
+    if ! m_run command -v $term &>/dev/null; then continue; fi
     cd "SPT" || exit 1
-    $term -e "./SPT.Server.Linux"
+    m_run $term -e "./SPT.Server.Linux"
     exit
 done
 
