@@ -788,7 +788,6 @@ update_proton() {
     msg "Setting PROTONPATH to \"${version}\""
     set_value config "PROTONPATH=${version}"
     check_spt_installed && opt_shortcut all
-    msg "${GREEN}Successfully installed \"${version}\"!${RESET}"
     return 0
 }
 
