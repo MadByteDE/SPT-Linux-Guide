@@ -413,7 +413,7 @@ init_prefix() {
     
     # Download default proton runner if needed
     if ! check_proton_installed; then
-        update_proton -y "${PROTONPATH}" 1>/dev/null
+        update_proton -y "${PROTONPATH}"
     fi
 
     # Update prefix path(s)
