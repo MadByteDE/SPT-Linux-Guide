@@ -1588,8 +1588,11 @@ add_app_shortcut() {
     # Generate the exec string
     local exec_string
     case "${CACHE[exe_path]}" in
+        # Windows executable
         *exe*|*bat*|*msi*) exec_string="Exec=${CACHE[env]} \"${UMU_PATH}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
-        *) exec_string="Exec=${CACHE[env]} \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        # Bash script
+        *sh*) exec_string="Exec=${CACHE[env]} \"./${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *) err "Unsupported file format: \"${exe_path##*.}\"" ;;
     esac
 
     # Write desktop file
@@ -1609,7 +1612,7 @@ opt_shortcut() {
     local option="$1" && shift
     CACHE[_id]="app-shortcut"
     CACHE[args]=""
-    CACHE[env]="env WINEPREFIX=${WINEPREFIX} PROTONPATH=${PROTONPATH}"
+    CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
 
     case "${option}" in
         eft|bsg|bsg-launcher)
@@ -1621,13 +1624,13 @@ opt_shortcut() {
         ;;
         launcher)
             CACHE[name]="SPT - Launcher"
-            CACHE[exe_path]="./launcher.sh"
+            CACHE[exe_path]="launcher.sh"
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_launcher"
         ;;
         server)
             CACHE[name]="SPT - Server"
-            CACHE[exe_path]="./server.sh"
+            CACHE[exe_path]="server.sh"
             CACHE[env]=""
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
