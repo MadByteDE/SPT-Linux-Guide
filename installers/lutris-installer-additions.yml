@@ -1,6 +1,6 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 ##      SPTarkov Lutris installer script
-##                 v2025.10-2
+##                 v2026.7-1
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 # NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
@@ -19,7 +19,7 @@ script:
         filename: spt-additions
     game:
         arch: win64
-        exe: drive_c/SPTarkov/SPT.Launcher.exe
+        exe: drive_c/SPTarkov/SPT/SPT.Launcher.exe
         prefix: $GAMEDIR
         working_dir: $GAMEDIR/drive_c/SPTarkov/SPT
     requires: escape-from-tarkov
@@ -48,7 +48,7 @@ script:
                      Have fun! ('-')7"
                      
     system:
-        prelaunch_command: $GAMEDIR/drive_c/SPTarkov/launch-server.sh
+        prelaunch_command: $GAMEDIR/drive_c/SPTarkov/server.sh
         env:
             PROTON_VERB: run
             DOTNET_BUNDLE_EXTRACT_BASE_DIR:
