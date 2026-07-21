@@ -21,7 +21,6 @@ fi
 # Environment variables
 export PROTON_USE_XALIA=0 PROTON_MEDIA_USE_GST=1
 export DOTNET_BUNDLE_EXTRACT_BASE_DIR= DOTNET_ROOT=
-export MANGOHUD=0 MANGOHUD_CONFIG=full
 
 # Launch
 cd "SPT" && "$UMU_PATH" "SPT.Launcher.exe"
