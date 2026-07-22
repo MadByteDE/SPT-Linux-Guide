@@ -287,8 +287,7 @@ set_value() {
     # Set value
     case "${array_name}" in
         config)
-            [[ -z "${value}" ]] && err "Missing value for array \"${array_name}\""
-            CONFIG[$key]="${value%/}"
+            [[ -n "${value}" ]] && CONFIG[$key]="${value%/}"
             
             case "${key}" in
                 WINEPREFIX|PROTONPATH) export "${key}=${value%/}" ;;
@@ -384,18 +383,15 @@ set_prefix_path() {
                 err "Game prefix not found"
             fi
             BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
-            EFT_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
+            set_value config "eft-path=${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
         ;;
         *)
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
 
             if [[ -z "${CONFIG[eft-path]}" ]]; then
-                msg "Getting Escape from Tarkov install path ..."
+                msg "Checking for existing EFT install directory ..."
                 set_value config "eft-path=$( get_eft_path )"
-                [[ -z "${CONFIG[eft-path]}" ]] && msg "EFT is not installed."
             fi
-
-            EFT_DIR="${CONFIG[eft-path]}"
         ;;
     esac
 
@@ -476,7 +472,7 @@ get_file_version() {
 }
 
 
-get_eft_version() { get_file_version "${EFT_DIR}/EscapeFromTarkov.exe" | cut -d "." -f4; }
+get_eft_version() { get_file_version "${CONFIG[eft-path]}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_mod_eft_version() { get_file_version "${CONFIG[spt-path]}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_spt_version() { get_file_version "${CONFIG[spt-path]}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
 get_hash() { md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null; }
@@ -518,7 +514,7 @@ check_disk_space() {
     if [[ -n "${total_gb}" ]]; then
         local total_kb; total_kb=$(( 1024*1024*total_gb ))
     else
-        local eft_kb; eft_kb=$( du -cs "${EFT_DIR}" | head -1 | cut -d$'\t' -f1 )
+        local eft_kb; eft_kb=$( du -cs "${CONFIG[eft-path]}" | head -1 | cut -d$'\t' -f1 )
         total_kb=$((eft_kb + 1024*1024*10))
     fi
     total_gb=$( echo "${total_kb}" | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }' )
@@ -576,7 +572,7 @@ check_proton_installed() {
 
 
 check_eft_installed() {
-    [[ -n "${EFT_DIR}" && -d "${EFT_DIR}" && -n $( m_ls -A "${EFT_DIR}" ) ]] || return 1
+    [[ -n "${CONFIG[eft-path]}" && -d "${CONFIG[eft-path]}" && -n $( m_ls -A "${CONFIG[eft-path]}" ) ]] || return 1
 }
 
 
@@ -592,7 +588,7 @@ check_spt_installed() {
 
 
 check_steam_installed() {
-    local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${EFT_DIR}" )
+    local paths=( "${WINEPREFIX}" "${BSG_DIR}" "${CONFIG[eft-path]}" )
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
 }
 
@@ -690,7 +686,7 @@ check_ttl() {
 add_battleye_workaround() {
     # Derived from: https://github.com/nmlynch94/tarkov-flatpak/blob/main/scripts/tarkov-run.sh#L109
     local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
-    local binary_path="${EFT_DIR}/BattlEye/BEService_x64.exe"
+    local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
     local dst_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Common Files/BattlEye"
 
     msg "Adding BattlEye service workaround (This might take a bit) ..."
@@ -968,7 +964,7 @@ install_spt_native() {
 
             # Copy EFT files
             msg "Copying game files to \"${CONFIG[spt-path]}\""
-            m_cp "${EFT_DIR}/" "${CONFIG[spt-path]}"
+            m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
 
             # Move patcher files to install directory
             msg "Copying patch files to \"${CONFIG[spt-path]}\""
@@ -980,7 +976,7 @@ install_spt_native() {
         else
             msg "Installed EFT version is compatible with \"SPT ${METADATA[mod-version]}\""
             msg "Copying game files to \"${CONFIG[spt-path]}\""
-            m_cp "${EFT_DIR}/" "${CONFIG[spt-path]}"
+            m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
         fi
     fi
 
@@ -1056,13 +1052,13 @@ uninstall_eft() {
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
-        msg "   ► EFT: ${EFT_DIR}"
+        msg "   ► EFT: ${CONFIG[eft-path]}"
         msg "   ► BSG Launcher: ${BSG_DIR}"
         yesno "Do you want to continue?" || return 1
     fi
 
     msg "Uninstalling \"Escape from Tarkov\"..."
-    m_rm -r "${BSG_DIR}"; m_rm -r "${EFT_DIR}"
+    m_rm -r "${BSG_DIR}"; m_rm -r "${CONFIG[eft-path]}"
     m_rm -r "${WINEPREFIX}/drive_c/Battlestate Games"
 
     msg "Removing \"BSG Launcher\" shortcut..."
@@ -1172,7 +1168,7 @@ opt_uninstall() {
             if [[ "${NO_PROMPT}" != 1 ]]; then
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
                 msg "   ► ${WINEPREFIX}"
-                msg "   ► ${EFT_DIR}"
+                msg "   ► ${CONFIG[eft-path]}"
                 msg "   ► ${CONFIG[spt-path]}"
                 yesno "Do you want to continue?" || return 1
             fi
@@ -1447,7 +1443,7 @@ opt_guided_install() {
                 msg "   ► When the game is installed, close the Launcher to continue${RESET}"
                 opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
-                msg "Getting Escape from Tarkov install path ..."
+                msg "Checking for existing EFT install directory ..."
                 set_value config "eft-path=$( get_eft_path )"
                 
                 # Update EFT path
