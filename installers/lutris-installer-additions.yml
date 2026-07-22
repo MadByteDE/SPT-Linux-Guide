@@ -15,7 +15,7 @@ runner: wine
 script:
     files:
     - spt-additions:
-        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv4-Dev/scripts/spt-additions
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
         filename: spt-additions
     game:
         arch: win64
@@ -25,7 +25,7 @@ script:
     requires: escape-from-tarkov
     installer:
     # Install SPT using the native installer script
-    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv4-Dev/scripts/spt-additions
+    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
     - merge:
         src: spt-additions
         dst: $GAMEDIR
