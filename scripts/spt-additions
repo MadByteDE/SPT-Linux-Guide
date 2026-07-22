@@ -5,7 +5,7 @@
 # # # # # # # # # 
 
 # MIT License
-# Copyright (c) 2025 MadByte
+# Copyright (c) 2026 MadByte
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 readonly TITLE="spt-additions"
 readonly VERSION="1.2.0-dev"
-readonly DATE="2026-07-21"
+readonly DATE="2026-07-22"
 
 # ANSI codes
 BOLD="\e[1m"; UNDERLINE="\e[2m"; RESET="\e[0m"
