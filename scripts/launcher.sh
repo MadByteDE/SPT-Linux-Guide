@@ -1,10 +1,26 @@
 #!/usr/bin/env bash
 
+########################
+# Environment variables
+########################
+
 # Set Proton version
-export PROTONPATH="${PROTONPATH:-GE-Proton}"
+export PROTONPATH="${PROTONPATH:-"GE-Proton"}"
 
 # Set wine prefix
-export WINEPREFIX="${WINEPREFIX:-$HOME/Games/tarkov}"
+export WINEPREFIX="${WINEPREFIX:-"$HOME/Games/escape-from-tarkov"}"
+
+# Environment variables
+export DOTNET_ROOT=
+export DOTNET_BUNDLE_EXTRACT_BASE_DIR=
+export PROTON_USE_XALIA="${PROTON_USE_XALIA:-0}"
+export PROTON_MEDIA_USE_GST="${PROTON_MEDIA_USE_GST:-1}"
+#export MANGOHUD=1  MANGOHUD_CONFIG=full
+
+
+########################
+# Prepare umu runtime
+########################
 
 # Add additions runtime directory to path
 RUNTIME_PATH="${XDG_DATA_HOME:-${HOME}/.local/share}/spt-additions/runtime"
@@ -14,13 +30,13 @@ RUNTIME_PATH="${XDG_DATA_HOME:-${HOME}/.local/share}/spt-additions/runtime"
 UMU_PATH=$( command -v umu-run )
 
 if [[ -z "${UMU_PATH}" ]]; then
-	echo "Cannot find umu-run executable"
+	echo "ERROR: Cannot find umu-run executable"
 	exit 1
 fi
 
-# Environment variables
-export PROTON_USE_XALIA=0 PROTON_MEDIA_USE_GST=1
-export DOTNET_BUNDLE_EXTRACT_BASE_DIR= DOTNET_ROOT=
 
+########################
 # Launch
+########################
+
 cd "SPT" && "$UMU_PATH" "SPT.Launcher.exe"
