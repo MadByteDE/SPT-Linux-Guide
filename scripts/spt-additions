@@ -787,7 +787,6 @@ update_proton() {
     if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
     msg "Setting PROTONPATH to \"${version}\""
     set_value config "PROTONPATH=${version}"
-    check_spt_installed && opt_shortcut all
     return 0
 }
 
@@ -1256,6 +1255,8 @@ opt_update() {
             [[ -z "${PROTONPATH}" ]] && err "PROTONPATH is not set"
             [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
             update_proton "$@"
+            check_spt_installed && opt_shortcut spt
+            check_eft_installed && opt_shortcut eft
         ;;
         "") err "Option \"update\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
