@@ -75,7 +75,7 @@ readonly CONFIG_DIR="${CONFIG_HOME}/${TITLE}"
 # Default setting variables
 readonly DEFAULT_INSTALL_MODE="latest"
 readonly DEFAULT_PROTONPATH="latest"
-readonly DEFAULT_WINEPREFIX="${HOME}/Games/tarkov"
+readonly DEFAULT_WINEPREFIX="${HOME}/Games/escape-from-tarkov"
 readonly DEFAULT_SPT_DIR="${HOME}/Games/SPTarkov"
 readonly DEFAULT_STEAM_LIBRARY_PATH="${STEAM_DIR}/steamapps"
 
