@@ -44,7 +44,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 #### [Lutris installer](docs/lutris/installer_official.md) (Official)
 
   - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
-  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/launch-server.sh))
+  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 
 #### Manual install (Unsupported)
