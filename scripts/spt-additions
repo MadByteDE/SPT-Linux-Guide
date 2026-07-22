@@ -388,6 +388,14 @@ set_prefix_path() {
         ;;
         *)
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
+
+            if [[ -z "${CONFIG[eft-path]}" ]]; then
+                msg "Getting Escape from Tarkov install path ..."
+                set_value config "eft-path=$( get_eft_path )"
+                [[ -z "${CONFIG[eft-path]}" ]] && msg "EFT is not installed."
+            fi
+
+            EFT_DIR="${CONFIG[eft-path]}"
         ;;
     esac
 
@@ -568,11 +576,7 @@ check_proton_installed() {
 
 
 check_eft_installed() {
-    if [[ -z "${EFT_DIR}" ]]; then
-        msg "Getting EFT install path ..."
-        EFT_DIR=$( get_eft_path )
-    fi
-    [[ -n "${EFT_DIR}" && -d "${EFT_DIR}" && -n $( m_ls -A "${EFT_DIR}" ) ]]
+    [[ -n "${EFT_DIR}" && -d "${EFT_DIR}" && -n $( m_ls -A "${EFT_DIR}" ) ]] || return 1
 }
 
 
@@ -1122,7 +1126,7 @@ load_metadata() {
             METADATA[patcher-path]="${PATCHER_PATH}"
         ;;
         eft)
-             METADATA[inst-eft]=$( get_eft_version ) || err "Failed to get EFT version" "$?"
+            METADATA[inst-eft]=$( get_eft_version ) || err "Failed to get EFT version" "$?"
         ;;
         mod-eft)
             METADATA[inst-spt]=$( get_spt_version ) || err "Failed to get installed SPT version" "$?"
@@ -1442,6 +1446,9 @@ opt_guided_install() {
                 msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
                 msg "   ► When the game is installed, close the Launcher to continue${RESET}"
                 opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
+
+                msg "Getting Escape from Tarkov install path ..."
+                set_value config "eft-path=$( get_eft_path )"
                 
                 # Update EFT path
                 if ! check_eft_installed; then
