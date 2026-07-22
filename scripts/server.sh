@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Uncomment line below if .NET is installed in your HOME directory
-# export DOTNET_ROOT=$HOME/.dotnet
-
 # We don't want to run as root
 if [[ "$( id -u )" -eq 0 ]]; then
     echo "This script is not supposed to be run as root!" >&2
     exit 1
 fi
+
+# Uncomment line below if .NET is installed in your HOME directory
+# export DOTNET_ROOT=$HOME/.dotnet
 
 ROOT_PATH="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
