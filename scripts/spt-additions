@@ -1373,7 +1373,7 @@ opt_guided_install() {
         local spt_install_path="${DEFAULT_SPT_DIR}"
 
         for path in "${steam_paths[@]}"; do
-            local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov"
+            local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov/build"
             if [[ -n "$( m_ls -A "${steam_eft_dir}" 2>/dev/null )" ]]; then
                 # Found EFT in a Steam library
                 msg; msg "${BOLD}Found Steam version of \"Escape from Tarkov\" in:${RESET}"
