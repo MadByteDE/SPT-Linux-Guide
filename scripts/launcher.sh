@@ -32,10 +32,7 @@ export PROTON_MEDIA_USE_GST="${PROTON_MEDIA_USE_GST:-1}"
 RUNTIME_PATH="${XDG_DATA_HOME:-${HOME}/.local/share}/spt-additions/runtime"
 [[ -d "${RUNTIME_PATH}" ]] && export PATH=$RUNTIME_PATH:$PATH
 
-# Get umu-run path
-UMU_PATH=$( command -v umu-run )
-
-if [[ -z "${UMU_PATH}" ]]; then
+if [[ -z $( command -v umu-run 2>/dev/null ) ]]; then
 	echo "ERROR: Cannot find umu-run executable"
 	exit 1
 fi
@@ -45,4 +42,4 @@ fi
 # Launch
 ########################
 
-cd "SPT" && "$UMU_PATH" "SPT.Launcher.exe"
+cd "SPT" && umu-run "SPT.Launcher.exe"
