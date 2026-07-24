@@ -1520,13 +1520,13 @@ opt_run() {
             case "${WINEPREFIX}" in
                 *"steamapps/compatdata/3932890"*)
                     steam steam://rungameid/3932890 &>>/dev/null &
-                    local pid; local c; while [[ -z "$pid" ]]; do
-                        pid=$( pidof "BsgLauncher.exe" )
+                    local pid; local c; while [[ -z "${pid}" ]]; do
+                        pid="$( pidof "BsgLauncher.exe" )"
                         # Timeout
-                        ((c++)) && ((c==30)) && err "Timed out while waiting for BSG Launcher process"
+                        ((c++)) && ((c==60)) && err "Timed out while waiting for BSG Launcher process"
                         sleep 2
                     done
-                    waitpid $pid
+                    waitpid "${pid}"
                 ;;
                 *)
                     local args="--disable-software-rasterizer"
