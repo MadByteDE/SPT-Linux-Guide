@@ -2033,16 +2033,16 @@ main() {
     # Remove old log file
     [[ -f "${LOG_PATH}" ]] && m_rm "${LOG_PATH}"
 
-    # Load initial metadata file (7 days time-to-live)
-    if ! check_ttl "${METADATA_PATH}" 604800; then load_metadata
+    # Load initial metadata file (once per day)
+    if ! check_ttl "${METADATA_PATH}" 86400; then load_metadata
     else load_array metadata; fi
 
     # Export additional environment variables
     export WINEDEBUG="${WINEDEBUG:-"+debugstr,err+all,fixme+all"}"
     export PATH=$RUNTIME_DIR:$PATH
 
-    # Check for updates (5 days interval)
-    if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 432000; then
+    # Check for updates (once per day)
+    if [[ -f "${SCRIPT_PATH}" ]] && ! check_ttl "${SCRIPT_PATH}" 86400; then
         if opt_selfupdate; then
             # Clear temp
             [[ -d "${TMP_DIR}" ]] && m_rm -r "${TMP_DIR}"
