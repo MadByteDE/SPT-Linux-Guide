@@ -388,7 +388,7 @@ set_prefix_path() {
         *)
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
 
-            if [[ -z "${CONFIG[eft-path]}" ]]; then
+            if [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]]; then
                 msg "Checking for existing EFT install directory ..."
                 set_value config "eft-path=$( get_eft_path )"
             fi
