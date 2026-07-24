@@ -584,8 +584,8 @@ check_bsg_launcher_installed() {
 
 
 check_spt_installed() {
-    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
-    [[ -d "${CONFIG[spt-path]}/SPT" ]] || return 1
+    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]]
+    [[ -n $( m_ls -A "${CONFIG[spt-path]}" ) ]]
 }
 
 
