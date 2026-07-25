@@ -56,6 +56,7 @@ DIR[config]="${DIR[config-home]}/${TITLE}"
 DEFAULT[install-mode]="latest"
 DEFAULT[protonpath]="latest"
 DEFAULT[wineprefix]="${HOME}/Games/escape-from-tarkov"
+DEFAULT[env]="PROTON_USE_XALIA=0 PROTON_MEDIA_USE_GST=1"
 DEFAULT[spt-dir]="${HOME}/Games/SPTarkov"
 DEFAULT[steam-library]="${DIR[steam]}/steamapps"
 
@@ -773,6 +774,29 @@ update_proton() {
 }
 
 
+create_launcher_config() {
+    local config_dir="${CONFIG[spt-path]}/SPT_Runtime/user/Launcher"
+    local filepath="${config_dir}/LauncherSettings.json"
+    m_mkdir "${config_dir}"
+    # Create config file if it doesn't exist
+    [[ ! -f "${filepath}" ]] && jq -n '[]' > "${filepath}"
+    # Create config
+    msg "Creating SPT Launcher configuration ..."
+    jq . > "${filepath}" <<JSON
+    {
+        "FirstRun": false,
+        "GamePath": "${CONFIG[spt-path]}",
+        "LinuxSettings": {
+            "PrefixPath": "${CONFIG[WINEPREFIX]}",
+            "UmuPath": "${FILE[umu]}",
+            "LaunchSettings": "${DEFAULT[env]}",
+            "ProtonVersion": "${CONFIG[PROTONPATH]}"
+        }
+    }
+JSON
+}
+
+
 install_eft() {
     msg "${BOLD}Launching \"Escape from Tarkov\" installer...${RESET}"
 
@@ -869,6 +893,9 @@ install_spt() {
         m_mkdir "${steam_dir}"
         touch "${steam_dir}/libraryfolders.vdf"
     fi
+
+    # Create launcher config file
+    create_launcher_config
 
     # Download & install server / launcher scripts
     m_download -s "${METADATA[server-script-url]}" "${CONFIG[spt-path]}"
