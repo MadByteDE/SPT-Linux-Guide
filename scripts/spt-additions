@@ -76,7 +76,7 @@ SHORTCUT[spt-launcher]="${DIR[shortcuts]}/SPT - Launcher.desktop"
 SHORTCUT[spt-server]="${DIR[shortcuts]}/SPT - Server.desktop"
 
 # Metadata file
-URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
+URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv41-Dev/scripts/metadata.conf"
 
 declare -r DIR DEFAULT FILE URL
 
