@@ -857,7 +857,7 @@ install_spt() {
             if ! check_spt_installed; then err "Failed to install SPTarkov"; fi
 
             # Make the Linux server executable
-            m_chmod +x "${CONFIG[spt-path]}/SPT_Runtime/SPT.Server.Linux"
+            m_chmod +x "${CONFIG[spt-path]}/SPT/SPT.Server.Linux"
         ;;
     esac
 
