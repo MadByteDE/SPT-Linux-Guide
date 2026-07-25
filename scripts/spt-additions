@@ -855,9 +855,6 @@ install_spt() {
             msg "Launching SPT Installer..."
             m_umu "${DIR[files]}/SPTInstaller.exe" installpath="${path}"
             if ! check_spt_installed; then err "Failed to install SPTarkov"; fi
-
-            # Make the Linux server executable
-            m_chmod +x "${CONFIG[spt-path]}/SPT/SPT.Server.Linux"
         ;;
     esac
 
