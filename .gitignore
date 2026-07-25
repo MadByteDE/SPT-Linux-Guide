@@ -1,2 +1,4 @@
+.gitignore
+scripts/spt-additions-lite
 scripts/prepare-release.sh
 scripts/shellcheck
