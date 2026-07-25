@@ -777,9 +777,8 @@ update_proton() {
 create_launcher_config() {
     local config_dir="${CONFIG[spt-path]}/SPT_Runtime/user/Launcher"
     local filepath="${config_dir}/LauncherSettings.json"
+    # Create missing directories
     m_mkdir "${config_dir}"
-    # Create config file if it doesn't exist
-    [[ ! -f "${filepath}" ]] && jq -n '[]' > "${filepath}"
     # Create config
     msg "Creating SPT Launcher configuration ..."
     jq . > "${filepath}" <<JSON
