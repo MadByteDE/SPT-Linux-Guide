@@ -34,20 +34,12 @@ Additions CLI installer
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
 ```
 
-[Lutris installer](docs/lutris/installer_additions.md) (Additions)
-  - 
-  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
+#### Manual install
 
+> [!NOTE]
+> We do not provide support for manual installs on Github. 
+> You can ask questions on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) (`Community-Support/SPT on Linux - User discussion thread`)
 
-### Others
-
-#### [Lutris installer](docs/lutris/installer_official.md) (Official)
-
-  - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
-  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/server.sh))
-
-
-#### Manual install (Unsupported)
 - [Using Lutris](docs/lutris/manual_guide.md)
 - [Using Bottles](docs/bottles/manual_guide.md)
 
