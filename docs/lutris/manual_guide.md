@@ -92,8 +92,8 @@ Everything now is pretty much done. To run the game we need to run the server an
 
 - Run the `SPTarkov - Server` shortcut in Lutris.
 
-    > [!TIP]
-    > In case the server doesn't show up after running it, you might be missing the `ASP.NET Runtime` package or you're using the `Flatpak version` of Lutris which can cause issues sometimes. Try switching to the native Lutris package or launch the server manually from a terminal.
+> [!TIP]
+> In case the server doesn't show up after running it, you might be missing the `ASP.NET Runtime` package or you're using the `Flatpak version` of Lutris which can cause issues sometimes. Try switching to the native Lutris package or launch the server manually from a terminal.
 
 - Run the `SPTarkov - Launcher` shortcut in Lutris.
 
