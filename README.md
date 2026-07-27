@@ -14,12 +14,9 @@ Here you can find everything you need to install & play SPT on Linux.
 
 If you encounter an issue while playing SPT on Linux, do **NOT** report it to the dev's unless you're 100% sure it affects Windows installations as well. If possible, verify the issue on a Windows installation of the mod before reporting it.
 
-## Overview
+## Automated installers
 
-### Automated install
-
-Additions CLI installer
-  - 
+### Additions CLI installer
 
   > [!WARNING]
   > NixOS is currently not supported ([#14](https://github.com/MadByteDE/SPT-Linux-Guide/pull/14))
@@ -27,25 +24,27 @@ Additions CLI installer
   - Guided installer for EFT/SPT using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
-  1. Install the `aspnetcore-runtime-9.0` system package ([how to install](docs/aspnet.md))
+  1. Install the `aspnetcore-runtime-10.0` system package ([how to install](docs/aspnet.md))
   3. Run the following command in a terminal:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
 ```
 
-#### Manual install
+
+## Community guides
 
 > [!NOTE]
-> We do not provide support for manual installs on Github.
+> We do not provide support for community guides on Github. 
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
-- [Lutris](docs/lutris/manual_guide.md)
+#### Lutris
+- [Written guide](docs/lutris/manual_guide.md) (<span style="color: green;">SPT 4.1</span>)
+- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (<span style="color: red;">SPT 4.0</span>) - *made by Skippy*
 
+#### Bottles
+- [Written guide](docs/bottles/manual_guide.md) (<span style="color: red;">SPT 4.0</span>)
 
-### [FAQ](docs/faq.md)
-
-### [Troubleshooting](docs/issues.md)
 
 ## Contributions
 If you want to contribute to the guide, feel free to:
