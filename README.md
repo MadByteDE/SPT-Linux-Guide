@@ -38,10 +38,10 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 
 > [!NOTE]
 > We do not provide support for manual installs on Github.
-> You can ask questions on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread`.
+> You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
-- [Using Lutris](docs/lutris/manual_guide.md)
-- [Using Bottles](docs/bottles/manual_guide.md)
+- [Lutris](docs/lutris/manual_guide.md)
+
 
 ### [FAQ](docs/faq.md)
 
