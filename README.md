@@ -32,18 +32,18 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 ```
 
 
-## Community guides
+## Manual guides
 
 > [!NOTE]
-> We do not provide support for community guides on Github. 
+> We do not provide support for manual guides on Github. 
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
 #### Lutris
-- [Written guide](docs/lutris/manual_guide.md) (<span style="color: green;">SPT 4.1</span>)
-- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (<span style="color: red;">SPT 4.0</span>) - *made by Skippy*
+- [Written guide](docs/lutris/manual_guide.md) (SPT 4.1)
+- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (SPT 4.0) - *made by Skippy*
 
 #### Bottles
-- [Written guide](docs/bottles/manual_guide.md) (<span style="color: red;">SPT 4.0</span>)
+- [Written guide](docs/bottles/manual_guide.md) (SPT 4.0)
 
 
 ## Contributions
