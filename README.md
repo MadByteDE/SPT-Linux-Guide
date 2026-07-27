@@ -14,12 +14,9 @@ Here you can find everything you need to install & play SPT on Linux.
 
 If you encounter an issue while playing SPT on Linux, do **NOT** report it to the dev's unless you're 100% sure it affects Windows installations as well. If possible, verify the issue on a Windows installation of the mod before reporting it.
 
-## Overview
+## Automated installers
 
-### Automated install
-
-Additions CLI installer
-  - 
+### Additions CLI installer
 
   > [!WARNING]
   > NixOS is currently not supported ([#14](https://github.com/MadByteDE/SPT-Linux-Guide/pull/14))
@@ -34,26 +31,29 @@ Additions CLI installer
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
 ```
 
-[Lutris installer](docs/lutris/installer_additions.md) (Additions)
-  - 
-  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
-
-
 ### Others
 
-#### [Lutris installer](docs/lutris/installer_official.md) (Official)
+#### [Lutris installer](docs/lutris/installer_additions.md) (Additions)
+  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
+#### [Lutris installer](docs/lutris/installer_official.md) (Official)
   - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
   - ⚠️ Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 
-#### Manual install (Unsupported)
-- [Using Lutris](docs/lutris/manual_guide.md)
-- [Using Bottles](docs/bottles/manual_guide.md)
+## Community guides
 
-### [FAQ](docs/faq.md)
+> [!NOTE]
+> We do not provide support for community guides on Github. 
+> You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) (`Community-Support/SPT on Linux - User discussion thread`) instead.
 
-### [Troubleshooting](docs/issues.md)
+#### Lutris
+- [Written guide](docs/lutris/manual_guide.md) (SPT 4.0)
+- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (SPT 4.0) - *made by Skippy*
+
+#### Bottles
+- [Written guide](docs/bottles/manual_guide.md) (SPT 4.0)
+
 
 ## Contributions
 If you want to contribute to the guide, feel free to:
