@@ -41,10 +41,10 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
   - ⚠️ Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 
-## Community guides
+## Manual guides
 
 > [!NOTE]
-> We do not provide support for community guides on Github. 
+> We do not provide support for manual guides on Github. 
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
 #### Lutris
