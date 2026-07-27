@@ -45,7 +45,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 
 > [!NOTE]
 > We do not provide support for community guides on Github. 
-> You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) (`Community-Support/SPT on Linux - User discussion thread`) instead.
+> You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
 #### Lutris
 - [Written guide](docs/lutris/manual_guide.md) (SPT 4.0)
