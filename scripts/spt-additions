@@ -42,8 +42,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.0-2"
-DATE="2026-07-24"
+VERSION="1.2.0-3"
+DATE="2026-07-27"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -584,8 +584,8 @@ check_bsg_launcher_installed() {
 
 
 check_spt_installed() {
-    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]] || return 1
-    [[ -d "${CONFIG[spt-path]}/SPT" ]] || return 1
+    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]]
+    [[ -n $( m_ls -A "${CONFIG[spt-path]}" ) ]]
 }
 
 
