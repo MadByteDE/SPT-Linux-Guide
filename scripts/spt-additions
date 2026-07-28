@@ -1662,21 +1662,22 @@ opt_shortcut() {
 
 
 opt_clean() {
-    # SYNTAX: spt-additions --no-prompt clean all 
-    local option="$1" && shift
-    local path; local paths=()
+    # SYNTAX: spt-additions --no-prompt clean runtime metadata
+    if [[ "${#@}" == 0 ]]; then err "Option \"clean\" requires an argument"; fi
+    local paths=()
 
-    case "${option}" in
-        metadata) paths=( "${DIR[metadata]}" ) ;;
-        cache) paths=( "${DIR[cache]}" ) ;;
-        config) paths=( "${DIR[config]}" ) ;;
-        data) paths=( "${DIR[data]}" ) ;;
-        runtime) paths=( "${DIR[runtime]}" )  ;;
-        files) paths=( "${DIR[files]}" )  ;;
-        all) paths=( "${DIR[cache]}" "${DIR[config]}" "${DIR[data]}" ) ;;
-        "") err "Option \"clean\" requires an argument" ;;
-        *) err "Invalid option \"${option}\"" ;;
-    esac
+    for arg in "${@}"; do
+        case "${arg}" in
+            metadata) paths+=( "${DIR[metadata]}" ) ;;
+            cache) paths+=( "${DIR[cache]}" ) ;;
+            config) paths+=( "${DIR[config]}" ) ;;
+            data) paths+=( "${DIR[data]}" ) ;;
+            runtime) paths+=( "${DIR[runtime]}" ) ;;
+            files) paths+=( "${DIR[files]}" ) ;;
+            all) paths=( "${DIR[cache]}" "${DIR[config]}" "${DIR[data]}" ) ;;
+            *) err "Invalid argument \"${arg}\"" ;;
+        esac
+    done
 
     # Warn user before continuing
     if [[ -n "${paths}" ]]; then
