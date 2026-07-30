@@ -98,7 +98,7 @@ m_exit() {
 
 m_chmod() { chmod "$@" &>> "${FILE[log]}" || err "Command \"chmod $*\" failed" "$?"; }
 m_mkdir() { mkdir -p "$@" &>> "${FILE[log]}" || err "Command \"mkdir -p $*\" failed" "$?"; }
-m_ls() { ls "$@" 2> /dev/null; }
+m_ls() { ls "$@" 2>/dev/null; }
 m_mv() { mv "$@" &>> "${FILE[log]}" || err "Command \"mv $*\" failed" "$?"; }
 m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl --connect-timeout 30 -f $*\" failed" "$?"; }
 m_umu() { "${FILE[umu]}" "$@" 2>> "${FILE[log]}" || err "Command \"umu-run $*\" failed" "$?"; }
