@@ -1364,7 +1364,6 @@ opt_guided_install() {
         # Check if Steam version of EFT is installed
         local path; steam_paths=($(get_steam_game_libraries))
         local steam_install
-        local input
         local spt_install_path="${DEFAULT[spt-dir]}"
 
         for path in "${steam_paths[@]}"; do
@@ -1385,12 +1384,8 @@ opt_guided_install() {
             msg; msg "${BOLD}${BLUE}[Q] Where do you want to install the wine prefix (Leave blank for \"${DEFAULT[wineprefix]}\")${RESET}"
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
-            input=$( read_input ) || return 1
-            if [[ -n "$input" ]]; then
-                local prefix_path="${input//[~]/"$HOME"}"
-            fi
-
-            init_prefix "${prefix_path:-${DEFAULT[wineprefix]}}"
+            local input; input=$(read_input) || return 1
+            init_prefix "${input:-${DEFAULT[wineprefix]}}"
         fi
 
         check_eft_running
