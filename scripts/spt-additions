@@ -162,7 +162,7 @@ m_extract() {
 
 
 m_download() {
-    local force=0; local silent=0
+    local opt; local force=0; local silent=0
     for opt in "${@}"; do
         case ${opt} in
             -f) force=1; shift 1 ;;
@@ -338,7 +338,7 @@ save_array() {
 
 
 set_spt_path() {
-    local target_path; target_path="$( realpath -m "${1%/}" )"
+    local path; target_path="$( realpath -m "${1%/}" )"
     [[ -z "${target_path}" ]] && err "Path argument is not set"
     check_path "${target_path}"
     set_value config "spt-path=${target_path}"
@@ -346,7 +346,7 @@ set_spt_path() {
 
 
 set_prefix_path() {
-    local target_path; target_path="$( realpath -m "${1%/}" )"
+    local path; target_path="$( realpath -m "${1%/}" )"
     [[ -z "${target_path}" ]] && err "Path argument is not set"
 
     # Validate prefix path
@@ -508,10 +508,10 @@ check_disk_space() {
 
 
 check_prefix_dir() {
-    local target_path="${1%/}"
-    local check_paths=( "${target_path}/system.reg" "${target_path}/dosdevices" "${target_path}/drive_c" )
+    local path; local target_path="${1%/}"
+    local check_paths=("${target_path}/system.reg" "${target_path}/dosdevices" "${target_path}/drive_c")
     # Check directory content
-    if [[ -d "${target_path}" && -n "$( m_ls -A "${target_path}" 2>/dev/null )" ]]; then
+    if [[ -d "${target_path}" && -n "$(m_ls -A "${target_path}")" ]]; then
         for path in "${check_paths[@]}"; do
             [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
         done
@@ -571,7 +571,7 @@ check_spt_installed() {
 
 
 check_steam_install() {
-    local paths=("${WINEPREFIX}" "${BSG_DIR}" "${CONFIG[eft-path]}")
+    local path; local paths=("${WINEPREFIX}" "${BSG_DIR}" "${CONFIG[eft-path]}")
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
 }
 
@@ -751,7 +751,7 @@ update_proton() {
         -y) local no_prompt=1; shift ;;
     esac
     local version="${1:-"latest"}"
-    local url; url=$( m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/${version}" 2>> "${FILE[log]}" )
+    local url; url=$(m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/${version}" 2>> "${FILE[log]}")
     [[ $? != 0 || -z "${url}" ]] && err "Invalid Proton version: ${version}"
     local version="${url##*/}"
 
@@ -979,7 +979,7 @@ install_spt_native() {
 
 
 install_fika() {
-    local releases=("fika-core" "fika-server")
+    local release; releases=("fika-core" "fika-server")
     msg "${BOLD}Launching \"Fika\" installer...${RESET}"
 
     if ! check_eft_installed; then
@@ -1362,7 +1362,7 @@ opt_guided_install() {
     
     while true; do
         # Check if Steam version of EFT is installed
-        local steam_paths=($(get_steam_game_libraries))
+        local path; steam_paths=($(get_steam_game_libraries))
         local steam_install
         local input
         local spt_install_path="${DEFAULT[spt-dir]}"
@@ -1664,7 +1664,7 @@ opt_shortcut() {
 opt_clean() {
     # SYNTAX: spt-additions --no-prompt clean runtime metadata
     if [[ "${#@}" == 0 ]]; then err "Option \"clean\" requires an argument"; fi
-    local paths=()
+    local arg; local path; local paths=()
 
     for arg in "${@}"; do
         case "${arg}" in
@@ -1703,7 +1703,7 @@ opt_selfinstall() {
 
     # Check if PATH contains any of the user bin paths
     for path in "${bin_paths[@]}"; do
-        if [[ -n $( echo "${PATH}" | grep "${path}" ) ]]; then break; fi
+        if [[ -n $(echo "${PATH}" | grep "${path}") ]]; then break; fi
         {   msg; warn "${BOLD}PATH variable does not contain a local bin directory!${RESET}"
             msg
             msg "   ► ${GREEN}${TITLE}${RESET} provides useful CLI commands to manage your wine prefix."
