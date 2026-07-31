@@ -243,12 +243,24 @@ yesno() {
 }
 
 
+resolve_path() {
+    local input="${1}"
+    # Handle tilde expansion for "~"
+    if [[ $input == "~" || $input == "~/"* ]]; then
+        input="${input/#\~/$HOME}"
+    fi
+    # Get real path
+    local path; path="$(realpath -m "${input}")"
+    printf "${path}\n"
+}
+
+
 read_input() {
     if [[ $NO_PROMPT == 1 ]]; then msg "NO_PROMPT variable set - returning 0" && return 0; fi
     read -e -r -p "│    ► " input
     # HACK: Special input check for canceling the action
     [[ "${input:0:1}" =~ ^[Qq]+$ ]] && return 1
-    printf "$input\n"
+    printf "${input}\n"
 }
 
 
@@ -338,23 +350,21 @@ save_array() {
 
 
 set_spt_path() {
-    local path; target_path="$( realpath -m "${1%/}" )"
-    [[ -z "${target_path}" ]] && err "Path argument is not set"
-    check_path "${target_path}"
-    set_value config "spt-path=${target_path}"
+    local path; path="$(resolve_path "${1%/}")"
+    check_path "${path}"
+    set_value config "spt-path=${path}"
 }
 
 
 set_prefix_path() {
-    local path; target_path="$( realpath -m "${1%/}" )"
-    [[ -z "${target_path}" ]] && err "Path argument is not set"
+    local path; path="$(resolve_path "${1%/}")"
 
     # Validate prefix path
-    check_path "${target_path}"
-    check_prefix_dir "${target_path}" || err "Given directory is not empty or the prefix is corrupted: \"${target_path}\""
-
+    check_path "${path}"
+    check_prefix_dir "${path}" || err "Given directory is not empty or the prefix is corrupted: \"${path}\""
+        
     # Update WINEPREFIX environment variables
-    set_value config "WINEPREFIX=${target_path}"
+    set_value config "WINEPREFIX=${path}"
 
     # Update prefix paths
     case "${WINEPREFIX}" in
@@ -373,7 +383,7 @@ set_prefix_path() {
 
             if [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]]; then
                 msg "Checking for existing EFT install directory ..."
-                set_value config "eft-path=$( get_eft_path )"
+                set_value config "eft-path=$(get_eft_path)"
             fi
         ;;
     esac
@@ -384,7 +394,7 @@ set_prefix_path() {
 
 
 init_prefix() {
-    local prefix_path=${1:-"${WINEPREFIX}"}
+    local prefix_path="$(resolve_path ${1:-"${WINEPREFIX}"})"
 
     case "${PROTONPATH}" in
         *"GE-Proton"*|latest) ;;
@@ -524,7 +534,7 @@ check_path() {
     local status=0
     local path="${1%/}"
     [[ ! "${path:0:1}" =~ ^[./~]+$ ]] && err "Invalid path format: \"${path}\""
-    path="$( realpath -m "${path}" )"
+    path="$(resolve_path "${path}")"
 
     while true; do
         [[ -f "${path}" ]] && status=1 && break
@@ -1262,7 +1272,7 @@ opt_patch() {
     msg "${BOLD}Launching patcher...${RESET}"
     local files_total; local progress=1
     local target_path="${1:-"${CONFIG[spt-path]}"}";  local source_path="${2:-"${target_path}"}"
-    target_path=$( realpath -m "${target_path%/}" );  source_path=$( realpath -m "${source_path%/}" )
+    target_path=$(resolve_path "${target_path%/}"); source_path=$(resolve_path "${source_path%/}" )
     [[ -z "${target_path}" ]] && err "Target path is not set"
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
 
@@ -1636,7 +1646,7 @@ opt_shortcut() {
         "") err "Option \"shortcut\" requires an argument" ;;
         *)
             # Create custom shortcut
-            local exe_path; exe_path=$( realpath -m "${option}" )
+            local exe_path; exe_path=$(resolve_path "${option%/}")
             [[ ! -f "${exe_path}" ]] && err "File \"${exe_path}\" does not exist"
             local name="${option##*/}"; name="${name%.*}"
             local working_dir="${option%/*}"
