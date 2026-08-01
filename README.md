@@ -40,10 +40,10 @@ bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-ad
 
 #### Lutris
 - [Written guide](docs/lutris/manual_guide.md) (SPT 4.1)
-- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (SPT 4.0) - *made by Skippy*
+- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (Outdated - SPT 4.0) - *made by Skippy*
 
 #### Bottles
-- [Written guide](docs/bottles/manual_guide.md) (SPT 4.0)
+- [Written guide](docs/bottles/manual_guide.md) (Outdated - SPT 4.0)
 
 
 ## Contributions
