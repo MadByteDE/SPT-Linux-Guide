@@ -861,29 +861,6 @@ install_spt() {
     # Install SPT
     case "${install_mode}" in
         latest|lutris) install_spt_native ;;
-        proton)
-            # Download & install ASP.NET Desktop Runtime 9.0
-            # WORKAROUND: Fixes SPTInstaller requirement check failing
-            m_download "${METADATA[aspnetcore-url]}" "${DIR[files]}/aspnet-runtime.exe"
-            msg "Installing: ASP.NET Desktop Runtime 9.0..." && m_umu "${DIR[files]}/aspnet-runtime.exe" /q
-
-            # Download SPT Installer
-            m_download "${METADATA[spt-installer-url]}" "${DIR[files]}"
-
-            # Symlink SPTInstaller cache directory to script cache directory
-            local cache_dir="${WINEPREFIX}/drive_c/users/steamuser/Application Data/spt-installer/cache"
-            [[ -d "${cache_dir}" && $(readlink "${cache_dir}") != "${DIR[files]}" ]] && m_rm -r "${cache_dir}"
-            [[ ! -d "${cache_dir}" ]] && m_mkdir "${cache_dir%/*}"
-            ln -s -n "${DIR[files]}" "${cache_dir}" &>> "${FILE[log]}"
-
-            # Convert SPT directory path to windows path
-            local path; path=$(m_umu winepath -w "${CONFIG[spt-path]}")
-
-            # Run SPT Installer
-            msg "Launching SPT Installer..."
-            m_umu "${DIR[files]}/SPTInstaller.exe" installpath="${path}"
-            if ! check_spt_installed; then err "Failed to install SPTarkov"; fi
-        ;;
     esac
 
     # Set Windows version to 8.1
@@ -910,7 +887,7 @@ install_spt() {
     m_chmod +x "${CONFIG[spt-path]}/launcher.sh"
 
     case "${install_mode}" in
-        latest|proton)
+        latest)
             # Download icons to icons directory
             m_download -s "${METADATA[launcher-ico-url]}" "${DIR[icons]}/spt_launcher.png"
             m_download -s "${METADATA[server-ico-url]}" "${DIR[icons]}/spt_server.png"
@@ -1738,7 +1715,7 @@ opt_selfinstall() {
             msg
             msg "   ► This script provides useful CLI commands to manage your wine prefix, e.g:"
             msg "   ► \"${GREEN}${TITLE} update spt${RESET}\"                       (Update to a new SPT version)"
-            msg "   ► \"${GREEN}${TITLE} -m proton install spt${RESET}\"            (Install SPT using the windows installer)"
+            msg "   ► \"${GREEN}${TITLE} install spt${RESET}\"                      (Install SPT)"
             msg "   ► Run \"${GREEN}${TITLE} -h${RESET}\" for more details"
         } | more
         yesno "Do you want to install ${TITLE} into the user bin directory (\"${path}\")?" || return 1
@@ -1788,7 +1765,6 @@ opt_help() {
                 msg 
                 msg "${BOLD}SPTarkov install modes (-m switch):${RESET}"
                 msg "latest                         - Install the latest version of SPTarkov"
-                msg "proton                         - Use Proton to install the latest version of SPTarkov"
                 msg
                 opt_help switches
             } | more
@@ -1806,7 +1782,6 @@ opt_help() {
             {   msg "${BOLD}Available options:${RESET}"
                 msg "spt|sptarkov                   - Update SPTarkov to the latest version"
                 msg "fika                           - Update Fika to the latest version"
-                msg "proton                         - Update GE-Proton to another version (latest by default)"
                 msg "additions|script               - Update this additions script"
                 msg
                 opt_help switches
@@ -1900,7 +1875,7 @@ opt_help() {
         switches)
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
-                msg "-m <mode>                      - Set the install mode for SPTarkov (latest, proton)"
+                msg "-m <mode>                      - Set the install mode for SPTarkov (latest)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
@@ -1946,7 +1921,7 @@ handle_opts() {
             p) set_prefix_path "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    latest|proton|lutris)
+                    latest|lutris)
                         msg "Setting install mode to \"${OPTARG}\"..."
                         set_value config "install-mode=${OPTARG}"
                     ;;
