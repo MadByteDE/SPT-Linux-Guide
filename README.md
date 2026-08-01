@@ -24,21 +24,12 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
   - Guided installer for EFT/SPT using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
-  1. Install the `aspnetcore-runtime-9.0` system package ([how to install](docs/aspnet.md))
+  1. Install the `aspnetcore-runtime-10.0` system package ([how to install](docs/aspnet.md))
   3. Run the following command in a terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
+bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-additions)"
 ```
-
-### Others
-
-#### [Lutris installer](docs/lutris/installer_additions.md) (Additions)
-  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
-
-#### [Lutris installer](docs/lutris/installer_official.md) (Official)
-  - Uses the official [SPTInstaller](https://github.com/sp-tarkov/installer) via `Wine`
-  - ⚠️ Uses a custom server pre-launch script ([view source](scripts/server.sh))
 
 
 ## Manual guides
@@ -48,11 +39,11 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guid
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
 #### Lutris
-- [Written guide](docs/lutris/manual_guide.md) (SPT 4.0)
-- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (SPT 4.0) - *made by Skippy*
+- [Written guide](docs/lutris/manual_guide.md) (SPT 4.1)
+- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (Outdated - SPT 4.0) - *made by Skippy*
 
 #### Bottles
-- [Written guide](docs/bottles/manual_guide.md) (SPT 4.0)
+- [Written guide](docs/bottles/manual_guide.md) (Outdated - SPT 4.0)
 
 
 ## Contributions

@@ -1,9 +1,6 @@
 # SPT installation using Lutris
 
 > [!WARNING]
-> This guide is currently **not compatible** with the Steam version of Escape From Tarkov
-
-> [!WARNING]
 > Never install SPT into your live EFT's game directory!
 
 ## What you need
@@ -16,7 +13,7 @@
 - **[SPT mod](https://github.com/sp-tarkov/build/releases) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
-### - ASP.NET Runtime 9.0 ([How to install](../aspnet.md))
+### - ASP.NET Runtime 10.0 ([How to install](../aspnet.md))
 
 
 ## Installation
@@ -26,26 +23,27 @@
 **<summary>TL;DR version</summary>** 
 
 1. Install EFT in `Lutris` using the installer script
-2. Install game in `BSG Launcher`
-3. Run `winetricks --self-update` via the Lutris bash terminal
-4. Run `winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9`
-5. Copy `EFT game files` somewhere else inside the prefix and `downpatch` if needed
-6. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
-7. Duplicate config, new profile `SPTarkov - Launcher`
-8. Change executable to `SPT.Launcher.exe` in `Configure` → `Game Settings`
-9. In `Runner options`, add `winhttp=n,b` in the `DLL overrides` section
-10. Add `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` environment variables in `Configure` → `System options`
-11. Run `SPT.Server.Linux`, then `SPTarkov - Launcher`
+2. Install game client inside the `BSG Launcher`
+3. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9`
+4. Copy `EFT game files` somewhere else and `downpatch` the game files if needed
+5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
+6. Create new Linux runner shortcut `SPTarkov - Server`
+7. Set `SPT.Server.Linux` as executable & enable `CLI mode` in `Configure` → `System options`
+8. Create new Linux runner shortcut `SPTarkov - Launcher`
+9. Set `SPT.Launcher.Linux` as executable
+10. Add `WINEDLLOVERRIDES` with the value `winhttp=n,b` in `System options` → `Environment variables`
+11. (Optional) Get the [server.sh](../../scripts/server.sh) script & set it as `pre-launch script` in `Configure` → `System options`
 
 </details>
 
 ***
 
+
 **1. Installing Escape from Tarkov**
 
 - First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
-<img src="../../media/lutris/tarkov.gif" width="580">
+    <img src="../../media/lutris/tarkov.gif" width="580">
 
 - Follow the steps shown inside the application, wait until the installation is finished
 
@@ -56,42 +54,48 @@
 
 - Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the EFT game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
-      winetricks --self-update
-      winetricks -q arial times vcrun2022 dotnetdesktop6 dotnetdesktop8 dotnetdesktop9
+      winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9
 
     <img src="../../media/lutris/terminal.jpg" width="580">
 
+
 **3. Downpatching & mod installation**
 
-- Make a copy of your live EFT game files. You need to place it inside the same prefix, e.g at `/home/USER/Games/escape-from-tarkov/drive_c/SPTarkov`.
+- Make a copy of your live EFT game files & paste the copy in your desired install location, e.g `~/Games`, then rename the directory to `SPTarkov`.
 
-- If needed, downpatch EFT to the correct version e.g. by running the downgrade patcher inside the game directory. Check out our [downpatching guide](../downpatching.md).
+- Downpatch the game files to the correct version by running the downgrade patcher inside the game directory. Check out our [downpatching guide](../downpatching.md).
 
-- When it's done, extract the contents of the `RELEASE-SPT-x.x.x.zip` into your copied SPT game directory.
+- When it's done, extract the contents of the `RELEASE-SPT-x.x.x.zip` into the `SPTarkov` directory.
 
 
 **4. Configure SPT Launcher**
 
-- Back in Lutris, right-click the `Escape From Tarkov` shortcut and select `Duplicate`. We recommend renaming the duplicate to something like `"SPTarkov - Launcher"`.
+- Back in Lutris, navigate to the `+` symbol in the top left corner. Select `Add locally installed game`
   
-- Now you'll need to select the correct executable e.g located at `YOUR_PREFIX/drive_c/SPTarkov/SPT/SPT.Launcher.exe`.
+- Now you'll need to select the native launcher executable e.g located in `~/Games/SPTarkov/SPT_Runtime/SPT.Launcher.Linux`.
 
-- Next in the `Runner options` → `DLL overrides` section, add the key `winhttp` with the value `n,b` and → `Save`.
+- And lastly, add `WINEDLLOVERRIDES` with the value `winhttp=n,b` in `System options` → `Environment variables` & save the changes.
 
-    <img src="../../media/lutris/config.gif" width="580">
 
-- And lastly, add the keys for `DOTNET_ROOT` and `DOTNET_BUNDLE_EXTRACT_BASE_DIR` without setting a value in `System options` → `Environment variables` & save the changes.
+**5. Configure SPT Server**
+
+- Once again, navigate to the `+` symbol in the top left corner. Select `Add locally installed game`
+  
+- Select `~/Games/SPTarkov/SPT_Runtime/SPT.Server.Linux` as executable
+
+- In `System options` enable `CLI mode` and ensure your default terminal is selected & save the changes.
+
 
 **6. Running SPT**
 
 Everything now is pretty much done. To run the game we need to run the server and the launcher.
 
-- To launch the server, run the `SPT.Server.Linux` executable in a terminal.
+- Run the `SPTarkov - Server` shortcut in Lutris.
 
 > [!TIP]
-> You also can add the server to Lutris by selecting `Add locally installed game`. Set `Linux` as runner & navigate to the `SPT.Server.Linux` executable in the `Game options`. You need to enable `CLI mode` in the `System options` to run the server in a terminal.
+> In case the server doesn't show up after running it, you might be missing the `ASP.NET Runtime` package or you're using the `Flatpak version` of Lutris which can cause issues sometimes. Try switching to the native Lutris package or launch the server manually from a terminal.
 
-- To run the launcher, double click the `SPTarkov - Launcher` shortcut in Lutris or press the `Play` button at the bottom.
+- Run the `SPTarkov - Launcher` shortcut in Lutris.
 
 Have fun!
 

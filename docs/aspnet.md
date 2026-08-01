@@ -1,9 +1,9 @@
 
-## ASP.NET Runtime 9.0
+## ASP.NET Runtime 10.0
 
-[Website](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+[Website](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 
-To run the native Linux server you need to install the native ASP.NET Runtime 9 system package.
+To run the native Linux server you need to install the native ASP.NET Runtime 10.0 system package.
 
 ## How to install
 
@@ -32,22 +32,22 @@ sudo apt update
 Now you can install the package:
 ```
 sudo apt-get update && \
-sudo apt-get install -y aspnetcore-runtime-9.0
+sudo apt-get install -y aspnetcore-runtime-10.0
 ```
 
 ### Fedora (based)
 ```
-sudo dnf install aspnetcore-runtime-9.0
+sudo dnf install aspnetcore-runtime-10.0
 ```
 
 ### Fedora Atomic (e.g. Bazzite/Aurora/Bluefin)
 ```
-rpm-ostree install aspnetcore-runtime-9.0
+rpm-ostree install aspnetcore-runtime-10.0
 ```
 
 ### Arch (based)
 ```
-sudo pacman -S aspnet-runtime-9.0
+sudo pacman -S aspnet-runtime-10.0
 ```
 
 ***
