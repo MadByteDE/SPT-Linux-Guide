@@ -1586,12 +1586,13 @@ opt_shortcut() {
     local option="$1" && shift
     CACHE[_id]="app-shortcut"
     CACHE[args]=""
-    CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+    CACHE[env]=""
 
     case "${option}" in
         eft|bsg|bsg-launcher)
             CACHE[name]="BSG - Launcher"
             CACHE[exe_path]="BsgLauncher.exe"
+            CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
             CACHE[args]="--disable-software-rasterizer"
             CACHE[working_dir]="${BSG_DIR}"
             CACHE[icon]="bsg_launcher"
@@ -1605,7 +1606,6 @@ opt_shortcut() {
         server)
             CACHE[name]="SPT - Server"
             CACHE[exe_path]="server.sh"
-            CACHE[env]=""
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
         ;;
