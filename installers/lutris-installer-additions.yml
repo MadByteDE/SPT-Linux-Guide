@@ -1,0 +1,63 @@
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+##      SPTarkov Lutris installer script
+##                 v2026.7-1
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# NOTE: This Lutris installer is using an -UNOFFICIAL- bash installer script.
+
+description: 'Installs SPTarkov for you; EFT needs to be installed manually!'
+notes: "Make sure the main game is installed inside the BSG Launcher before installing SPTarkov.\nCheck out the link for further details & assistance!"
+credits: "https://github.com/MadByteDE/SPT-Linux-Guide"
+game_slug: sptarkov
+installer_slug: sptarkov-additions-installer
+name: SPTarkov - Launcher
+runner: wine
+script:
+    files:
+    - spt-additions:
+        url: https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
+        filename: spt-additions
+    game:
+        arch: win64
+        exe: drive_c/SPTarkov/SPT/SPT.Launcher.exe
+        prefix: $GAMEDIR
+        working_dir: $GAMEDIR/drive_c/SPTarkov/SPT
+    requires: escape-from-tarkov
+    installer:
+    # Install SPT using the native installer script
+    # Source - https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions
+    - merge:
+        src: spt-additions
+        dst: $GAMEDIR
+    - chmodx: ./spt-additions
+    - execute:
+        command: ./spt-additions -m lutris -p "$GAMEDIR" --no-ansi install spt
+        description: Installing SPT ...
+
+    # Installation complete
+    install_complete_text: "All done! ※\\(^o^)/※\n
+                     \n
+                     Quick start:\n
+                     1. Launch 'SPTarkov - Launcher'\n
+                     2. Wait for the server to show 'Server has started, happy playing'\n
+                     3. Connect, create a new profile & play\n
+                     \n
+                     For the latest updates & mods, visit:\n
+                     https://forge.sp-tarkov.com/\n
+                     \n
+                     Have fun! ('-')7"
+                     
+    system:
+        prelaunch_command: $GAMEDIR/drive_c/SPTarkov/server.sh
+        env:
+            PROTON_VERB: run
+            DOTNET_BUNDLE_EXTRACT_BASE_DIR:
+            DOTNET_ROOT: 
+    wine:
+        overrides:
+            winhttp: n,b
+            # icu: d
+
+version: spt-additions-latest
+slug: sptarkov
+year: 2017
