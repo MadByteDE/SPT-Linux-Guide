@@ -72,7 +72,7 @@
 
 **4. Configure SPT Launcher**
 
-- Back in Lutris, navigate to the `+` symbol in the top left corner. Select `Add locally installed game`
+- Back in Lutris, navigate to the `+` symbol in the top left corner. Select `Add locally installed game` & set the `Runner` to `Linux`.
   
 - Now you'll need to select the native launcher executable e.g located in `~/Games/SPTarkov/SPT_Runtime/SPT.Launcher.Linux`.
 
@@ -81,7 +81,7 @@
 
 **5. Configure SPT Server**
 
-- Once again, navigate to the `+` symbol in the top left corner. Select `Add locally installed game`
+- Once again, navigate to the `+` symbol in the top left corner. Select `Add locally installed game`  & set the `Runner` to `Linux`.
   
 - Select `~/Games/SPTarkov/SPT_Runtime/SPT.Server.Linux` as executable
 
