@@ -22,7 +22,7 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.1-dev"
+VERSION="1.2.1"
 DATE="2026-08-01"
 
 # ANSI codes
@@ -77,7 +77,7 @@ SHORTCUT[spt-launcher]="${DIR[shortcuts]}/SPT - Launcher.desktop"
 SHORTCUT[spt-server]="${DIR[shortcuts]}/SPT - Server.desktop"
 
 # Metadata file
-URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/SPTv41-Dev/scripts/metadata.conf"
+URL[metadata]="https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/metadata.conf"
 
 declare -r DIR DEFAULT FILE URL
 
