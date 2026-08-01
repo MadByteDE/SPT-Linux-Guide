@@ -24,7 +24,7 @@
 
 1. Install EFT in `Lutris` using the installer script
 2. Install game client inside the `BSG Launcher`
-3. Run `winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9`
+3. Run `winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10`
 4. Copy `EFT game files` somewhere else and `downpatch` the game files if needed
 5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
 6. Create new Linux runner shortcut `SPTarkov - Server`
@@ -54,7 +54,7 @@
 
 - Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the EFT game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
-      winetricks -q arial times vcrun2022 dotnetdesktop8 dotnetdesktop9
+      winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10
 
     <img src="../../media/lutris/terminal.jpg" width="580">
 
