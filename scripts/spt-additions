@@ -1565,7 +1565,7 @@ add_app_shortcut() {
         # Windows executable
         *exe*|*bat*|*msi*) exec_string="Exec=${CACHE[env]} \"${FILE[umu]}\" \"${CACHE[exe_path]}\" ${CACHE[args]}" ;;
         # Bash script
-        *sh*) exec_string="Exec=${CACHE[env]} \"./${CACHE[exe_path]}\" ${CACHE[args]}" ;;
+        *sh*) exec_string="Exec=${CACHE[env]} \"${CACHE[working_dir]}/${CACHE[exe_path]}\" ${CACHE[args]}" ;;
         *) err "Unsupported file format: \"${exe_path##*.}\"" ;;
     esac
 
