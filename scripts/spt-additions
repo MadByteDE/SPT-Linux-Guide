@@ -852,13 +852,8 @@ install_spt() {
     check_eft_running;  check_aspnet;  check_disk_space
 
     # Install dependencies
-    install_verb "dotnetdesktop6" ".NET Desktop Runtime 6.0"
-    install_verb "dotnetdesktop8" ".NET Desktop Runtime 8.0"
-
-    # Download & install .NET Desktop Runtime 9.0
-    local dotnet_file="${DIR[files]}/dotnet-runtime.exe"
-    if [[ ! -f "${dotnet_file}" ]] || ! check_ttl "${dotnet_file}" 604800; then m_download -f "${METADATA[dotnetcore-url]}" "${dotnet_file}"; fi
-    msg "Installing: .NET Desktop Runtime 9.0..." && m_umu "${dotnet_file}" /q
+    install_verb "dotnetdesktop9" ".NET Desktop Runtime 9.0"
+    install_verb "dotnetdesktop10" ".NET Desktop Runtime 10.0"
 
     # Add DLL overrides
     opt_dlloverride winhttp n,b
