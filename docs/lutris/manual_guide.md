@@ -15,6 +15,8 @@
 
 ### - ASP.NET Runtime 10.0 ([How to install](../aspnet.md))
 
+### - `webkit2gtk-4.1` system package installed
+
 
 ## Installation
 
