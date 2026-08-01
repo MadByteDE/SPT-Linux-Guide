@@ -28,7 +28,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
   3. Run the following command in a terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/MadByteDE/SPT-Linux-Guide/main/scripts/spt-additions)"
+bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-additions)"
 ```
 
 
