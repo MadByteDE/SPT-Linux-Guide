@@ -57,7 +57,7 @@ DEFAULT[install-mode]="latest"
 DEFAULT[protonpath]="latest"
 DEFAULT[wineprefix]="${HOME}/Games/escape-from-tarkov"
 DEFAULT[env]="PROTON_USE_XALIA=0 PROTON_MEDIA_USE_GST=1"
-DEFAULT[spt-dir]="${HOME}/Games/SPTarkov"
+DEFAULT[spt-dir]="${HOME}/Games/SPT"
 DEFAULT[steam-library]="${DIR[steam]}/steamapps"
 
 # File path variables
@@ -834,7 +834,8 @@ install_spt() {
 
     case "${install_mode}" in
         # WORKAROUND: Shows missing script version & fixes SPT install path
-        lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPTarkov" ;;
+        lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPT" ;;
+        *) err "Invalid install mode: ${install_mode}" ;;
     esac
 
     msg "Selected install mode is \"${install_mode}\"..."
@@ -1049,15 +1050,15 @@ uninstall_spt() {
 
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
-        msg "${BOLD}This action will uninstall \"SPTarkov\" from your system!${RESET}"
+        msg "${BOLD}This action will uninstall \"SPT\" from your system!${RESET}"
         msg "SPT directory: ${UNDERLINE}${CONFIG[spt-path]}${RESET}"
         yesno "Do you want to continue?" || return 1
     fi
 
-    msg "Uninstalling \"SPTarkov\"..."
+    msg "Uninstalling \"SPT\"..."
     m_rm -r "${CONFIG[spt-path]}"
 
-    msg "Removing \"SPTarkov\" shortcuts..."
+    msg "Removing \"SPT\" shortcuts..."
     [[ -f "${SHORTCUT[spt-server]}" ]] && m_rm "${SHORTCUT[spt-server]}"
     [[ -f "${SHORTCUT[spt-launcher]}" ]] && m_rm "${SHORTCUT[spt-launcher]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
@@ -1120,11 +1121,11 @@ load_metadata() {
 # # # # # # # # # # # #
 
 opt_install() {
-    # SYNTAX: spt-additions -p ~/Games/sptarkov install spt 
+    # SYNTAX: spt-additions -p ~/Games/SPT install spt 
     local option="$1" && shift
     case "${option}" in
-        eft|tarkov|bsg) install_eft ;;
-        spt|sptarkov) load_metadata eft; install_spt "${CONFIG[install-mode]}" ;;
+        eft|bsg) install_eft ;;
+        spt) load_metadata eft; install_spt "${CONFIG[install-mode]}" ;;
         fika) load_metadata mod-eft; install_fika "${CONFIG[install-mode]}" ;;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
@@ -1133,11 +1134,11 @@ opt_install() {
 
 
 opt_uninstall() {
-    # SYNTAX: spt-additions -p ~/Games/sptarkov uninstall spt 
+    # SYNTAX: spt-additions -p ~/Games/SPT uninstall spt 
     local shortcut; local option="$1" && shift
     case "${option}" in
-        eft|tarkov|bsg) uninstall_eft ;;
-        spt|sptarkov) uninstall_spt ;;
+        eft|bsg) uninstall_eft ;;
+        spt) uninstall_spt ;;
         all)
             # Ask for confirmation
             if [[ "${NO_PROMPT}" != 1 ]]; then
@@ -1159,7 +1160,7 @@ opt_uninstall() {
 
 
 opt_update() {
-    # SYNTAX: spt-additions -p ~/Games/sptarkov update spt 
+    # SYNTAX: spt-additions -p ~/Games/SPT update spt 
     local option="$1" && shift
     case "${option}" in
         spt|sptarkov)
@@ -1167,7 +1168,7 @@ opt_update() {
 
             # Get metadata
             if check_spt_installed; then load_metadata latest
-            else msg "SPTarkov is not installed"; return 0; fi
+            else msg "SPT is not installed"; return 0; fi
             
             load_metadata mod-eft
             [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
@@ -1192,7 +1193,7 @@ opt_update() {
                     msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
-                    msg "   2. Backup or delete your old SPTarkov directory in \"${CONFIG[spt-path]}\""
+                    msg "   2. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
                     msg "   3. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   4. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 } | more
@@ -1208,7 +1209,7 @@ opt_update() {
                     msg "   2. Extract its content into \"${CONFIG[spt-path]}\" & override when asked"
                     msg
                     msg "   ${BOLD}How to re-install:${RESET}"
-                    msg "   1. Backup or delete your old SPTarkov directory in \"${CONFIG[spt-path]}\""
+                    msg "   1. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
                     msg "   2. Update Escape from Tarkov inside the BSG Launcher"
                     msg "   3. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 }
@@ -1338,7 +1339,7 @@ opt_guided_install() {
         msg "   ► Install latest GE-Proton (if not installed already)"
         msg "   ► Setup the wine prefix, install dependencies & apply game specific workarounds"
         msg "   ► Install the BSG Launcher"
-        msg "   ► Install SPTarkov"
+        msg "   ► Install SPT"
         msg "   ► Add application menu shortcuts"
     } | more
     
@@ -1434,11 +1435,11 @@ opt_guided_install() {
         if [[ "${steam_install}" && "${CONFIG[steam-library-path]}" != *"${HOME}"* ]]; then 
             local spt_path; spt_path="$(cd "${CONFIG[steam-library-path]}" && realpath -m "../../" 2>/dev/null)"
             [[ -z "${spt_path}" ]] && spt_path="${HOME}"
-            spt_install_path="${spt_path%/}/Games/SPTarkov"
+            spt_install_path="${spt_path%/}/Games/SPT"
         fi
 
-        # Choose SPTarkov install path
-        msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPTarkov (Leave blank for \"${spt_install_path}\")${RESET}"
+        # Choose SPT install path
+        msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPT (Leave blank for \"${spt_install_path}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
         input=$(read_input) || return 1
         set_spt_path "${input:-${spt_install_path}}"
@@ -1486,7 +1487,7 @@ opt_run() {
     [[ -z "${option}" ]] && err "Option \"run\" requires an argument"
     
     case "${option}" in
-        eft|tarkov|bsg|bsg-launcher)
+        eft|bsg|bsg-launcher)
             msg "${BOLD}Launching BSG Launcher...${RESET}"
             case "${WINEPREFIX}" in
                 *"steamapps/compatdata/3932890"*)
@@ -1759,20 +1760,21 @@ opt_help() {
     case "${option}" in
         install)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "eft|bsg|tarkov                 - Install the BSG Launcher"
-                msg "spt|sptarkov                   - Install SPTarkov"
+                msg "eft|bsg                        - Install the BSG Launcher"
+                msg "spt                            - Install SPT"
                 msg "fika                           - Install Fika (core + server mod)"
                 msg 
-                msg "${BOLD}SPTarkov install modes (-m switch):${RESET}"
-                msg "latest                         - Install the latest version of SPTarkov"
+                msg "${BOLD}SPT install modes (-m switch):${RESET}"
+                msg "latest                         - Install the latest version of SPT"
+                msg "legacy                         - Install the legacy version of SPT"
                 msg
                 opt_help switches
             } | more
         ;;
         uninstall)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "eft|bsg|tarkov                 - Uninstall the BSG Launcher"
-                msg "spt|sptarkov                   - Uninstall SPTarkov"
+                msg "eft|bsg                        - Uninstall the BSG Launcher"
+                msg "spt                            - Uninstall SPT"
                 msg "all                            - Uninstall everything (prefix, EFT & SPT)"
                 msg
                 opt_help switches
@@ -1780,7 +1782,7 @@ opt_help() {
         ;;
         update)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "spt|sptarkov                   - Update SPTarkov to the latest version"
+                msg "spt                            - Update SPT to the latest version"
                 msg "fika                           - Update Fika to the latest version"
                 msg "additions|script               - Update this additions script"
                 msg
@@ -1788,7 +1790,7 @@ opt_help() {
             } | more
         ;;
         patch)
-            {   msg "Downpatch EFT game files to a supported version for SPTarkov"
+            {   msg "Downpatch EFT game files to a supported version for SPT"
                 msg 
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE patch [target_path] [source_path]${RESET}"
@@ -1840,7 +1842,7 @@ opt_help() {
                 msg "eft|bsg|bsg-launcher           - Create/update BSG Launcher shortcut"
                 msg "launcher                       - Create/update SPT Launcher shortcut"
                 msg "server                         - Create/update SPT Server shortcut"
-                msg "spt|sptarkov                   - Create/update all SPT shortcuts"
+                msg "spt                            - Create/update all SPT shortcuts"
                 msg "all                            - Create/update all available shortcuts"
                 msg "custom_executable              - Create/update custom shortcuts"
                 msg
@@ -1875,7 +1877,7 @@ opt_help() {
         switches)
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
-                msg "-m <mode>                      - Set the install mode for SPTarkov (latest)"
+                msg "-m <mode>                      - Set the install mode for SPT (latest)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
                 msg "-h|--help                      - Show help message"
@@ -1883,7 +1885,7 @@ opt_help() {
             } | more
         ;;
         "") 
-            {   msg "${BOLD}${TITLE} - Standalone EFT/SPTarkov installer & configuration tool${RESET}"
+            {   msg "${BOLD}${TITLE} - Standalone EFT/SPT installer & configuration tool${RESET}"
                 msg
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE [SWITCHES] <option> [ARGS...]${RESET}"
@@ -1895,7 +1897,7 @@ opt_help() {
                 msg "run                            - Run EFT/SPT or custom commands inside the prefix"
                 msg "dlloverride                    - Add a DLL override to the wine prefix"
                 msg "shortcut                       - Create application menu shortcuts"
-                msg "patch                          - Downpatch EFT game files to a supported version for SPTarkov"
+                msg "patch                          - Downpatch EFT game files to a supported version for SPT"
                 msg "clean                          - Clean installer and prefix files"
                 msg "self-install                   - Install this script to a local bin directory for ease of use"
                 msg "self-update                    - Update this script to the latest version"
