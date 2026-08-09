@@ -353,6 +353,8 @@ set_spt_path() {
     local path; path="$(resolve_path "${1%/}")"
     check_path "${path}"
     set_value config "spt-path=${path}"
+    msg "${BOLD}SPT path has been set to:${RESET}"
+    msg "   ► ${path}"
 }
 
 
@@ -586,7 +588,7 @@ check_steam_install() {
 }
 
 
-check_aspnet() {
+check_native_aspnet() {
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
         warn "\"ASP.NET Runtime 9.0\" is not installed."
         msg "   ► ASP.NET is ${BOLD}REQUIRED${RESET} to run then SPT Linux server!"
@@ -830,7 +832,7 @@ install_eft() {
 
 install_spt() {
     local install_mode="${CONFIG[install-mode]}"
-    msg "${BOLD}Launching \"SPTarkov\" installer...${RESET}"
+    msg "${BOLD}Launching \"SPT\" installer...${RESET}"
 
     case "${install_mode}" in
         # WORKAROUND: Shows missing script version & fixes SPT install path
@@ -850,7 +852,7 @@ install_spt() {
         err "SPTarkov directory already exists."
     fi
 
-    check_eft_running;  check_aspnet;  check_disk_space
+    check_eft_running;  check_native_aspnet;  check_disk_space
 
     # Install dependencies
     install_verb "dotnetdesktop9" ".NET Desktop Runtime 9.0"
@@ -970,9 +972,9 @@ install_fika() {
         msg "   ► make sure to install the game inside the BSG Launcher & try again!"
         err "Escape from Tarkov not found."
     elif ! check_spt_installed; then
-        warn "${BOLD}SPTarkov is not installed${RESET}"
+        warn "${BOLD}SPT is not installed${RESET}"
         msg "   ► make sure to install it & try again!"
-        err "SPTarkov not found."
+        err "SPT not found."
     elif [[ -d "${CONFIG[spt-path]}/BepInEx/plugins/Fika" ]]; then
         # Ask for confirmation
         warn "${BOLD}Fika is already installed${RESET}"
@@ -1877,6 +1879,7 @@ opt_help() {
         switches)
             {   msg "${BOLD}Available switches:${RESET}"
                 msg "-p <path>                      - Specify a custom wine prefix path"
+                msg "-s <path>                      - Specify a custom SPT install path"
                 msg "-m <mode>                      - Set the install mode for SPT (latest)"
                 msg "--no-prompt                    - Disable all prompts and assume \"yes\" as answer"
                 msg "--no-ansi                      - Disable ANSI colors in output"
@@ -1918,9 +1921,10 @@ opt_help() {
 
 handle_opts() {
     # Handle switches
-    while getopts ":p:e:a:m:h:v:-:" subopt; do
+    while getopts ":p:s:e:a:m:h:v:-:" subopt; do
         case ${subopt} in
             p) set_prefix_path "${OPTARG}" ;;
+s) set_spt_path "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
                     latest|lutris)
@@ -1996,7 +2000,7 @@ main() {
 
     # Set default config variables
     [[ -f "${FILE[config]}" ]] && load_array config
-    set_spt_path "${CONFIG[spt-path]:-${DEFAULT[spt-dir]}}"
+    set_spt_path "${CONFIG[spt-path]:-${DEFAULT[spt-dir]}}" 1>/dev/null
     set_value config "install-mode=${CONFIG[install-mode]:-"${DEFAULT[install-mode]}"}"
     set_value config "steam-library-path=${CONFIG[steam-library-path]:-"${DEFAULT[steam-library]}"}"
     [[ -z "${CONFIG[WINEPREFIX]}" ]] && set_value config "WINEPREFIX=${WINEPREFIX:-"${DEFAULT[wineprefix]}"}"
