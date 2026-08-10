@@ -22,8 +22,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.1-1"
-DATE="2026-08-02"
+VERSION="1.2.2"
+DATE="2026-08-10"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -582,6 +582,16 @@ check_spt_installed() {
 }
 
 
+check_latest_installed() {
+    check_spt_installed && [[ -d "${CONFIG[spt-path]}/SPT_Runtime" ]]
+}
+
+
+check_legacy_installed() {
+    check_spt_installed && [[ -d "${CONFIG[spt-path]}/SPT" ]]
+}
+
+
 check_steam_install() {
     local path; local paths=("${WINEPREFIX}" "${BSG_DIR}" "${CONFIG[eft-path]}")
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
@@ -589,8 +599,13 @@ check_steam_install() {
 
 
 check_native_aspnet() {
-    if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "9.0" &>/dev/null; then
-        warn "\"ASP.NET Runtime 9.0\" is not installed."
+    local version
+    case "${CONFIG[install-mode]}" in
+        latest|lutris) version="10.0" ;;
+        legacy) version="9.0" ;;
+    esac
+    if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "${version}" &>/dev/null; then
+        warn "\"ASP.NET Runtime ${version}\" is not installed."
         msg "   ► ASP.NET is ${BOLD}REQUIRED${RESET} to run then SPT Linux server!"
         yesno "Continue anyway?" || m_exit
     fi
@@ -835,12 +850,12 @@ install_spt() {
     msg "${BOLD}Launching \"SPT\" installer...${RESET}"
 
     case "${install_mode}" in
+        # Continue normally
+        latest|legacy) msg "Selected install mode is \"${install_mode}\"..." ;;
         # WORKAROUND: Shows missing script version & fixes SPT install path
         lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPT" ;;
-        *) err "Invalid install mode: ${install_mode}" ;;
+        *) err "Invalid install mode: ${install_mode}" ;; 
     esac
-
-    msg "Selected install mode is \"${install_mode}\"..."
 
     if ! check_eft_installed; then
         warn "${BOLD}Escape from Tarkov is not installed${RESET}"
@@ -849,7 +864,7 @@ install_spt() {
     elif check_spt_installed; then
         warn "${BOLD}\"${CONFIG[spt-path]}\"${RESET} already exists"
         msg "   ► If you want to reinstall, make sure to move or delete the current installation first!"
-        err "SPTarkov directory already exists."
+        err "SPT directory already exists."
     fi
 
     check_eft_running;  check_native_aspnet;  check_disk_space
@@ -863,50 +878,11 @@ install_spt() {
 
     # Install SPT
     case "${install_mode}" in
-        latest|lutris) install_spt_native ;;
+        latest) load_metadata latest ;;
+        legacy) load_metadata legacy ;;
     esac
 
-    # Set Windows version to 8.1
-    msg "Setting Windows version to \"8.1\"..."
-    m_umu winetricks -q "win81" 1>> "${FILE[log]}"
-
-    # Steam library directory workaround
-    local steam_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Steam/steamapps"
-    if [[ ! -f "${steam_dir}/libraryfolders.vdf" ]]; then
-        msg "Adding Steam library file workaround..."
-        m_mkdir "${steam_dir}"
-        touch "${steam_dir}/libraryfolders.vdf"
-    fi
-
-    # Create launcher config file
-    create_launcher_config
-
-    # Download & install server / launcher scripts
-    m_download -s "${METADATA[server-script-url]}" "${CONFIG[spt-path]}"
-    m_chmod +x "${CONFIG[spt-path]}/server.sh"
-
-    # Install the latest server launch script
-    m_download -s "${METADATA[launcher-script-url]}" "${CONFIG[spt-path]}"
-    m_chmod +x "${CONFIG[spt-path]}/launcher.sh"
-
-    case "${install_mode}" in
-        latest)
-            # Download icons to icons directory
-            m_download -s "${METADATA[launcher-ico-url]}" "${DIR[icons]}/spt_launcher.png"
-            m_download -s "${METADATA[server-ico-url]}" "${DIR[icons]}/spt_server.png"
-
-            # Create application shortcuts
-            opt_shortcut spt
-        ;;
-        lutris) ;;
-    esac
-    msg "SPTarkov has been installed!"
-}
-
-
-install_spt_native() {
-    local install_mode="${CONFIG[install-mode]}"
-    load_metadata latest && msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
+    msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
 
     # Check if we need to patch the game files
     msg "Comparing installed EFT <--> required EFT versions"
@@ -960,6 +936,51 @@ install_spt_native() {
     fi
 
     install_mod_archive "${METADATA[mod-url]}" "${FILE[mod]}" "${METADATA[mod-hash]}"
+
+    # Set Windows version to 8.1
+    msg "Setting Windows version to \"8.1\"..."
+    m_umu winetricks -q "win81" 1>> "${FILE[log]}"
+
+    # Steam library directory workaround
+    local steam_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Steam/steamapps"
+    if [[ ! -f "${steam_dir}/libraryfolders.vdf" ]]; then
+        msg "Adding Steam library file workaround..."
+        m_mkdir "${steam_dir}"
+        touch "${steam_dir}/libraryfolders.vdf"
+    fi
+
+    case "${install_mode}" in
+        # Create launcher config file
+        latest) create_launcher_config ;;
+    esac
+
+    # Download & install the server script
+    case "${install_mode}" in
+        latest) m_download -s "${METADATA[server-sh-url]}" "${CONFIG[spt-path]}" ;;
+        legacy) m_download -s "${METADATA[server-sh-legacy-url]}" "${CONFIG[spt-path]}" ;;
+    esac
+
+    m_chmod +x "${CONFIG[spt-path]}/server.sh"
+
+    # Download & install the launcher script
+    case "${install_mode}" in
+        latest) m_download -s "${METADATA[launcher-sh-url]}" "${CONFIG[spt-path]}" ;;
+        legacy) m_download -s "${METADATA[launcher-sh-legacy-url]}" "${CONFIG[spt-path]}" ;;
+    esac
+
+    m_chmod +x "${CONFIG[spt-path]}/launcher.sh"
+
+    case "${install_mode}" in
+        latest|legacy)
+            # Download & install icons
+            m_download -s "${METADATA[launcher-ico-url]}" "${DIR[icons]}/spt_launcher.png"
+            m_download -s "${METADATA[server-ico-url]}" "${DIR[icons]}/spt_server.png"
+
+            # Create application shortcuts
+            opt_shortcut spt
+        ;;
+    esac
+    msg "SPT has been installed!"
 }
 
 
@@ -986,7 +1007,13 @@ install_fika() {
         local archive_path="${DIR[files]}/${release}.zip"
         
         # Get metadata json
-        if ! check_ttl "${json_path}"; then m_download "${METADATA[${release}-json-url]}" "${json_path}"; fi
+        if check_latest_installed; then
+            check_ttl "${json_path}" || m_download "${METADATA[${release}-url]}" "${json_path}"
+        elif check_legacy_installed; then
+            check_ttl "${json_path}" || m_download "${METADATA[${release}-legacy-url]}" "${json_path}"
+        else
+            err "Failed to determine installed SPT version."
+        fi
 
         # Get archive url
         local archive_url; archive_url=$(cat "${json_path}" | grep -o "\"browser_download_url\": \"[^}]*" | cut -d "\"" -f4 2>/dev/null)
@@ -1085,17 +1112,24 @@ load_metadata() {
     local name="${1}"
     case "${name}" in
         latest)
-            # Fetch metadata
-            if ! check_ttl "${FILE[mod-json]}" || ! check_ttl "${FILE[patcher-json]}"; then
-                m_download -f -s "${METADATA[mod-json-url]}" "${FILE[mod-json]}"
-                m_download -f -s "${METADATA[patcher-json-url]}" "${FILE[patcher-json]}"
-            fi
-            METADATA[mod-eft]=$(jq -r '.ClientVersion' "${FILE[mod-json]}") || err "Failed to get required EFT version for SPT" "$?"
-            METADATA[mod-version]=$(jq -r '.AkiVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
-            METADATA[mod-url]=$(jq -r '.Mirrors[].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
-            METADATA[mod-hash]=$(jq -r '.Mirrors[].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
-            METADATA[patcher-url]=$(jq -r '.Mirrors[].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
-            METADATA[patcher-hash]=$(jq -r '.Mirrors[].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
+            load_metadata spt
+            METADATA[mod-eft]=$(jq -r '.Releases[0].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required EFT version for SPT" "$?"
+            METADATA[mod-version]=$(jq -r '.Releases[0].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
+            METADATA[mod-url]=$(jq -r '.Releases[0].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
+            METADATA[mod-hash]=$(jq -r '.Releases[0].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
+            METADATA[patcher-url]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
+            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required EFT version for patcher" "$?"
+            METADATA[patcher-path]="${FILE[patcher]}"
+        ;;
+        legacy)
+            load_metadata spt
+            METADATA[mod-eft]=$(jq -r '.Releases[1].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required EFT version for SPT" "$?"
+            METADATA[mod-version]=$(jq -r '.Releases[1].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
+            METADATA[mod-url]=$(jq -r '.Releases[1].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
+            METADATA[mod-hash]=$(jq -r '.Releases[1].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
+            METADATA[patcher-url]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
             METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required EFT version for patcher" "$?"
             METADATA[patcher-path]="${FILE[patcher]}"
         ;;
@@ -1105,6 +1139,13 @@ load_metadata() {
         mod-eft)
             METADATA[inst-spt]=$(get_spt_version) || err "Failed to get installed SPT version" "$?"
             METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod EFT version" "$?"
+        ;;
+        spt)
+            # Fetch metadata
+            if ! check_ttl "${FILE[mod-json]}" || ! check_ttl "${FILE[patcher-json]}"; then
+                m_download -f -s "${METADATA[mod-json-url]}" "${FILE[mod-json]}"
+                m_download -f -s "${METADATA[patcher-json-url]}" "${FILE[patcher-json]}"
+            fi
         ;;
         "")
             # Get metadata file (1 hour time-to-live)
@@ -1165,11 +1206,12 @@ opt_update() {
     # SYNTAX: spt-additions -p ~/Games/SPT update spt 
     local option="$1" && shift
     case "${option}" in
-        spt|sptarkov)
+        spt)
             if ! check_eft_installed; then msg "Escape from Tarkov is not installed"; return 0; fi
 
             # Get metadata
-            if check_spt_installed; then load_metadata latest
+            if check_latest_installed; then load_metadata latest
+            elif check_legacy_installed; then load_metadata legacy
             else msg "SPT is not installed"; return 0; fi
             
             load_metadata mod-eft
@@ -1605,6 +1647,10 @@ opt_shortcut() {
             CACHE[exe_path]="launcher.sh"
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_launcher"
+            # 4.0 uses the windows launcher, so we need proton env vars
+            if check_legacy_installed; then
+                CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+            fi
         ;;
         server)
             CACHE[name]="SPT - Server"
@@ -1612,7 +1658,7 @@ opt_shortcut() {
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
         ;;
-        spt|sptarkov)
+        spt)
             opt_shortcut launcher
             opt_shortcut server
             return 0
@@ -1924,10 +1970,10 @@ handle_opts() {
     while getopts ":p:s:e:a:m:h:v:-:" subopt; do
         case ${subopt} in
             p) set_prefix_path "${OPTARG}" ;;
-s) set_spt_path "${OPTARG}" ;;
+            s) set_spt_path "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    latest|lutris)
+                    latest|legacy|lutris)
                         msg "Setting install mode to \"${OPTARG}\"..."
                         set_value config "install-mode=${OPTARG}"
                     ;;
