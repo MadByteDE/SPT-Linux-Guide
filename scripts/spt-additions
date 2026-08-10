@@ -373,7 +373,7 @@ set_prefix_path() {
         *"steamapps/compatdata/3932890"*)
             if [[ ! -d "${WINEPREFIX}" ]]; then
                 warn "Game prefix not found!"
-                msg "   ► ${BOLD}Ensure that Escape from Tarkov is installed inside Steam${RESET}"
+                msg "   ► ${BOLD}Ensure that the game is installed inside Steam${RESET}"
                 msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
                 err "Game prefix not found"
             fi
@@ -694,7 +694,6 @@ check_ttl() {
 
 
 add_battleye_workaround() {
-    # Derived from: https://github.com/nmlynch94/tarkov-flatpak/blob/main/scripts/tarkov-run.sh#L109
     local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
     local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
     local dst_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Common Files/BattlEye"
@@ -824,7 +823,7 @@ JSON
 
 
 install_eft() {
-    msg "${BOLD}Launching \"Escape from Tarkov\" installer...${RESET}"
+    msg "${BOLD}Launching game installer...${RESET}"
 
     if ! check_eft_installed; then check_disk_space 90; fi
 
@@ -858,9 +857,9 @@ install_spt() {
     esac
 
     if ! check_eft_installed; then
-        warn "${BOLD}Escape from Tarkov is not installed${RESET}"
+        warn "${BOLD}The game client is not installed${RESET}"
         msg "   ► make sure to install the game inside the BSG Launcher & try again!"
-        err "Escape from Tarkov not found."
+        err "Game not found."
     elif check_spt_installed; then
         warn "${BOLD}\"${CONFIG[spt-path]}\"${RESET} already exists"
         msg "   ► If you want to reinstall, make sure to move or delete the current installation first!"
@@ -989,9 +988,9 @@ install_fika() {
     msg "${BOLD}Launching \"Fika\" installer...${RESET}"
 
     if ! check_eft_installed; then
-        warn "${BOLD}Escape from Tarkov is not installed${RESET}"
+        warn "${BOLD}The game client is not installed${RESET}"
         msg "   ► make sure to install the game inside the BSG Launcher & try again!"
-        err "Escape from Tarkov not found."
+        err "Game not found."
     elif ! check_spt_installed; then
         warn "${BOLD}SPT is not installed${RESET}"
         msg "   ► make sure to install it & try again!"
@@ -1050,20 +1049,20 @@ install_fika() {
 uninstall_eft() {
     local no_prompt="${1:-$NO_PROMPT}"
     if check_steam_install; then
-        warn "Steam installation of Escape from Tarkov detected!"
+        warn "Steam installation of the game detected!"
         msg "   ► Please uninstall the game with Steam instead."
         return 1
     fi
 
     # Ask for confirmation
     if [[ "${no_prompt}" != 1 ]]; then
-        msg "${BOLD}This action will uninstall \"Escape from Tarkov\" from your system!${RESET}"
-        msg "   ► EFT: ${CONFIG[eft-path]}"
-        msg "   ► BSG Launcher: ${BSG_DIR}"
+        msg "${BOLD}This action will uninstall the game from your system!${RESET}"
+        msg "   ► Client files: ${CONFIG[eft-path]}"
+        msg "   ► Launcher: ${BSG_DIR}"
         yesno "Do you want to continue?" || return 1
     fi
 
-    msg "Uninstalling \"Escape from Tarkov\"..."
+    msg "Uninstalling the game..."
     m_rm -r "${BSG_DIR}"; m_rm -r "${CONFIG[eft-path]}"
     m_rm -r "${WINEPREFIX}/drive_c/Battlestate Games"
 
@@ -1097,7 +1096,7 @@ uninstall_spt() {
 uninstall_prefix() {
     local no_prompt="${1:-$NO_PROMPT}"
     if check_steam_install; then
-        warn "Steam installation of Escape from Tarkov detected!"
+        warn "Steam installation of the game detected!"
         msg "   ► Please uninstall the game inside Steam instead."
         return 1
     fi
@@ -1207,7 +1206,7 @@ opt_update() {
     local option="$1" && shift
     case "${option}" in
         spt)
-            if ! check_eft_installed; then msg "Escape from Tarkov is not installed"; return 0; fi
+            if ! check_eft_installed; then msg "The game client is not installed"; return 0; fi
 
             # Get metadata
             if check_latest_installed; then load_metadata latest
@@ -1238,7 +1237,7 @@ opt_update() {
                     msg
                     msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
-                    msg "   3. Update Escape from Tarkov inside the BSG Launcher"
+                    msg "   3. Update the game inside the game launcher"
                     msg "   4. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 } | more
             elif [[ "${upd_minor}" -gt "${inst_minor}" ]]; then
@@ -1254,7 +1253,7 @@ opt_update() {
                     msg
                     msg "   ${BOLD}How to re-install:${RESET}"
                     msg "   1. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
-                    msg "   2. Update Escape from Tarkov inside the BSG Launcher"
+                    msg "   2. Update the game inside the game launcher"
                     msg "   3. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 }
             elif [[ "${upd_patch}" -gt "${inst_patch}" ]]; then
@@ -1397,7 +1396,7 @@ opt_guided_install() {
             local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov/build"
             if [[ -n "$(m_ls -A "${steam_eft_dir}")" ]]; then
                 # Found EFT in a Steam library
-                msg; msg "${BOLD}Found Steam version of \"Escape from Tarkov\" in:${RESET}"
+                msg; msg "${BOLD}Found Steam version of the game client in:${RESET}"
                 msg "   ► ${steam_eft_dir}"
                 set_value config "steam-library-path=${path}/steamapps"
                 msg; init_prefix "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
@@ -1431,23 +1430,23 @@ opt_guided_install() {
 
         if [[ "${steam_install}" ]]; then
             # Launch the BSG Launcher
-            if ! check_eft_installed; then err "Looks like Escape from Tarkov is not installed"; fi
+            if ! check_eft_installed; then err "Looks like the game client is not installed"; fi
 
             if command -v steam &>/dev/null; then
                 msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
                 msg "   ► Please ensure the launcher works & the \"${GREEN}Play${RESET}\" button is visible."
                 msg "   ► Then close it again to continue..."
-                opt_run bsg-launcher || err "Failed to launch Escape from Tarkov with Steam"
+                opt_run bsg-launcher || err "Failed to launch the game with Steam"
             else
                 warn "Cannot launch Steam on your system!"
-                msg "   ► You might need to launch the BSG Launcher once manually to create important metadata"
+                msg "   ► You might need to launch the game launcher once manually to create important metadata"
                 sleep 3
             fi
         else
             # Ask to skip EFT installation if it's already installed
             local inst_eft=1
             if check_eft_installed; then
-                msg; yesno "\"Escape from Tarkov\" is already installed. Do you want to skip this step?" \
+                msg; yesno "The vanilla game client is already installed. Do you want to skip this step?" \
                 && unset inst_eft
             fi
 
@@ -1456,7 +1455,7 @@ opt_guided_install() {
                 opt_install eft
 
                 # Run BSG Launcher
-                msg "${BOLD}${BLUE}[A] Please install Escape from Tarkov inside the BSG Launcher ...${RESET}"
+                msg "${BOLD}${BLUE}[A] Please install the game inside the game launcher ...${RESET}"
                 msg "   ► When the game is installed, close the Launcher to continue${RESET}"
                 opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
@@ -1465,10 +1464,10 @@ opt_guided_install() {
                 
                 # Update EFT path
                 if ! check_eft_installed; then
-                    warn "${YELLOW} Looks like EFT is not installed!${RESET}"
-                    msg "   ► Make sure that Escape From Tarkov is installed inside the Launcher"
+                    warn "${YELLOW} Looks like the game is not installed!${RESET}"
+                    msg "   ► Make sure that the game is installed inside the game launcher"
                     msg "   ► & that you can see the \"${GREEN}Play${RESET}\" button"
-                    err "Failed to get EFT install path"
+                    err "Failed to get game install path"
                 fi
 
                 # Add BattlEye workaround 
