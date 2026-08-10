@@ -29,7 +29,7 @@ We provide two methods to patch the game files on Linux.
 - **3) Run the script**
     -  Now run the script with the `patch` command pointing to your SPT install directory, e.g. :
 
-           ./spt-additions patch ~/Games/escape-from-tarkov/drive_c/SPTarkov
+           ./spt-additions patch ~/Games/escape-from-tarkov/drive_c/SPT
 
 > [!TIP]
 > For more details, run `./spt-additions help patch`.
@@ -64,11 +64,11 @@ We provide two methods to patch the game files on Linux.
 
 - **Lutris:**
 
-        ~/Games/escape-from-tarkov/drive_c/SPTarkov
+        ~/Games/escape-from-tarkov/drive_c/SPT
 
 - **Bottles:**
 
-        ~/.var/app/com.usebottles.bottles/data/bottles/bottles/SPTarkov/drive_c/SPTarkov
+        ~/.var/app/com.usebottles.bottles/data/bottles/bottles/SPT/drive_c/SPT
 
 - **3) Run `patcher.exe`**
 
@@ -83,7 +83,7 @@ We provide two methods to patch the game files on Linux.
 
     → Select one of the previously created shortcuts, click the wine glass icon, → `Open Bash terminal`, and use the following command:
 
-        cd drive_c/SPTarkov/ && wine ./patcher.exe
+        cd drive_c/SPT/ && wine ./patcher.exe
 
 - **Bottles:**
 
@@ -91,7 +91,7 @@ We provide two methods to patch the game files on Linux.
 
     → Select `Tools` → `Command Line` and use the following command:
 
-        cd drive_c/SPTarkov/ && ./patcher.exe
+        cd drive_c/SPT/ && ./patcher.exe
 
     Now wait until the patching is done & voila!
 

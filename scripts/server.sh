@@ -16,7 +16,9 @@ TERMINALS=( "alacritty" "ghostty" "foot" "terminator" "ptyxis" "cosmic-terminal"
 for term in "${TERMINALS[@]}"; do
     if ! command -v $term &>/dev/null; then continue; fi
     cd "${ROOT_PATH}/SPT_Runtime" || exit 1
-    $term -e "./SPT.Server.Linux" >&1
+    # Check if in interactive mode or not & run the command
+    if [ -t 0 ]; then ./SPT.Server.Linux
+    else $term -e "./SPT.Server.Linux" >&1; fi
     exit
 done
 
