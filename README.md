@@ -35,15 +35,15 @@ bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-ad
 ## Manual guides
 
 > [!NOTE]
-> We do not provide support for manual guides on Github. 
+> We **do not** provide support for manual guides on Github. 
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
 #### Lutris
 - [Written guide](docs/lutris/manual_guide.md) (SPT 4.1)
-- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (Outdated - SPT 4.0) - *made by Skippy*
+- [Video guide](https://www.youtube.com/watch?v=dZbdiMl6TfM) (**Outdated** - SPT 4.0) - *made by Skippy*
 
 #### Bottles
-- [Written guide](docs/bottles/manual_guide.md) (Outdated - SPT 4.0)
+- [Written guide](docs/bottles/manual_guide.md) (**Outdated** - SPT 4.0)
 
 
 ## Contributions
