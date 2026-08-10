@@ -33,7 +33,7 @@ The SPT server has been completely rewritten & ported to C#. This means old serv
 
 As Linux is not an officially supported platform for SPT, it's very likely that there'll be server mods that no longer work on Linux. **Please refrain from complaining about this to the mod authors**!
 
-Instead, collect infos/logs about the issue & open a issue report on their mod repository e.g. on Github. You can find a link to the repository on their [Forge](https://forge.sp-tarkov.com/) mod page.
+Instead, collect infos/logs about the issue & open a issue report on their mod repository e.g. on Github. You can find a link to the repository on their [Forge](https://sp-mod.com/) mod page.
 
 If you're a developer yourself & know C# - I'm sure many mod authors are open for pull requests fixing issues for Linux users. 😉
 

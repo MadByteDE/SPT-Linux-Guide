@@ -65,7 +65,7 @@ Before lowering graphics settings in the game, here are some tips on how to impr
 #### 6. Tweak mod settings
 - Having mods like SAIN, That's Lit, Questing Bots or Looting Bots installed can take a lot of breath out of your system. You can tweak mod settings e.g. reduce total amount of bots spawned or set slower intervals for checks (like bots looking for loot/looking for cover) to get improved performance.
 
-    Check out the mod pages on the [Forge](https://forge.sp-tarkov.com/) to get more details!
+    Check out the mod pages on the [Forge](https://sp-mod.com/) to get more details!
 
 ***
 
