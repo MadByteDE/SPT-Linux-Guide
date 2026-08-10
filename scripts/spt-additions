@@ -22,7 +22,7 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.2-2"
+VERSION="1.2.2-3"
 DATE="2026-08-10"
 
 # ANSI codes
@@ -422,6 +422,7 @@ init_prefix() {
     if [[ ! -d "${WINEPREFIX}" ]]; then
         msg; msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${FILE[log]}"
+        install_prefix_fixes
     fi
 }
 
@@ -822,10 +823,27 @@ JSON
 }
 
 
+install_prefix_fixes() {
+    # Add prefix update pop-up workaround
+    msg "Adding \"RUNDLL32\" pop-up workaround..."
+    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
+
+    # Add mouse focus workaround
+    msg "Adding mouse focus workaround..."
+    m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
+
+    # Install EFT dependencies
+    install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
+    install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
+}
+
+
 install_eft() {
     msg "${BOLD}Launching game installer...${RESET}"
 
     if ! check_eft_installed; then check_disk_space 90; fi
+
+    install_prefix_fixes
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}" ]]; then
@@ -1415,18 +1433,6 @@ opt_guided_install() {
         fi
 
         check_eft_running
-
-        # Add prefix update pop-up workaround
-        msg "Adding \"RUNDLL32\" pop-up workaround..."
-        m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
-
-        # Add mouse focus workaround
-        msg "Adding mouse focus workaround..."
-        m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
-
-        # Install EFT dependencies
-        install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
-        install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
 
         if [[ "${steam_install}" ]]; then
             # Launch the BSG Launcher
