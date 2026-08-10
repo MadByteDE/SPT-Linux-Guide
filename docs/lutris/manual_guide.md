@@ -1,7 +1,7 @@
 # SPT installation using Lutris
 
 > [!WARNING]
-> Never install SPT into your live EFT's game directory!
+> Never install SPT into your live game client directory!
 
 ## What you need
 
@@ -11,7 +11,7 @@
 - Make sure GPU and vulkan drivers are installed and working.
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
 - **[SPT mod](https://github.com/sp-tushonka/build/releases/latest) (*.7z archive)**
-    - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
+    - Make sure to update to the latest game client version and follow the [downpatching guide](../downpatching.md) if needed.
 
 ### - ASP.NET Runtime 10.0 ([How to install](../aspnet.md))
 
@@ -24,10 +24,10 @@
 
 **<summary>TL;DR version</summary>** 
 
-1. Install EFT in `Lutris` using the installer script
+1. Install the game in `Lutris` using the installer script
 2. Install the game inside the game launcher
 3. Run `winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10`
-4. Copy `EFT game files` somewhere else and `downpatch` the game files if needed
+4. Copy the game files somewhere else and `downpatch` the files if needed
 5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
 6. Create new Linux runner shortcut `SPT - Server`
 7. Set `SPT.Server.Linux` as executable & enable `CLI mode` in `Configure` → `System options`
@@ -54,7 +54,7 @@
 
 **2. Preparing the prefix**
 
-- Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the EFT game shortcut is selected → `Open Bash terminal`, and use the following commands:
+- Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the live game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
       winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10
 
@@ -63,7 +63,7 @@
 
 **3. Downpatching & mod installation**
 
-- Make a copy of your live EFT game files & paste the copy in your desired install location, e.g `~/Games`, then rename the directory to `SPT`.
+- Make a copy of your live game files & paste the copy in your desired install location, e.g `~/Games`, then rename the directory to `SPT`.
 
 - Downpatch the game files to the correct version by running the downgrade patcher inside the game directory. Check out our [downpatching guide](../downpatching.md).
 

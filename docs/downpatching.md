@@ -1,6 +1,6 @@
-# Downpatching EFT
+# Downpatching the game files
 
-Whenever the game receives a new update, SPT has to be updated as well for it to support the latest changes made by Battlestate Games. Since mod development can take some time, you'll need to down patch a copy of the EFT game files to install SPT in the meantime.
+Whenever the game receives a new update, SPT has to be updated as well for it to support the latest changes made by Battlestate Games. Since mod development can take some time, you'll need to down patch a copy of the game files to install SPT in the meantime.
 
 We provide two methods to patch the game files on Linux.
 
@@ -12,7 +12,7 @@ We provide two methods to patch the game files on Linux.
 ### What you need
 
 - **[Downgrade patcher](https://mirror.spt.dev/patchers/)**
-    - Make sure the downgrade patcher matches the installed EFT version!
+    - Make sure the downgrade patcher matches the installed game client version!
 
 - **[spt-additions](../scripts/spt-additions)**
 
@@ -43,7 +43,7 @@ We provide two methods to patch the game files on Linux.
 > You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!
 
 - **[Downgrade patcher](https://mirror.spt.dev/patchers/)**
-    - Make sure the downgrade patcher matches the installed EFT version!
+    - Make sure the downgrade patcher matches the installed game client version!
 
 - **Wine**
     - Tested wine versions:
@@ -57,7 +57,7 @@ We provide two methods to patch the game files on Linux.
 > If you get an error about lzma, try `7z` to extract!
 
 
-- **2) Move the patcher files to your copied EFT game directory, e.g:**
+- **2) Move the patcher files to your copied game directory, e.g:**
 
 > [!NOTE]
 > `patcher.exe` needs to be inside the root directory alongside the game executable, e.g:

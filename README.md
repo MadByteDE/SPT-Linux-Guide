@@ -21,7 +21,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
   > [!WARNING]
   > NixOS is currently not supported ([#14](https://github.com/MadByteDE/SPT-Linux-Guide/pull/14))
 
-  - Guided installer for EFT/SPT using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
+  - Guided installer for SPT using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
   1. Install the `aspnetcore-runtime-10.0` system package ([how to install](docs/aspnet.md))

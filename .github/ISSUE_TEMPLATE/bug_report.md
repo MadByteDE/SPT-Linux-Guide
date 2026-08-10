@@ -15,8 +15,8 @@ assignees: 'MadByteDE'
 **Install method**:
 <!-- Which guide did you follow? (Installer/Manual, Lutris/Bottles) --->
 
-**EFT Version**:
-<!-- If applicable: Which EFT release version have you installed? --->
+**Client Version**:
+<!-- If applicable: Which game client release version have you installed? --->
 
 **Mod Version**:
 <!-- If applicable: Which SPT release version did you use? --->
