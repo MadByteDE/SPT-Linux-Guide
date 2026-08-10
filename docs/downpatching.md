@@ -1,6 +1,6 @@
 # Downpatching EFT
 
-Whenever Escape from Tarkov receives a new update, SPT has to be updated as well for it to support the latest changes made by Battlestate Games. Since mod development can take some time, you'll need to down patch a copy of the EFT game files to install SPT in the meantime.
+Whenever the game receives a new update, SPT has to be updated as well for it to support the latest changes made by Battlestate Games. Since mod development can take some time, you'll need to down patch a copy of the EFT game files to install SPT in the meantime.
 
 We provide two methods to patch the game files on Linux.
 
@@ -29,7 +29,7 @@ We provide two methods to patch the game files on Linux.
 - **3) Run the script**
     -  Now run the script with the `patch` command pointing to your SPT install directory, e.g. :
 
-           ./spt-additions patch ~/Games/escape-from-tarkov/drive_c/SPT
+           ./spt-additions patch ~/Games/SPT
 
 > [!TIP]
 > For more details, run `./spt-additions help patch`.
@@ -60,11 +60,11 @@ We provide two methods to patch the game files on Linux.
 - **2) Move the patcher files to your copied EFT game directory, e.g:**
 
 > [!NOTE]
-> `patcher.exe` needs to be inside the root directory alongside the game executable.
+> `patcher.exe` needs to be inside the root directory alongside the game executable, e.g:
 
 - **Lutris:**
 
-        ~/Games/escape-from-tarkov/drive_c/SPT
+        ~/Games/SPT
 
 - **Bottles:**
 

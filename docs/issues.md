@@ -67,7 +67,7 @@ The game crashes while playing a raid or being in the hideout.
 
 **Solution**
 
-- Make sure you've `Swap` set up on your system. Tarkov will need at least some `Swap`, even on systems with a lot of RAM available.
+- Make sure you've `Swap` set up on your system. The will need at least some `Swap`, even on systems with a lot of RAM available.
 
 - Another issue could be the `vm.max_map_count` limit (mostly on older distros).
 
@@ -143,7 +143,7 @@ You can get different error codes at different steps throughout the installation
 
 It's hard to pinpoint the exact issue since many different apps use the same exit codes and there are many different tasks performed. Try to keep game files and restart the script.
 
-If the error persists after multiple attempts, please [open up a bug report](https://dev.sp-tarkov.com/MadByte/Linux-Guide/issues/new) containing:
+If the error persists after multiple attempts, please open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose) containing:
 
 - A detailed description of the issue
 - The task shown when the error occurs (e.g. "`Installing game dependencies ...`" or "`Launching BSG Launcher ...`")

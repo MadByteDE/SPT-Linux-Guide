@@ -10,7 +10,7 @@
 ### - **[Lutris](https://lutris.net/downloads)**
 - Make sure GPU and vulkan drivers are installed and working.
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-- **[SPT mod](https://github.com/sp-tarkov/build/releases/latest) (*.7z archive)**
+- **[SPT mod](https://github.com/sp-tushonka/build/releases/latest) (*.7z archive)**
     - Make sure to update to the latest EFT version and follow the [downpatching guide](../downpatching.md) if needed.
 
 ### - ASP.NET Runtime 10.0 ([How to install](../aspnet.md))
@@ -25,7 +25,7 @@
 **<summary>TL;DR version</summary>** 
 
 1. Install EFT in `Lutris` using the installer script
-2. Install game client inside the `BSG Launcher`
+2. Install the game inside the game launcher
 3. Run `winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10`
 4. Copy `EFT game files` somewhere else and `downpatch` the game files if needed
 5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
@@ -41,7 +41,7 @@
 ***
 
 
-**1. Installing Escape from Tarkov**
+**1. Installing the vanilla game client**
 
 - First off, you need to install the game. Open Lutris and navigate to the `+` symbol in the top left corner. Select `Search for installer on Lutris website` and search for the game:
 
@@ -49,7 +49,7 @@
 
 - Follow the steps shown inside the application, wait until the installation is finished
 
-- Install the game client as usual.
+- Install the game as usual.
 
 
 **2. Preparing the prefix**
