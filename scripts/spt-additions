@@ -1643,20 +1643,26 @@ opt_shortcut() {
             CACHE[icon]="bsg_launcher"
         ;;
         launcher)
-            CACHE[name]="SPT - Launcher"
             CACHE[exe_path]="launcher.sh"
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_launcher"
             # 4.0 uses the windows launcher, so we need proton env vars
             if check_legacy_installed; then
+                CACHE[name]="SPT 4.0 - Launcher"
                 CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+            else
+                CACHE[name]="SPT - Launcher"
             fi
         ;;
         server)
-            CACHE[name]="SPT - Server"
             CACHE[exe_path]="server.sh"
             CACHE[working_dir]="${CONFIG[spt-path]}"
             CACHE[icon]="spt_server"
+            if check_legacy_installed; then
+                CACHE[name]="SPT 4.0 - Server"
+            else
+                CACHE[name]="SPT - Server"
+            fi
         ;;
         spt)
             opt_shortcut launcher
