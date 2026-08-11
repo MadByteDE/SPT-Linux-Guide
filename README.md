@@ -25,6 +25,7 @@ If you encounter an issue while playing SPT on Linux, do **NOT** report it to th
   - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
 
   1. Install the `aspnetcore-runtime-10.0` system package ([how to install](docs/aspnet.md))
+  2. Install the `webkit2gtk-4.1` system package
   3. Run the following command in a terminal:
 
 ```bash
