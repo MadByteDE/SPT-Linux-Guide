@@ -789,8 +789,12 @@ update_proton() {
         # Found the given Proton version - ask user to continue
         msg "${BOLD}${YELLOW}${version} is available!${RESET}"
         if [[ -z "${no_prompt}" ]]; then yesno "Do you want to install it?" || return 0; fi
-        m_download "${METADATA[ge-proton-url]}/download/${version}/${version}.tar.gz" "${DIR[tmp]}"
-        m_extract "${DIR[tmp]}/${version}.tar.gz" "${DIR[proton]}"
+        m_download "${METADATA[ge-proton-url]}/download/${version}/${version}-x86_64.tar.gz" "${DIR[tmp]}"
+        m_extract "${DIR[tmp]}/${version}-x86_64.tar.gz" "${DIR[proton]}"
+        if [[ -d "${DIR[proton]}/${version}-x86_64" ]]; then
+            msg "Renaming Proton directory: \"${version}-x86_64\" to \"${version}\""
+            m_mv "${DIR[proton]}/${version}-x86_64" "${DIR[proton]}/${version}"
+        fi
     fi
 
     # Skip if the given version is already set
