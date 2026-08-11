@@ -22,7 +22,7 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.3"
+VERSION="1.2.3-1"
 DATE="2026-08-11"
 
 # ANSI codes
@@ -1434,8 +1434,8 @@ opt_guided_install() {
                 msg; msg "${BOLD}Found Steam version of the game client in:${RESET}"
                 msg "   ► ${steam_eft_dir}"
                 set_value config "steam-library-path=${path}/steamapps"
-                set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
-                msg; init_prefix 
+                msg; set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
+                init_prefix 
                 steam_install=1
                 break
             fi
@@ -1447,8 +1447,8 @@ opt_guided_install() {
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
             local input; input=$(read_input) || return 1
-            set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
-            msg; init_prefix 
+            msg; set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
+            init_prefix 
         fi
 
         check_eft_running
@@ -1471,7 +1471,7 @@ opt_guided_install() {
             # Ask to skip live installation if it's already installed
             local inst_eft=1
             if check_eft_installed; then
-                msg; yesno "The vanilla game client is already installed. Do you want to skip this step?" \
+                msg; yesno "Live is already installed. Do you want to skip this step?" \
                 && unset inst_eft
             fi
 
