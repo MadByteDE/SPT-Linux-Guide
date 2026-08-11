@@ -22,7 +22,7 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.3-1"
+VERSION="1.2.3-2"
 DATE="2026-08-11"
 
 # ANSI codes
@@ -2036,7 +2036,10 @@ handle_opts() {
     # Initialize wine prefix
     case "${option}" in
         shortcut|uninstall) set_prefix_path "${WINEPREFIX}" 1>/dev/null ;;
-        install|update|dlloverride|run) init_prefix ;;
+        install|update|dlloverride|run)
+            set_prefix_path "${WINEPREFIX}" 1>/dev/null
+            init_prefix
+        ;;
     esac
 
     # Handle options
