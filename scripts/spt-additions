@@ -66,8 +66,10 @@ FILE[log]="${DIR[cache]}/installer.log"
 FILE[umu]="$(command -v umu-run || echo "${DIR[runtime]}/umu-run")"
 FILE[config]="${DIR[config]}/app.conf"
 FILE[metadata]="${DIR[metadata]}/metadata.conf"
-FILE[mod]="${DIR[files]}/spt.7z"
+FILE[spt]="${DIR[files]}/spt.7z"
+FILE[legacy-spt]="${DIR[files]}/legacy-spt.7z"
 FILE[patcher]="${DIR[files]}/patcher.7z"
+FILE[legacy-patcher]="${DIR[files]}/legacy-patcher.7z"
 FILE[mod-json]="${DIR[metadata]}/release.json"
 FILE[patcher-json]="${DIR[metadata]}/mirrors.json"
 
@@ -384,8 +386,7 @@ set_prefix_path() {
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
 
             if [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]]; then
-                msg "Checking for existing EFT install directory ..."
-                set_value config "eft-path=$(get_eft_path)"
+                update_eft_path
             fi
         ;;
     esac
@@ -396,8 +397,6 @@ set_prefix_path() {
 
 
 init_prefix() {
-    local prefix_path="$(resolve_path ${1:-"${WINEPREFIX}"})"
-
     case "${PROTONPATH}" in
         *"GE-Proton"*|latest) ;;
         *)
@@ -415,32 +414,45 @@ init_prefix() {
         update_proton -y "${PROTONPATH}"
     fi
 
-    # Update prefix path(s)
-    set_prefix_path "${prefix_path}"
-
      # Check if we need to initialize/update the prefix
     if [[ ! -d "${WINEPREFIX}" ]]; then
-        msg; msg "Initializing wine prefix..." && m_umu wineboot -u
+        msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${FILE[log]}"
-        install_prefix_fixes
+
+        # Add prefix update pop-up workaround
+        msg "Adding \"RUNDLL32\" pop-up workaround..."
+        m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
+
+        # Add mouse focus workaround
+        msg "Adding mouse focus workaround..."
+        m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
     fi
 }
 
 
-get_eft_path() {
+update_eft_path() {
     local entry; local path
 
+    # Get live install path
+    msg "Checking for existing live install directory..."
+
     # get windows path
-    [[ ! -f "${WINEPREFIX}/system.reg" ]] && exit 11
+    [[ ! -f "${WINEPREFIX}/system.reg" ]] && return 1
     entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg")
     path=$(echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
 
     # Convert to unix path
     path=$(m_umu winepath -u "${path}" 2>/dev/null)
-    [[ -z "${path}" ]] && exit 12
+    
+    if [[ -z "${path}" ]]; then
+        return 1
+    fi
 
-    # Finally assemble the full path & return it
-    printf "%s\n" "${path%/*}"
+    if [[ -n "${path%/*}" ]]; then
+        msg "Found live install at:"
+        msg "   ► ${path%/*}"
+        set_value config "eft-path=${path%/*}"
+    fi
 }
 
 
@@ -506,7 +518,7 @@ check_disk_space() {
     # Get required values
     local free_kb; free_kb=$(df -k "${path}" | tail -1 | awk '{print $4}')
     local free_gb; free_gb=$(echo "${free_kb}" | awk '{ free = $1/1024/1024 ; printf("%.2fGiB\n", free) }')
-    # If no total size is defined, use size of the EFT game files
+    # If no total size is defined, use size of the Live game files
     if [[ -n "${total_gb}" ]]; then
         local total_kb; total_kb=$((1024*1024*total_gb))
     else
@@ -827,27 +839,14 @@ JSON
 }
 
 
-install_prefix_fixes() {
-    # Add prefix update pop-up workaround
-    msg "Adding \"RUNDLL32\" pop-up workaround..."
-    m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
-
-    # Add mouse focus workaround
-    msg "Adding mouse focus workaround..."
-    m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
-
-    # Install EFT dependencies
-    install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
-    install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
-}
-
-
 install_eft() {
     msg "${BOLD}Launching game installer...${RESET}"
 
     if ! check_eft_installed; then check_disk_space 90; fi
 
-    install_prefix_fixes
+    # Install game dependencies
+    install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
+    install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
 
     # Install BSG Launcher
     if [[ ! -d "${BSG_DIR}" ]]; then
@@ -859,10 +858,22 @@ install_eft() {
     # Download icon to icons directory
     m_download -s "${METADATA[bsg-ico-url]}" "${DIR[icons]}/bsg_launcher.png"
 
+    # Run BSG Launcher
+    msg "${BOLD}${BLUE}[A] Please install the game inside the game launcher ...${RESET}"
+    msg "   ► When the game is installed, close the Launcher to continue${RESET}"
+    # WORKAROUND: Ensures that umu cannot guesstimate the game drive (S:)
+    export STEAM_COMPAT_INSTALL_PATH="/media/$USER"
+    opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
+
+    if update_eft_path; then
+        # Add BattlEye workaround if the game client has been found
+        add_battleye_workaround
+    fi
+
     # Create application shortcut
     opt_shortcut bsg-launcher
 
-    msg "BSG Launcher is installed!"
+    msg "The game has been installed"
 }
 
 
@@ -906,23 +917,23 @@ install_spt() {
     msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
 
     # Check if we need to patch the game files
-    msg "Comparing installed EFT <--> required EFT versions"
+    msg "Comparing installed Live <--> required Live versions"
     if [[ "${METADATA[inst-eft]}" -ne "${METADATA[mod-eft]}" ]]; then
-        msg "Incompatible EFT version found - Checking patcher compatibility..."
-        # Check if target EFT version is lower, greater or equal to required EFT version
+        msg "Incompatible Live version found - Checking patcher compatibility..."
+        # Check if target Live version is lower, greater or equal to required Live version
         if [[ "${METADATA[patcher-eft]}" -lt "${METADATA[inst-eft]}" ]]; then
             # No patcher available yet!
-            warn "Looks like there's no patcher available for your EFT version"
-            msg "    ► This usually happens when EFT has been updated recently."
+            warn "Looks like there's no patcher available for your Live version"
+            msg "    ► This usually happens when Live has been updated recently."
             msg "    ► Please wait for the SPT team to generate a new patcher."
             msg "    ► Usually, this will take less then 24 hours."
             err "No patcher available (Installed version: ${METADATA[inst-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
-            # EFT is outdated!
-            warn "Looks like your installed EFT version is out-of-date"
-            msg "    ► Please update your live EFT installation & try again"
-            err "EFT is out-of-date (Patch: ${METADATA[patcher-eft]} <-> Installed: ${METADATA[inst-eft]})"
+            # Live is outdated!
+            warn "Looks like your installed Live version is out-of-date"
+            msg "    ► Please update your Live installation & try again"
+            err "Live is out-of-date (Patch: ${METADATA[patcher-eft]} <-> Installed: ${METADATA[inst-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -eq "${METADATA[inst-eft]}" ]]; then
             # Downpatcher is compatible!
@@ -938,7 +949,7 @@ install_spt() {
             # Extract latest patcher to tmp directory
             m_extract "${METADATA[patcher-path]}" "${DIR[tmp]}"
 
-            # Copy EFT files
+            # Copy Live files
             msg "Copying game files to \"${CONFIG[spt-path]}\""
             m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
 
@@ -950,13 +961,13 @@ install_spt() {
             # Patch game files
             opt_patch "${CONFIG[spt-path]}" || err "Failed to patch game files"
         else
-            msg "Installed EFT version is compatible with \"SPT ${METADATA[mod-version]}\""
+            msg "Installed Live version is compatible with \"SPT ${METADATA[mod-version]}\""
             msg "Copying game files to \"${CONFIG[spt-path]}\""
             m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
         fi
     fi
 
-    install_mod_archive "${METADATA[mod-url]}" "${FILE[mod]}" "${METADATA[mod-hash]}"
+    install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
 
     # Set Windows version to 8.1
     msg "Setting Windows version to \"8.1\"..."
@@ -1046,12 +1057,12 @@ install_fika() {
             [[ -z "${fika_version}" ]] && err "Failed to get Fika version"
             msg "${BOLD}Latest Fika version is \"${fika_version}\"${RESET}"
 
-            # SPT-EFT compatibility check
+            # SPT-Live compatibility check
             local compatible_eft; compatible_eft=$(cat "${json_path}" | grep -o "# Compatible with EFT [^}]*" | cut -d " " -f5 2>/dev/null)
             compatible_eft=$(echo "${compatible_eft}" | cut -d "." -f4 | cut -d "\\" -f1)
-            [[ -z "${compatible_eft}" ]] && err "Failed to get compatible EFT version"
-            if [[ "${METADATA[inst-mod-eft]}" -eq "${compatible_eft}" ]]; then msg "Installed SPT-EFT version is compatible!"
-            else err "Incompatible EFT version (installed: ${METADATA[inst-mod-eft]} != Required: ${compatible_eft})"; fi
+            [[ -z "${compatible_eft}" ]] && err "Failed to get compatible Live version"
+            if [[ "${METADATA[inst-mod-eft]}" -eq "${compatible_eft}" ]]; then msg "Installed SPT-Live version is compatible!"
+            else err "Incompatible Live version (installed: ${METADATA[inst-mod-eft]} != Required: ${compatible_eft})"; fi
         fi
 
         # Install archive
@@ -1134,32 +1145,34 @@ load_metadata() {
     case "${name}" in
         latest)
             load_metadata spt
-            METADATA[mod-eft]=$(jq -r '.Releases[0].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required EFT version for SPT" "$?"
+            METADATA[mod-path]="${FILE[spt]}"
+            METADATA[patcher-path]="${FILE[patcher]}"
+            METADATA[mod-eft]=$(jq -r '.Releases[0].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
             METADATA[mod-version]=$(jq -r '.Releases[0].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
             METADATA[mod-url]=$(jq -r '.Releases[0].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
             METADATA[mod-hash]=$(jq -r '.Releases[0].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
             METADATA[patcher-url]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
             METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
-            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required EFT version for patcher" "$?"
-            METADATA[patcher-path]="${FILE[patcher]}"
+            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required Live version for patcher" "$?"
         ;;
         legacy)
             load_metadata spt
-            METADATA[mod-eft]=$(jq -r '.Releases[1].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required EFT version for SPT" "$?"
+            METADATA[mod-path]="${FILE[legacy-spt]}"
+            METADATA[patcher-path]="${FILE[legacy-patcher]}"
+            METADATA[mod-eft]=$(jq -r '.Releases[1].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
             METADATA[mod-version]=$(jq -r '.Releases[1].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
             METADATA[mod-url]=$(jq -r '.Releases[1].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
             METADATA[mod-hash]=$(jq -r '.Releases[1].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
             METADATA[patcher-url]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
             METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
-            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required EFT version for patcher" "$?"
-            METADATA[patcher-path]="${FILE[patcher]}"
+            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required Live version for patcher" "$?"
         ;;
         eft)
-            METADATA[inst-eft]=$(get_eft_version) || err "Failed to get EFT version" "$?"
+            METADATA[inst-eft]=$(get_eft_version) || err "Failed to get Live version" "$?"
         ;;
         mod-eft)
             METADATA[inst-spt]=$(get_spt_version) || err "Failed to get installed SPT version" "$?"
-            METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod EFT version" "$?"
+            METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod Live version" "$?"
         ;;
         spt)
             # Fetch metadata
@@ -1285,7 +1298,7 @@ opt_update() {
                     msg
                     yesno "Do you want to install the update?" || return 0
                 }
-                install_mod_archive "${METADATA[mod-url]}" "${FILE[mod]}" "${METADATA[mod-hash]}"
+                install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
                 msg "${GREEN}${BOLD}Update successful!${RESET}"
             else
                 err "Unhandled exception"
@@ -1409,7 +1422,7 @@ opt_guided_install() {
     } | more
     
     while true; do
-        # Check if Steam version of EFT is installed
+        # Check if Steam version of Live is installed
         local path; steam_paths=($(get_steam_game_libraries))
         local steam_install
         local spt_install_path="${DEFAULT[spt-dir]}"
@@ -1417,11 +1430,12 @@ opt_guided_install() {
         for path in "${steam_paths[@]}"; do
             local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov/build"
             if [[ -n "$(m_ls -A "${steam_eft_dir}")" ]]; then
-                # Found EFT in a Steam library
+                # Found live in a Steam library
                 msg; msg "${BOLD}Found Steam version of the game client in:${RESET}"
                 msg "   ► ${steam_eft_dir}"
                 set_value config "steam-library-path=${path}/steamapps"
-                msg; init_prefix "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
+                set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
+                msg; init_prefix 
                 steam_install=1
                 break
             fi
@@ -1433,7 +1447,8 @@ opt_guided_install() {
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
             local input; input=$(read_input) || return 1
-            init_prefix "${input:-${DEFAULT[wineprefix]}}"
+            set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
+            msg; init_prefix 
         fi
 
         check_eft_running
@@ -1453,26 +1468,18 @@ opt_guided_install() {
                 sleep 3
             fi
         else
-            # Ask to skip EFT installation if it's already installed
+            # Ask to skip live installation if it's already installed
             local inst_eft=1
             if check_eft_installed; then
                 msg; yesno "The vanilla game client is already installed. Do you want to skip this step?" \
                 && unset inst_eft
             fi
 
-            # Install EFT
+            # Install live
             if [[ "${inst_eft}" ]]; then
                 opt_install eft
-
-                # Run BSG Launcher
-                msg "${BOLD}${BLUE}[A] Please install the game inside the game launcher ...${RESET}"
-                msg "   ► When the game is installed, close the Launcher to continue${RESET}"
-                opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
-
-                msg "Checking for existing EFT install directory ..."
-                set_value config "eft-path=$(get_eft_path)"
                 
-                # Update EFT path
+                # Update live path
                 if ! check_eft_installed; then
                     warn "${YELLOW} Looks like the game is not installed!${RESET}"
                     msg "   ► Make sure that the game is installed inside the game launcher"
@@ -1480,8 +1487,6 @@ opt_guided_install() {
                     err "Failed to get game install path"
                 fi
 
-                # Add BattlEye workaround 
-                add_battleye_workaround
             fi
         fi
 
@@ -1838,7 +1843,7 @@ opt_help() {
             {   msg "${BOLD}Available options:${RESET}"
                 msg "eft|bsg                        - Uninstall the BSG Launcher"
                 msg "spt                            - Uninstall SPT"
-                msg "all                            - Uninstall everything (prefix, EFT & SPT)"
+                msg "all                            - Uninstall everything (prefix, Live & SPT)"
                 msg
                 opt_help switches
             } | more
@@ -1853,7 +1858,7 @@ opt_help() {
             } | more
         ;;
         patch)
-            {   msg "Downpatch EFT game files to a supported version for SPT"
+            {   msg "Downpatch Live game files to a supported version for SPT"
                 msg 
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE patch [target_path] [source_path]${RESET}"
@@ -1868,7 +1873,7 @@ opt_help() {
             } | more
         ;;
         run)
-            {   msg "Run EFT/SPT or custom commands inside the prefix"
+            {   msg "Run Live/SPT or custom commands inside the prefix"
                 msg 
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE [SWITCHES] run [eft|launcher|server|custom_command] [ARGS...]${RESET}"
@@ -1949,19 +1954,19 @@ opt_help() {
             } | more
         ;;
         "") 
-            {   msg "${BOLD}${TITLE} - Standalone EFT/SPT installer & configuration tool${RESET}"
+            {   msg "${BOLD}${TITLE} - Standalone Live/SPT installer & configuration tool${RESET}"
                 msg
                 msg "${BOLD}Usage:${RESET}"
                 msg "${YELLOW}$TITLE [SWITCHES] <option> [ARGS...]${RESET}"
                 msg
                 msg "${BOLD}Available options:${RESET}"
-                msg "install                        - Install EFT/SPT/Fika"
-                msg "uninstall                      - Uninstall EFT/SPT"
-                msg "update                         - Update EFT/SPT, Proton or this script"
-                msg "run                            - Run EFT/SPT or custom commands inside the prefix"
+                msg "install                        - Install Live/SPT/Fika"
+                msg "uninstall                      - Uninstall Live/SPT"
+                msg "update                         - Update Live/SPT, Proton or this script"
+                msg "run                            - Run Live/SPT or custom commands inside the prefix"
                 msg "dlloverride                    - Add a DLL override to the wine prefix"
                 msg "shortcut                       - Create application menu shortcuts"
-                msg "patch                          - Downpatch EFT game files to a supported version for SPT"
+                msg "patch                          - Downpatch Live game files to a supported version for SPT"
                 msg "clean                          - Clean installer and prefix files"
                 msg "self-install                   - Install this script to a local bin directory for ease of use"
                 msg "self-update                    - Update this script to the latest version"
