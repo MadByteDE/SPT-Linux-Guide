@@ -508,8 +508,8 @@ check_verb() {
 
 
 check_disk_space() {
-    local total_gb=${1};
-    local path="${2:-"${CONFIG[spt-path]}"}"
+    local path="${1}"
+    local total_gb=${2};
     [[ -z "${path}" ]] && err "Missing path argument"
     # Get next existing directory path to check available disk space
     while [[ ! -d "${path}" ]]; do
@@ -842,7 +842,7 @@ JSON
 install_eft() {
     msg "${BOLD}Launching game installer...${RESET}"
 
-    if ! check_eft_installed; then check_disk_space 90; fi
+    if ! check_eft_installed; then check_disk_space "${CONFIG[WINEPREFIX]}" 90; fi
 
     # Install game dependencies
     install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
@@ -899,7 +899,8 @@ install_spt() {
         err "SPT directory already exists."
     fi
 
-    check_eft_running;  check_native_aspnet;  check_disk_space
+    check_eft_running;  check_native_aspnet
+    check_disk_space "${CONFIG[spt-path]}"
 
     # Install dependencies
     install_verb "dotnetdesktop9" ".NET Desktop Runtime 9.0"
