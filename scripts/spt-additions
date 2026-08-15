@@ -369,6 +369,7 @@ set_prefix_path() {
         
     # Update WINEPREFIX environment variables
     set_value config "WINEPREFIX=${path}"
+    unset_value config "eft-path"
 
     # Update prefix paths
     case "${WINEPREFIX}" in
