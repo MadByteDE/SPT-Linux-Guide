@@ -10,7 +10,7 @@
 ### - **[Lutris](https://lutris.net/downloads)**
 - Make sure GPU and vulkan drivers are installed and working.
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-- **[SPT mod](https://github.com/sp-tushonka/build/releases/latest) (*.7z archive)**
+- **[SPT mod](https://patcher.sp-tushonka.com/release.json) (*.7z archive)**
     - Make sure to update to the latest game client version and follow the [downpatching guide](../downpatching.md) if needed.
 
 ### - ASP.NET Runtime 10.0 ([How to install](../aspnet.md))
@@ -26,15 +26,14 @@
 
 1. Install the game in `Lutris` using the installer script
 2. Install the game inside the game launcher
-3. Run `winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10`
+3. Run `winetricks -q vcrun2022 dotnetdesktop9 dotnetdesktop10`
 4. Copy the game files somewhere else and `downpatch` the files if needed
 5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
 6. Create new Linux runner shortcut `SPT - Server`
 7. Set `SPT.Server.Linux` as executable & enable `CLI mode` in `Configure` → `System options`
 8. Create new Linux runner shortcut `SPT - Launcher`
 9. Set `SPT.Launcher.Linux` as executable
-10. Add `WINEDLLOVERRIDES` with the value `winhttp=n,b` in `System options` → `Environment variables`
-11. (Optional) Get the [server.sh](../../scripts/server.sh) script & set it as `pre-launch script` in `Configure` → `System options`
+10. (Optional) Get the [server.sh](../../scripts/server.sh) script & set it as `pre-launch script` in `Configure` → `System options`
 
 </details>
 
@@ -75,8 +74,6 @@
 - Back in Lutris, navigate to the `+` symbol in the top left corner. Select `Add locally installed game` & set the `Runner` to `Linux`.
   
 - Now you'll need to select the native launcher executable e.g located in `~/Games/SPT/SPT_Runtime/SPT.Launcher.Linux`.
-
-- And lastly, add `WINEDLLOVERRIDES` with the value `winhttp=n,b` in `System options` → `Environment variables` & save the changes.
 
 
 **5. Configure SPT Server**
