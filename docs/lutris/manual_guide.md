@@ -55,7 +55,7 @@
 
 - Now we need to install some dependencies to the prefix. To do so, click on the wine glass on the bottom of the main Lutris window while the live game shortcut is selected → `Open Bash terminal`, and use the following commands:
 
-      winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10
+      winetricks -q vcrun2022 dotnetdesktop9 dotnetdesktop10
 
     <img src="../../media/lutris/terminal.jpg" width="580">
 
