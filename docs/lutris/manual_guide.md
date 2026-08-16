@@ -10,7 +10,7 @@
 ### - **[Lutris](https://lutris.net/downloads)**
 - Make sure GPU and vulkan drivers are installed and working.
 - [SPT Cover art](../../docs/lutris/cover_art.md) (Optional)
-- **[SPT mod](https://github.com/sp-tushonka/build/releases/latest) (*.7z archive)**
+- **[SPT mod](https://patcher.sp-tushonka.com/release.json) (*.7z archive)**
     - Make sure to update to the latest game client version and follow the [downpatching guide](../downpatching.md) if needed.
 
 ### - ASP.NET Runtime 10.0 ([How to install](../aspnet.md))
