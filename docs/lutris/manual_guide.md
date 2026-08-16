@@ -26,7 +26,7 @@
 
 1. Install the game in `Lutris` using the installer script
 2. Install the game inside the game launcher
-3. Run `winetricks -q arial times vcrun2022 dotnetdesktop9 dotnetdesktop10`
+3. Run `winetricks -q vcrun2022 dotnetdesktop9 dotnetdesktop10`
 4. Copy the game files somewhere else and `downpatch` the files if needed
 5. Unpack the `RELEASE-SPT-x.x.x.zip` archive into the `copied directory`
 6. Create new Linux runner shortcut `SPT - Server`
