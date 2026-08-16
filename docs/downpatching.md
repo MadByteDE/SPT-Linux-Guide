@@ -11,7 +11,7 @@ We provide two methods to patch the game files on Linux.
 
 ### What you need
 
-- **[Downgrade patcher](https://mirror.spt.dev/patchers/)**
+- **[Downgrade patcher](https://patcher.sp-tushonka.com/mirrors.json)**
     - Make sure the downgrade patcher matches the installed game client version!
 
 - **[spt-additions](../scripts/spt-additions)**
@@ -42,7 +42,7 @@ We provide two methods to patch the game files on Linux.
 > [!TIP]
 > You can use [ProtonPlus](https://flathub.org/apps/com.vysp3r.ProtonPlus) or [ProtonUp-qt](https://davidotek.github.io/protonup-qt/) to install new wine versions in Lutris!
 
-- **[Downgrade patcher](https://mirror.spt.dev/patchers/)**
+- **[Downgrade patcher](https://patcher.sp-tushonka.com/mirrors.json)**
     - Make sure the downgrade patcher matches the installed game client version!
 
 - **Wine**
