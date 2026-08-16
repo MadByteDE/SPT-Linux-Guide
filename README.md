@@ -35,10 +35,6 @@ bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-ad
 
 ## Manual guides
 
-> [!IMPORTANT]
-> Because of major changes in the SPT project, the manual install guides are currently outdated
-> & some resource links might be broken!
-
 > [!NOTE]
 > We **do not** provide support for manual guides on Github. 
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
