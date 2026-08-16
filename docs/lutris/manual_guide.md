@@ -33,8 +33,7 @@
 7. Set `SPT.Server.Linux` as executable & enable `CLI mode` in `Configure` → `System options`
 8. Create new Linux runner shortcut `SPT - Launcher`
 9. Set `SPT.Launcher.Linux` as executable
-10. Add `WINEDLLOVERRIDES` with the value `winhttp=n,b` in `System options` → `Environment variables`
-11. (Optional) Get the [server.sh](../../scripts/server.sh) script & set it as `pre-launch script` in `Configure` → `System options`
+10. (Optional) Get the [server.sh](../../scripts/server.sh) script & set it as `pre-launch script` in `Configure` → `System options`
 
 </details>
 
@@ -75,8 +74,6 @@
 - Back in Lutris, navigate to the `+` symbol in the top left corner. Select `Add locally installed game` & set the `Runner` to `Linux`.
   
 - Now you'll need to select the native launcher executable e.g located in `~/Games/SPT/SPT_Runtime/SPT.Launcher.Linux`.
-
-- And lastly, add `WINEDLLOVERRIDES` with the value `winhttp=n,b` in `System options` → `Environment variables` & save the changes.
 
 
 **5. Configure SPT Server**
