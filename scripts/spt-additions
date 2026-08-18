@@ -356,7 +356,7 @@ set_spt_path() {
     check_path "${path}"
     set_value config "spt-path=${path}"
     msg "${BOLD}SPT path has been set to:${RESET}"
-    msg "   ► ${path}"
+    msg "   ► ${path}"; msg
 }
 
 
@@ -453,8 +453,8 @@ update_eft_path() {
     fi
 
     if [[ -n "${path%/*}" ]]; then
-        msg "Found live install at:"
-        msg "   ► ${path%/*}"
+        msg "${BOLD}Found live install at:${RESET}"
+        msg "   ► ${path%/*}"; msg
         set_value config "eft-path=${path%/*}"
     fi
 }
@@ -864,10 +864,13 @@ install_eft() {
     m_download -s "${METADATA[bsg-ico-url]}" "${DIR[icons]}/bsg_launcher.png"
 
     # Run BSG Launcher
-    msg "${BOLD}${BLUE}[A] Please install the game inside the game launcher ...${RESET}"
-    msg "   ► When the game is installed, close the Launcher to continue${RESET}"
+    msg; msg "${BOLD}${BLUE}[A] Please install the game inside the game launcher ...${RESET}"
+    msg "   ► When the game is installed, close the Launcher to continue${RESET}"; msg
+
     # WORKAROUND: Ensures that umu cannot guesstimate the game drive (S:)
+    # Otherwise the live install path check can fail
     export STEAM_COMPAT_INSTALL_PATH="/media/$USER"
+
     opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
 
     if update_eft_path; then
@@ -1101,7 +1104,7 @@ uninstall_eft() {
         yesno "Do you want to continue?" || return 1
     fi
 
-    msg "Uninstalling the game..."
+    msg "Uninstalling live launcher & game files..."
     m_rm -r "${CONFIG[bsg-path]}"; m_rm -r "${CONFIG[eft-path]}"
     m_rm -r "${CONFIG[WINEPREFIX]}/drive_c/Battlestate Games"
 
@@ -1440,7 +1443,7 @@ opt_guided_install() {
                 msg; msg "${BOLD}Found Steam version of the game client in:${RESET}"
                 msg "   ► ${steam_eft_dir}"
                 set_value config "steam-library-path=${path}/steamapps"
-                msg; set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
+                set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
                 init_prefix 
                 steam_install=1
                 break
@@ -1453,7 +1456,7 @@ opt_guided_install() {
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
             local input; input=$(read_input) || return 1
-            msg; set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
+            set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
             init_prefix 
         fi
 
@@ -1524,7 +1527,8 @@ opt_guided_install() {
             fi
         fi
 
-        # Ask to install the script & remove all cached files if not
+        # If the script does not get installed, we assume the user would probably not
+        # want to keep the large cache files for the install
         if ! opt_selfinstall; then
             if msg && yesno "Do you want to clean cached files in \"${DIR[cache]}\"?"; then
                 export NO_PROMPT=1
@@ -1557,8 +1561,10 @@ opt_run() {
             fi
 
             msg "${BOLD}Launching BSG Launcher...${RESET}"
+
             case "${CONFIG[WINEPREFIX]}" in
                 *"steamapps/compatdata/3932890"*)
+                    # Launch the game & wait for the process to show up
                     steam steam://rungameid/3932890 &>>/dev/null &
                     local pid; local c; while [[ -z "${pid}" ]]; do
                         pid="$(pidof "BsgLauncher.exe")"
@@ -1776,7 +1782,7 @@ opt_selfinstall() {
     # Check if the script is already installed
     for path in "${bin_paths[@]}"; do
         if [[ -f "${path}/${TITLE}" ]]; then
-            msg "${BOLD}${GREEN}${TITLE}${RESET} is already installed in:"
+            msg; msg "${BOLD}{TITLE} is already installed in:${RESET}"
             msg "   ► ${path}"
             return 0
         fi
