@@ -1552,6 +1552,10 @@ opt_run() {
     
     case "${option}" in
         eft|bsg|bsg-launcher)
+            if ! check_bsg_launcher_installed; then
+                err "BSG Launcher is not installed (Missing config path or files)"
+            fi
+
             msg "${BOLD}Launching BSG Launcher...${RESET}"
             case "${CONFIG[WINEPREFIX]}" in
                 *"steamapps/compatdata/3932890"*)
