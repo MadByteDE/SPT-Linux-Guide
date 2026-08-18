@@ -373,9 +373,9 @@ set_prefix_path() {
     unset_value config "bsg-path"
 
     # Update prefix paths
-    case "${WINEPREFIX}" in
+    case "${CONFIG[WINEPREFIX]}" in
         *"steamapps/compatdata/3932890"*)
-            if [[ ! -d "${WINEPREFIX}" ]]; then
+            if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
                 warn "Game prefix not found!"
                 msg "   ► ${BOLD}Ensure that the game is installed inside Steam${RESET}"
                 msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
@@ -385,27 +385,25 @@ set_prefix_path() {
             set_value config "eft-path=${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
         ;;
         *)
-            BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
+            if [[ -d "${CONFIG[WINEPREFIX]}" ]]; then
                 set_value config "bsg-path=${CONFIG[WINEPREFIX]%/}/drive_c/Battlestate Games/BsgLauncher"
-
-            if [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]]; then
-                update_eft_path
+                [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]] && update_eft_path
             fi
         ;;
     esac
 
     msg "${BOLD}Prefix path has been set to:${RESET}"
-    msg "   ► ${WINEPREFIX}"
+    msg "   ► ${CONFIG[WINEPREFIX]}"; msg
 }
 
 
 init_prefix() {
-    case "${PROTONPATH}" in
+    case "${CONFIG[PROTONPATH]}" in
         *"GE-Proton"*|latest) ;;
         *)
             # Reset proton version if needed
             if ! check_proton_installed; then
-                msg "Invalid Proton path: ${PROTONPATH}"
+                msg "Invalid Proton path: ${CONFIG[PROTONPATH]}"
                 msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
                 set_value config "PROTONPATH=${DEFAULT[protonpath]}"
             fi
@@ -414,11 +412,14 @@ init_prefix() {
     
     # Download default proton runner if needed
     if ! check_proton_installed; then
-        update_proton -y "${PROTONPATH}"
+        update_proton -y "${CONFIG[PROTONPATH]}"
     fi
 
-     # Check if we need to initialize/update the prefix
-    if [[ ! -d "${WINEPREFIX}" ]]; then
+    if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
+        # Live paths cannot be set in fresh prefixes
+        unset_value config "eft-path"
+        unset_value config "bsg-path"
+
         msg "Initializing wine prefix..." && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${FILE[log]}"
 
@@ -440,8 +441,8 @@ update_eft_path() {
     msg "Checking for existing live install directory..."
 
     # get windows path
-    [[ ! -f "${WINEPREFIX}/system.reg" ]] && return 1
-    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg")
+    [[ ! -f "${CONFIG[WINEPREFIX]}/system.reg" ]] && return 1
+    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[WINEPREFIX]}/system.reg")
     path=$(echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
 
     # Convert to unix path
@@ -497,7 +498,7 @@ check_target_path() {
     local target_path="${1%/}"
     case "${target_path}" in
         "") err "Target path is not set" ;;
-        *"${WINEPREFIX}"* | *"${DIR[data]}"* | *"${DIR[cache]}"* | *"${DIR[icons]}"* | *"${DIR[shortcuts]}"* | *"${CONFIG[spt-path]}"* | \
+        *"${CONFIG[WINEPREFIX]}"* | *"${DIR[data]}"* | *"${DIR[cache]}"* | *"${DIR[icons]}"* | *"${DIR[shortcuts]}"* | *"${CONFIG[spt-path]}"* | \
         *"${HOME}/.local/bin"* | *"${HOME}/bin"* | *"${DIR[proton]}"* | *"${DIR[config]}"* | *"${DIR[tmp]}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
@@ -505,8 +506,8 @@ check_target_path() {
 
 
 check_verb() {
-    [[ ! -d "${WINEPREFIX}" ]] && err "Prefix directory \"${WINEPREFIX}\" does not exist"
-    if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -q "$1"; then return 1; fi
+    [[ ! -d "${CONFIG[WINEPREFIX]}" ]] && err "Prefix directory \"${CONFIG[WINEPREFIX]}\" does not exist"
+    if ! cat "${CONFIG[WINEPREFIX]}/winetricks.log" 2>/dev/null | grep -q "$1"; then return 1; fi
 }
 
 
@@ -578,7 +579,7 @@ check_path() {
 
 
 check_proton_installed() {
-    [[ -d "${DIR[proton]}/${PROTONPATH}" || -d "${PROTONPATH}" ]]
+    [[ -d "${DIR[proton]}/${CONFIG[PROTONPATH]}" || -d "${CONFIG[PROTONPATH]}" ]]
 }
 
 
@@ -609,7 +610,7 @@ check_legacy_installed() {
 
 
 check_steam_install() {
-    local path; local paths=("${WINEPREFIX}" "${CONFIG[bsg-path]}" "${CONFIG[eft-path]}")
+    local path; local paths=("${CONFIG[WINEPREFIX]}" "${CONFIG[bsg-path]}" "${CONFIG[eft-path]}")
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
 }
 
@@ -712,7 +713,7 @@ check_ttl() {
 add_battleye_workaround() {
     local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
     local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
-    local dst_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Common Files/BattlEye"
+    local dst_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Common Files/BattlEye"
 
     msg "Adding BattlEye service workaround (This might take a bit) ..."
     if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
@@ -813,7 +814,7 @@ update_proton() {
     fi
 
     # Skip if the given version is already set
-    if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
+    if [[ "${CONFIG[PROTONPATH]}" == "${version}" ]]; then return 0; fi
     msg "Setting PROTONPATH to \"${version}\""
     set_value config "PROTONPATH=${version}"
     return 0
@@ -889,7 +890,7 @@ install_spt() {
         # Continue normally
         latest|legacy) msg "Selected install mode is \"${install_mode}\"..." ;;
         # WORKAROUND: Shows missing script version & fixes SPT install path
-        lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPT" ;;
+        lutris) opt_version; set_spt_path "${CONFIG[WINEPREFIX]}/drive_c/SPT" ;;
         *) err "Invalid install mode: ${install_mode}" ;; 
     esac
 
@@ -979,7 +980,7 @@ install_spt() {
     m_umu winetricks -q "win81" 1>> "${FILE[log]}"
 
     # Steam library directory workaround
-    local steam_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Steam/steamapps"
+    local steam_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Steam/steamapps"
     if [[ ! -f "${steam_dir}/libraryfolders.vdf" ]]; then
         msg "Adding Steam library file workaround..."
         m_mkdir "${steam_dir}"
@@ -1102,7 +1103,7 @@ uninstall_eft() {
 
     msg "Uninstalling the game..."
     m_rm -r "${CONFIG[bsg-path]}"; m_rm -r "${CONFIG[eft-path]}"
-    m_rm -r "${WINEPREFIX}/drive_c/Battlestate Games"
+    m_rm -r "${CONFIG[WINEPREFIX]}/drive_c/Battlestate Games"
 
     msg "Removing \"BSG Launcher\" shortcut..."
     [[ -f "${SHORTCUT[bsg-launcher]}" ]] && m_rm "${SHORTCUT[bsg-launcher]}"
@@ -1138,9 +1139,9 @@ uninstall_prefix() {
         msg "   ► Please uninstall the game inside Steam instead."
         return 1
     fi
-    [[ ! -d "${WINEPREFIX}" ]] && msg "Prefix directory does not exist" && return 0
-    msg "Removing Prefix directory: \"${WINEPREFIX}\""
-    m_rm -r "${WINEPREFIX}"
+    [[ ! -d "${CONFIG[WINEPREFIX]}" ]] && msg "Prefix directory does not exist" && return 0
+    msg "Removing Prefix directory: \"${CONFIG[WINEPREFIX]}\""
+    m_rm -r "${CONFIG[WINEPREFIX]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
@@ -1225,7 +1226,7 @@ opt_uninstall() {
             # Ask for confirmation
             if [[ "${NO_PROMPT}" != 1 ]]; then
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "   ► ${WINEPREFIX}"
+                msg "   ► ${CONFIG[WINEPREFIX]}"
                 msg "   ► ${CONFIG[eft-path]}"
                 msg "   ► ${CONFIG[spt-path]}"
                 yesno "Do you want to continue?" || return 1
@@ -1312,8 +1313,8 @@ opt_update() {
         fika) load_metadata mod-eft; NO_PROMPT=1 install_fika ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
-            [[ -z "${PROTONPATH}" ]] && err "PROTONPATH is not set"
-            [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
+            [[ -z "${CONFIG[PROTONPATH]}" ]] && err "PROTONPATH is not set"
+            [[ "${CONFIG[PROTONPATH]}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
             update_proton "$@"
             check_spt_installed && opt_shortcut spt
             check_eft_installed && opt_shortcut eft
@@ -1552,7 +1553,7 @@ opt_run() {
     case "${option}" in
         eft|bsg|bsg-launcher)
             msg "${BOLD}Launching BSG Launcher...${RESET}"
-            case "${WINEPREFIX}" in
+            case "${CONFIG[WINEPREFIX]}" in
                 *"steamapps/compatdata/3932890"*)
                     steam steam://rungameid/3932890 &>>/dev/null &
                     local pid; local c; while [[ -z "${pid}" ]]; do
@@ -1573,7 +1574,7 @@ opt_run() {
             check_eft_running
             msg "${BOLD}Launching SPT Launcher...${RESET}"
             cd "${CONFIG[spt-path]}" || exit 1
-            env WINEPREFIX="${WINEPREFIX}" PROTONPATH="${PROTONPATH}" "./launcher.sh" "$@" &>> "${FILE[log]}";
+            env WINEPREFIX="${CONFIG[WINEPREFIX]}" PROTONPATH="${CONFIG[PROTONPATH]}" "./launcher.sh" "$@" &>> "${FILE[log]}";
         ;;
         server)
             check_eft_running
@@ -1656,7 +1657,7 @@ opt_shortcut() {
         eft|bsg|bsg-launcher)
             CACHE[name]="BSG - Launcher"
             CACHE[exe_path]="BsgLauncher.exe"
-            CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+            CACHE[env]="env WINEPREFIX=\"${CONFIG[WINEPREFIX]}\" PROTONPATH=\"${CONFIG[PROTONPATH]}\""
             CACHE[args]="--disable-software-rasterizer"
             CACHE[working_dir]="${CONFIG[bsg-path]}"
             CACHE[icon]="bsg_launcher"
@@ -1668,7 +1669,7 @@ opt_shortcut() {
             # 4.0 uses the windows launcher, so we need proton env vars
             if check_legacy_installed; then
                 CACHE[name]="SPT 4.0 - Launcher"
-                CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+                CACHE[env]="env WINEPREFIX=\"${CONFIG[WINEPREFIX]}\" PROTONPATH=\"${CONFIG[PROTONPATH]}\""
             else
                 CACHE[name]="SPT - Launcher"
             fi
@@ -1700,7 +1701,7 @@ opt_shortcut() {
             CACHE[name]="${name}"
             CACHE[exe_path]="${option##*/}"
             CACHE[args]="$*"
-            CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+            CACHE[env]="env WINEPREFIX=\"${CONFIG[WINEPREFIX]}\" PROTONPATH=\"${CONFIG[PROTONPATH]}\""
             CACHE[working_dir]="${working_dir}"
             CACHE[path]="${DIR[shortcuts]}/${CACHE[name]}.desktop"
             CACHE[icon]=$(echo "${CACHE[name]}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
@@ -2041,11 +2042,8 @@ handle_opts() {
 
     # Initialize wine prefix
     case "${option}" in
-        shortcut|uninstall) set_prefix_path "${WINEPREFIX}" 1>/dev/null ;;
-        install|update|dlloverride|run)
-            set_prefix_path "${WINEPREFIX}" 1>/dev/null
-            init_prefix
-        ;;
+        shortcut|uninstall) set_prefix_path "${CONFIG[WINEPREFIX]}" 1>/dev/null ;;
+        install|update|dlloverride|run) init_prefix ;;
     esac
 
     # Handle options
