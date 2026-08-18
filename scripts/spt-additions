@@ -22,8 +22,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.3-4"
-DATE="2026-08-15"
+VERSION="1.2.4"
+DATE="2026-08-18"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -398,11 +398,13 @@ set_prefix_path() {
     esac
 
     msg "${BOLD}Prefix path has been set to:${RESET}"
-    msg "   ► ${CONFIG[WINEPREFIX]}"; msg
+    msg "   ► ${CONFIG[WINEPREFIX]}"
 }
 
 
 init_prefix() {
+    # Download default proton runner if needed
+    msg; msg "${BOLD}Checking for Proton...${RESET}"
     case "${CONFIG[PROTONPATH]}" in
         *"GE-Proton"*|latest) ;;
         *)
@@ -415,7 +417,6 @@ init_prefix() {
         ;;
     esac
     
-    # Download default proton runner if needed
     if ! check_proton_installed; then
         update_proton -y "${CONFIG[PROTONPATH]}"
     fi
@@ -425,7 +426,7 @@ init_prefix() {
         unset_value config "eft-path"
         unset_value config "bsg-path"
 
-        msg "${BOLD}Creating wine prefix ...${RESET}" && m_umu wineboot -u
+        msg; msg "${BOLD}Creating wine prefix ...${RESET}" && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${FILE[log]}"
 
         # Add prefix update pop-up workaround
@@ -806,7 +807,7 @@ update_proton() {
 
     # Skip if the specified version is already installed
     if [[ -d "${DIR[proton]}/${version}" && -n $(m_ls -A "${DIR[proton]}/${version}") ]]; then
-        msg "${version} is already installed."
+        msg "${GRAY}${version} is already installed${RESET}"
     else
         # Found the given Proton version - ask user to continue
         msg "${BOLD}${YELLOW}${version} is available!${RESET}"
@@ -814,14 +815,14 @@ update_proton() {
         m_download "${METADATA[ge-proton-url]}/download/${version}/${version}-x86_64.tar.gz" "${DIR[tmp]}"
         m_extract "${DIR[tmp]}/${version}-x86_64.tar.gz" "${DIR[proton]}"
         if [[ -d "${DIR[proton]}/${version}-x86_64" ]]; then
-            msg "Renaming Proton directory: \"${version}-x86_64\" to \"${version}\""
+            msg "${GRAY}Renaming Proton directory: \"${version}-x86_64\" to \"${version}\"${RESET}"
             m_mv "${DIR[proton]}/${version}-x86_64" "${DIR[proton]}/${version}"
         fi
     fi
 
     # Skip if the given version is already set
     if [[ "${CONFIG[PROTONPATH]}" == "${version}" ]]; then return 0; fi
-    msg "Setting PROTONPATH to \"${version}\""
+    msg "${GRAY}Setting PROTONPATH to \"${version}\"${RESET}"
     set_value config "PROTONPATH=${version}"
     return 0
 }
@@ -879,15 +880,15 @@ install_eft() {
 
     opt_run bsg-launcher || err "Failed to launch \"live game launcher\""
 
-    if update_eft_path; then
-        # Add BattlEye workaround if the game client has been found
-        add_battleye_workaround
-    fi
-
     # Create application shortcut
     opt_shortcut bsg-launcher
 
-    msg; msg "${BOLD}Live has been installed!${RESET}"
+    if update_eft_path; then
+        # Add BattlEye workaround if the game client has been found
+        add_battleye_workaround
+
+        msg; msg "${BOLD}Live has been installed!${RESET}"
+    fi
 }
 
 
