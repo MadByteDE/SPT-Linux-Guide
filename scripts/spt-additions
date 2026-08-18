@@ -370,6 +370,7 @@ set_prefix_path() {
     # Update WINEPREFIX environment variables
     set_value config "WINEPREFIX=${path}"
     unset_value config "eft-path"
+    unset_value config "bsg-path"
 
     # Update prefix paths
     case "${WINEPREFIX}" in
@@ -380,11 +381,12 @@ set_prefix_path() {
                 msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
                 err "Game prefix not found"
             fi
-            BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
+            set_value config "bsg-path=${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
             set_value config "eft-path=${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
         ;;
         *)
             BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
+                set_value config "bsg-path=${CONFIG[WINEPREFIX]%/}/drive_c/Battlestate Games/BsgLauncher"
 
             if [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]]; then
                 update_eft_path
@@ -586,7 +588,7 @@ check_eft_installed() {
 
 
 check_bsg_launcher_installed() {
-    [[ -n "${BSG_DIR}" && -f "${BSG_DIR}/BsgLauncher.exe" ]]
+    [[ -n "${CONFIG[bsg-path]}" && -f "${CONFIG[bsg-path]}/BsgLauncher.exe" ]]
 }
 
 
@@ -607,7 +609,7 @@ check_legacy_installed() {
 
 
 check_steam_install() {
-    local path; local paths=("${WINEPREFIX}" "${BSG_DIR}" "${CONFIG[eft-path]}")
+    local path; local paths=("${WINEPREFIX}" "${CONFIG[bsg-path]}" "${CONFIG[eft-path]}")
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
 }
 
@@ -850,10 +852,11 @@ install_eft() {
     install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
 
     # Install BSG Launcher
-    if [[ ! -d "${BSG_DIR}" ]]; then
+    if ! check_bsg_launcher_installed; then
         m_download "${METADATA[bsg-launcher-url]}" "${DIR[files]}/BsgLauncher.exe"
         msg "Installing BSG Launcher..."
         m_umu "${DIR[files]}/BsgLauncher.exe" /VERYSILENT
+        set_value config "bsg-path=${CONFIG[WINEPREFIX]%/}/drive_c/Battlestate Games/BsgLauncher"
     fi
 
     # Download icon to icons directory
@@ -1093,12 +1096,12 @@ uninstall_eft() {
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall the game from your system!${RESET}"
         msg "   ► Client files: ${CONFIG[eft-path]}"
-        msg "   ► Launcher: ${BSG_DIR}"
+        msg "   ► Launcher: ${CONFIG[bsg-path]}"
         yesno "Do you want to continue?" || return 1
     fi
 
     msg "Uninstalling the game..."
-    m_rm -r "${BSG_DIR}"; m_rm -r "${CONFIG[eft-path]}"
+    m_rm -r "${CONFIG[bsg-path]}"; m_rm -r "${CONFIG[eft-path]}"
     m_rm -r "${WINEPREFIX}/drive_c/Battlestate Games"
 
     msg "Removing \"BSG Launcher\" shortcut..."
@@ -1562,7 +1565,7 @@ opt_run() {
                 ;;
                 *)
                     local args="--disable-software-rasterizer"
-                    cd "${BSG_DIR}" && m_umu "BsgLauncher.exe" "$args" "$@"
+                    cd "${CONFIG[bsg-path]}" && m_umu "BsgLauncher.exe" "$args" "$@"
                 ;;
             esac
         ;;
@@ -1655,7 +1658,7 @@ opt_shortcut() {
             CACHE[exe_path]="BsgLauncher.exe"
             CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
             CACHE[args]="--disable-software-rasterizer"
-            CACHE[working_dir]="${BSG_DIR}"
+            CACHE[working_dir]="${CONFIG[bsg-path]}"
             CACHE[icon]="bsg_launcher"
         ;;
         launcher)
