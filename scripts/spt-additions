@@ -22,8 +22,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.3-4"
-DATE="2026-08-15"
+VERSION="1.2.4"
+DATE="2026-08-18"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -40,7 +40,7 @@ DIR[icons]="${DIR[data-home]}/icons/hicolor/256x256/apps"
 DIR[shortcuts]="${DIR[data-home]}/applications"
 DIR[runtime]="${DIR[data]}/runtime"
 # Steam directories
-DIR[steam]="${DIR[data-home]}/Steam"
+DIR[steam]="${HOME}/.steam/steam"
 DIR[proton]="${DIR[steam]}/compatibilitytools.d"
 # Cache directories
 DIR[cache-home]="${XDG_CACHE_HOME:-"${HOME}/.cache"}"
@@ -129,7 +129,7 @@ m_cp() {
             local filename="${source/#$source_path}"
             local output="${target_path}/${filename}"
             local progress_string="[${progress}/${files_total}]"
-            msg -o "${progress_string} Copying: ${filename##*/}"
+            msg -o "${GRAY}${progress_string} Copying: ${filename##*/}${RESET}"
             [[ ! -d "${output%/*}" ]] && m_mkdir "${output%/*}"
             cp --reflink=auto "${source}" "${output}" &>> "${FILE[log]}" || err "Command \"cp $*\" failed" "$?"
             progress=$((progress+1))
@@ -148,7 +148,7 @@ m_extract() {
     check_target_path "${target_path}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
 
-    msg "Extracting: ${filename}"
+    msg "${GRAY}Extracting: ${filename}${RESET}"
     case "${filename}" in
         # Extract archive
         *.zip*|*.7z*) m_7z x -aoa "${file_path}" -o"${target_path}" 1>/dev/null ;;
@@ -180,7 +180,7 @@ m_download() {
     else filename="${target_path##*/}"; fi
 
     if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
-        msg "Downloading: ${filename}..."
+        msg "${GRAY}Downloading: ${filename}...${RESET}"
         if [[ $silent -eq 1 ]]; then m_curl -S -s --create-dirs -L "${url}" -o "${target_path}"
         else m_curl --create-dirs -L "${url}" -o "${target_path}"; fi
     fi
@@ -192,27 +192,33 @@ m_download() {
 # # # # # # # # # # #
 
 msg() {
+    local mode
+
     case "$1" in
         # Override mode
-        -o) local mode="o"; shift ;;
+        -o) mode="override"; shift ;;
+        # Debug mode (only print into log file)
+        -d) mode="debug"; shift ;;
     esac
 
     local output="$*"
     local filtered_str; filtered_str=$(echo -e "${output}" | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
 
     # Print to terminal
-    case ${NO_ANSI} in
-        1) echo "${filtered_str}" ;;
-        *)
-            case ${mode} in
-                o) echo -e "\r\033[1A\033[0K│ ${output}" ;;
-                *) echo -e "│ ${output}" ;;
-            esac
-        ;;
-    esac
+    if [[ "${mode}" != "debug" ]]; then
+        case ${NO_ANSI} in
+            1) echo "${filtered_str}" ;;
+            *)
+                case ${mode} in
+                    override) echo -e "\r\033[1A\033[0K│ ${output}" ;;
+                    *) echo -e "│ ${output}" ;;
+                esac
+            ;;
+        esac
+    fi
 
     # Write to log file
-    if [[ -d "${DIR[cache]}" && "${mode}" != "o" ]] ; then
+    if [[ -d "${DIR[cache]}" && "${mode}" != "override" ]] ; then
         echo "[$TITLE] ${filtered_str}" &>> "${FILE[log]}"
     fi
 }
@@ -226,17 +232,16 @@ warn() {
 err() {
     local message="$1"; local status="${2:-"1"}"
     local pfx="${BOLD}${RED}ERROR ${FUNCNAME[1]}: ${RESET}"
-    msg "${pfx}${message} (Exit code: ${status})" 1>&2
+    msg; msg "${pfx}${message} (Exit code: ${status})" 1>&2
     msg "   ► See ${BOLD}\"${FILE[log]}\"${RESET} for more details." 1>&2
     m_exit "$status"
 }
-
 
 yesno() {
     msg "${BOLD}${BLUE}[Q] $*${RESET} [y/n] "
     if [[ $NO_PROMPT == 1 ]]; then msg "NO_PROMPT variable set - returning 0" && return 0; fi
     while true; do
-        read -r -p "│   ► " yn
+        read -r -p "│    ► " yn
         case $yn in
             [Yy]*) return 0 ;;  
             [Nn]*) return 1 ;;
@@ -356,7 +361,7 @@ set_spt_path() {
     check_path "${path}"
     set_value config "spt-path=${path}"
     msg "${BOLD}SPT path has been set to:${RESET}"
-    msg "   ► ${path}"
+    msg "   ► ${path}"; msg
 }
 
 
@@ -369,62 +374,67 @@ set_prefix_path() {
         
     # Update WINEPREFIX environment variables
     set_value config "WINEPREFIX=${path}"
+    unset_value config "eft-path"
+    unset_value config "bsg-path"
 
     # Update prefix paths
-    case "${WINEPREFIX}" in
+    case "${CONFIG[WINEPREFIX]}" in
         *"steamapps/compatdata/3932890"*)
-            if [[ ! -d "${WINEPREFIX}" ]]; then
+            if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
                 warn "Game prefix not found!"
                 msg "   ► ${BOLD}Ensure that the game is installed inside Steam${RESET}"
                 msg "   ► ${BOLD}& that you've run the game at least once for it to create the prefix directory${RESET}"
                 err "Game prefix not found"
             fi
-            BSG_DIR="${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
+            set_value config "bsg-path=${CONFIG[steam-library-path]}/common/Escape from Tarkov/launcher"
             set_value config "eft-path=${CONFIG[steam-library-path]}/common/Escape from Tarkov/build"
         ;;
         *)
-            BSG_DIR="${WINEPREFIX%/}/drive_c/Battlestate Games/BsgLauncher"
-
-            if [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]]; then
-                update_eft_path
+            if [[ -d "${CONFIG[WINEPREFIX]}" ]]; then
+                set_value config "bsg-path=${CONFIG[WINEPREFIX]%/}/drive_c/Battlestate Games/BsgLauncher"
+                [[ -z "${CONFIG[eft-path]}" || ! -d "${CONFIG[eft-path]}" ]] && update_eft_path
             fi
         ;;
     esac
 
     msg "${BOLD}Prefix path has been set to:${RESET}"
-    msg "   ► ${WINEPREFIX}"
+    msg "   ► ${CONFIG[WINEPREFIX]}"
 }
 
 
 init_prefix() {
-    case "${PROTONPATH}" in
+    # Download default proton runner if needed
+    msg; msg "${BOLD}Checking for Proton...${RESET}"
+    case "${CONFIG[PROTONPATH]}" in
         *"GE-Proton"*|latest) ;;
         *)
             # Reset proton version if needed
             if ! check_proton_installed; then
-                msg "Invalid Proton path: ${PROTONPATH}"
+                msg "Invalid Proton path: ${CONFIG[PROTONPATH]}"
                 msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
                 set_value config "PROTONPATH=${DEFAULT[protonpath]}"
             fi
         ;;
     esac
     
-    # Download default proton runner if needed
     if ! check_proton_installed; then
-        update_proton -y "${PROTONPATH}"
+        update_proton -y "${CONFIG[PROTONPATH]}"
     fi
 
-     # Check if we need to initialize/update the prefix
-    if [[ ! -d "${WINEPREFIX}" ]]; then
-        msg "Initializing wine prefix..." && m_umu wineboot -u
+    if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
+        # Live paths cannot be set in fresh prefixes
+        unset_value config "eft-path"
+        unset_value config "bsg-path"
+
+        msg; msg "${BOLD}Creating wine prefix ...${RESET}" && m_umu wineboot -u
         m_umu winecfg /v win81 1>> "${FILE[log]}"
 
         # Add prefix update pop-up workaround
-        msg "Adding \"RUNDLL32\" pop-up workaround..."
+        msg "${GRAY}Adding \"RUNDLL32\" pop-up workaround...${RESET}"
         m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
 
         # Add mouse focus workaround
-        msg "Adding mouse focus workaround..."
+        msg "${GRAY}Adding mouse focus workaround...${RESET}"
         m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
     fi
 }
@@ -434,11 +444,11 @@ update_eft_path() {
     local entry; local path
 
     # Get live install path
-    msg "Checking for existing live install directory..."
+    msg "${GRAY}Checking for existing live install directory...${RESET}"
 
     # get windows path
-    [[ ! -f "${WINEPREFIX}/system.reg" ]] && return 1
-    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${WINEPREFIX}/system.reg")
+    [[ ! -f "${CONFIG[WINEPREFIX]}/system.reg" ]] && return 1
+    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[WINEPREFIX]}/system.reg")
     path=$(echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
 
     # Convert to unix path
@@ -449,8 +459,8 @@ update_eft_path() {
     fi
 
     if [[ -n "${path%/*}" ]]; then
-        msg "Found live install at:"
-        msg "   ► ${path%/*}"
+        msg; msg "${BOLD}Found live install at:${RESET}"
+        msg "   ► ${path%/*}"; msg
         set_value config "eft-path=${path%/*}"
     fi
 }
@@ -494,7 +504,7 @@ check_target_path() {
     local target_path="${1%/}"
     case "${target_path}" in
         "") err "Target path is not set" ;;
-        *"${WINEPREFIX}"* | *"${DIR[data]}"* | *"${DIR[cache]}"* | *"${DIR[icons]}"* | *"${DIR[shortcuts]}"* | *"${CONFIG[spt-path]}"* | \
+        *"${CONFIG[WINEPREFIX]}"* | *"${DIR[data]}"* | *"${DIR[cache]}"* | *"${DIR[icons]}"* | *"${DIR[shortcuts]}"* | *"${CONFIG[spt-path]}"* | \
         *"${HOME}/.local/bin"* | *"${HOME}/bin"* | *"${DIR[proton]}"* | *"${DIR[config]}"* | *"${DIR[tmp]}"*) ;;
         *) err "Invalid target directory \"${target_path}\"" ;;
     esac
@@ -502,8 +512,8 @@ check_target_path() {
 
 
 check_verb() {
-    [[ ! -d "${WINEPREFIX}" ]] && err "Prefix directory \"${WINEPREFIX}\" does not exist"
-    if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -q "$1"; then return 1; fi
+    [[ ! -d "${CONFIG[WINEPREFIX]}" ]] && err "Prefix directory \"${CONFIG[WINEPREFIX]}\" does not exist"
+    if ! cat "${CONFIG[WINEPREFIX]}/winetricks.log" 2>/dev/null | grep -q "$1"; then return 1; fi
 }
 
 
@@ -528,7 +538,7 @@ check_disk_space() {
     total_gb=$(echo "${total_kb}" | awk '{ total = $1/1024/1024 ; printf("%.2fGiB\n", total) }')
     # Check if there's enough space
     [[ $free_kb -le $total_kb ]] && err "Not enough free disk space! (${free_gb} free < ${total_gb} needed)"
-    msg "Enough free disk space available! (${free_gb} free > ${total_gb} needed)"
+    msg -d "Enough free disk space available! (${free_gb} free > ${total_gb} needed)"
 }
 
 
@@ -575,7 +585,7 @@ check_path() {
 
 
 check_proton_installed() {
-    [[ -d "${DIR[proton]}/${PROTONPATH}" || -d "${PROTONPATH}" ]]
+    [[ -d "${DIR[proton]}/${CONFIG[PROTONPATH]}" || -d "${CONFIG[PROTONPATH]}" ]]
 }
 
 
@@ -585,7 +595,7 @@ check_eft_installed() {
 
 
 check_bsg_launcher_installed() {
-    [[ -n "${BSG_DIR}" && -f "${BSG_DIR}/BsgLauncher.exe" ]]
+    [[ -n "${CONFIG[bsg-path]}" && -f "${CONFIG[bsg-path]}/BsgLauncher.exe" ]]
 }
 
 
@@ -606,7 +616,7 @@ check_legacy_installed() {
 
 
 check_steam_install() {
-    local path; local paths=("${WINEPREFIX}" "${BSG_DIR}" "${CONFIG[eft-path]}")
+    local path; local paths=("${CONFIG[WINEPREFIX]}" "${CONFIG[bsg-path]}" "${CONFIG[eft-path]}")
     for path in "${paths[@]}"; do [[ "${path}" == *"/steamapps/"* ]] || return 1; done
 }
 
@@ -659,7 +669,7 @@ check_hash() {
     [[ ! -f "${file_path}" ]] && err "File \"${file_path}\" does not exist"
     [[ -z "${expected_hash}" ]] && err "Missing \"expected_hash\" argument"
     # use file to calculate MD5 hash and ENCODE in base64
-    msg "Calculating checksum for file: ${file_path##*/}"
+    msg -d "Calculating checksum for file: ${file_path##*/}"
     local file_hash; file_hash=$(get_hash "${file_path}") || err "Failed to calculate hash"
     [[ -z "${file_hash}" ]] && err "get_hash returned empty string"
     # Compare
@@ -667,7 +677,7 @@ check_hash() {
         warn "Hash check mismatch (File: \"${file_hash}\" != Expected: \"${expected_hash}\")"
         return 1
     fi
-    msg "Hash check successful"
+    msg -d "Hash check successful"
 }
 
 
@@ -679,7 +689,7 @@ check_cached() {
     # Verify the file is there and valid
     local filename="${cached_path##*/}"
     if [[ -f "${cached_path}" ]]; then
-        msg "Found \"${filename}\" in cache directory"
+        msg "${GRAY}Found \"${filename}\" in cache directory${RESET}"
         if [[ -n "${expected_hash}" ]] && ! check_hash "${cached_path}" "${expected_hash}"; then
             msg "Removing cached file \"${filename}\""
             m_rm "${cached_path}"
@@ -709,9 +719,9 @@ check_ttl() {
 add_battleye_workaround() {
     local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
     local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
-    local dst_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Common Files/BattlEye"
+    local dst_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Common Files/BattlEye"
 
-    msg "Adding BattlEye service workaround (This might take a bit) ..."
+    msg "${GRAY}Adding BattlEye service workaround (This might take a bit) ...${RESET}"
     if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
     if [[ ! -f "${dst_dir}/BEService_x64.exe" ]]; then m_cp "${binary_path}" "${dst_dir}/BEService_x64.exe"; fi
 
@@ -731,11 +741,11 @@ add_battleye_workaround() {
 # # # # # # # # # # # # #
 
 install_verb() {
-    local verb="${1}"; local text="${2:-"Installing: ${verb}..."}"
+    local verb="${1}"; local text="${2:-"${GRAY}Installing: ${verb}...${RESET}"}"
     if check_verb "${verb}"; then
-        msg "\"${verb}\" is already installed" && return 1
+        msg -d "\"${verb}\" is already installed" && return 1
     fi
-    msg "Installing: ${text}..."
+    msg "${GRAY}Installing: ${text}...${RESET}"
     m_umu winetricks -q "${verb}" 1>> "${FILE[log]}"
 }
 
@@ -767,6 +777,7 @@ install_mod_archive() {
     local url="${1}"; [[ -z "${url}" ]] && err "Missing argument: url"
     local source_path="${2}"; [[ -z "${source_path}" ]] && err "Missing argument: source_path"
     local hash="${3}"; [[ -z "${hash}" ]] && err "Missing argument: hash"
+    msg; msg "${BOLD}Installing SPT mod files...${RESET}"
     if ! check_cached "${source_path}" "${hash}"; then
         m_download "${url}" "${source_path}"
         check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
@@ -796,7 +807,7 @@ update_proton() {
 
     # Skip if the specified version is already installed
     if [[ -d "${DIR[proton]}/${version}" && -n $(m_ls -A "${DIR[proton]}/${version}") ]]; then
-        msg "${version} is already installed."
+        msg "${GRAY}${version} is already installed${RESET}"
     else
         # Found the given Proton version - ask user to continue
         msg "${BOLD}${YELLOW}${version} is available!${RESET}"
@@ -804,14 +815,14 @@ update_proton() {
         m_download "${METADATA[ge-proton-url]}/download/${version}/${version}-x86_64.tar.gz" "${DIR[tmp]}"
         m_extract "${DIR[tmp]}/${version}-x86_64.tar.gz" "${DIR[proton]}"
         if [[ -d "${DIR[proton]}/${version}-x86_64" ]]; then
-            msg "Renaming Proton directory: \"${version}-x86_64\" to \"${version}\""
+            msg "${GRAY}Renaming Proton directory: \"${version}-x86_64\" to \"${version}\"${RESET}"
             m_mv "${DIR[proton]}/${version}-x86_64" "${DIR[proton]}/${version}"
         fi
     fi
 
     # Skip if the given version is already set
-    if [[ "${PROTONPATH}" == "${version}" ]]; then return 0; fi
-    msg "Setting PROTONPATH to \"${version}\""
+    if [[ "${CONFIG[PROTONPATH]}" == "${version}" ]]; then return 0; fi
+    msg "${GRAY}Setting PROTONPATH to \"${version}\"${RESET}"
     set_value config "PROTONPATH=${version}"
     return 0
 }
@@ -823,7 +834,7 @@ create_launcher_config() {
     # Create missing directories
     m_mkdir "${config_dir}"
     # Create config
-    msg "Creating SPT Launcher configuration ..."
+    msg "${GRAY}Creating SPT Launcher configuration...${RESET}"
     jq . > "${filepath}" <<JSON
     {
         "FirstRun": false,
@@ -840,7 +851,7 @@ JSON
 
 
 install_eft() {
-    msg "${BOLD}Launching game installer...${RESET}"
+    msg; msg "${BOLD}Launching live installer...${RESET}"
 
     if ! check_eft_installed; then check_disk_space "${CONFIG[WINEPREFIX]}" 90; fi
 
@@ -848,32 +859,36 @@ install_eft() {
     install_verb "dotnet48" ".NET 4.8 Runtime (this might take a while)"
     install_verb "vcrun2022" "Microsoft Visual C++ 2015-2022 Redistributable"
 
-    # Install BSG Launcher
-    if [[ ! -d "${BSG_DIR}" ]]; then
+    # Install live game launcher
+    if ! check_bsg_launcher_installed; then
         m_download "${METADATA[bsg-launcher-url]}" "${DIR[files]}/BsgLauncher.exe"
-        msg "Installing BSG Launcher..."
+        msg; msg "${BOLD}Installing live game launcher...${RESET}"
         m_umu "${DIR[files]}/BsgLauncher.exe" /VERYSILENT
+        set_value config "bsg-path=${CONFIG[WINEPREFIX]%/}/drive_c/Battlestate Games/BsgLauncher"
     fi
 
     # Download icon to icons directory
     m_download -s "${METADATA[bsg-ico-url]}" "${DIR[icons]}/bsg_launcher.png"
 
-    # Run BSG Launcher
-    msg "${BOLD}${BLUE}[A] Please install the game inside the game launcher ...${RESET}"
-    msg "   ► When the game is installed, close the Launcher to continue${RESET}"
-    # WORKAROUND: Ensures that umu cannot guesstimate the game drive (S:)
-    export STEAM_COMPAT_INSTALL_PATH="/media/$USER"
-    opt_run bsg-launcher || err "Failed to launch \"BSG Launcher\""
+    # Run live game launcher
+    msg; msg "${BOLD}${BLUE}[A] Please install the game inside the launcher ...${RESET}"
+    msg "   ► When the game is installed, close the launcher to continue${RESET}"; msg
 
-    if update_eft_path; then
-        # Add BattlEye workaround if the game client has been found
-        add_battleye_workaround
-    fi
+    # WORKAROUND: Ensures that umu cannot guesstimate the game drive (S:)
+    # Otherwise the live install path check can fail
+    export STEAM_COMPAT_INSTALL_PATH="/media/$USER"
+
+    opt_run bsg-launcher || err "Failed to launch \"live game launcher\""
 
     # Create application shortcut
     opt_shortcut bsg-launcher
 
-    msg "The game has been installed"
+    if update_eft_path; then
+        # Add BattlEye workaround if the game client has been found
+        add_battleye_workaround
+
+        msg; msg "${BOLD}Live has been installed!${RESET}"
+    fi
 }
 
 
@@ -883,15 +898,15 @@ install_spt() {
 
     case "${install_mode}" in
         # Continue normally
-        latest|legacy) msg "Selected install mode is \"${install_mode}\"..." ;;
+        latest|legacy) msg -d "Selected install mode is \"${install_mode}\"..." ;;
         # WORKAROUND: Shows missing script version & fixes SPT install path
-        lutris) opt_version; set_spt_path "${WINEPREFIX}/drive_c/SPT" ;;
+        lutris) opt_version; set_spt_path "${CONFIG[WINEPREFIX]}/drive_c/SPT" ;;
         *) err "Invalid install mode: ${install_mode}" ;; 
     esac
 
     if ! check_eft_installed; then
         warn "${BOLD}The game client is not installed${RESET}"
-        msg "   ► make sure to install the game inside the BSG Launcher & try again!"
+        msg "   ► make sure to install the game inside the live game launcher & try again!"
         err "Game not found."
     elif check_spt_installed; then
         warn "${BOLD}\"${CONFIG[spt-path]}\"${RESET} already exists"
@@ -915,30 +930,30 @@ install_spt() {
         legacy) load_metadata legacy ;;
     esac
 
-    msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
+    msg; msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
 
     # Check if we need to patch the game files
-    msg "Comparing installed Live <--> required Live versions"
+    msg -d "Comparing installed Live <--> required Live versions"
     if [[ "${METADATA[inst-eft]}" -ne "${METADATA[mod-eft]}" ]]; then
-        msg "Incompatible Live version found - Checking patcher compatibility..."
+        msg -d "Incompatible Live version found - Checking patcher compatibility..."
         # Check if target Live version is lower, greater or equal to required Live version
         if [[ "${METADATA[patcher-eft]}" -lt "${METADATA[inst-eft]}" ]]; then
             # No patcher available yet!
             warn "Looks like there's no patcher available for your Live version"
-            msg "    ► This usually happens when Live has been updated recently."
-            msg "    ► Please wait for the SPT team to generate a new patcher."
-            msg "    ► Usually, this will take less then 24 hours."
+            msg "   ► This usually happens when Live has been updated recently."
+            msg "   ► Please wait for the SPT team to generate a new patcher."
+            msg "   ► Usually, this will take less then 24 hours."
             err "No patcher available (Installed version: ${METADATA[inst-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
             # Live is outdated!
             warn "Looks like your installed Live version is out-of-date"
-            msg "    ► Please update your Live installation & try again"
+            msg "   ► Please update your Live installation & try again"
             err "Live is out-of-date (Patch: ${METADATA[patcher-eft]} <-> Installed: ${METADATA[inst-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -eq "${METADATA[inst-eft]}" ]]; then
             # Downpatcher is compatible!
-            msg "Patcher is compatible"
+            msg -d "Available patcher is compatible"
 
             # Download latest patcher if needed
             [[ -z "${METADATA[patcher-hash]}" ]] && err "Missing patcher hash argument"
@@ -951,33 +966,35 @@ install_spt() {
             m_extract "${METADATA[patcher-path]}" "${DIR[tmp]}"
 
             # Copy Live files
-            msg "Copying game files to \"${CONFIG[spt-path]}\""
+            msg; msg "${BOLD}Copying game files to \"${CONFIG[spt-path]}\"${RESET}"
             m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
 
             # Move patcher files to install directory
-            msg "Copying patch files to \"${CONFIG[spt-path]}\""
+            msg; msg "${BOLD}Copying patch files to \"${CONFIG[spt-path]}\"${RESET}"
             local patch_dir; patch_dir="$(find "${DIR[tmp]}" -type d -name '*SPT_Patches*')"
             m_cp "${patch_dir}" "${CONFIG[spt-path]}/SPT_Patches" || err "Failed to copy patch files" 
 
             # Patch game files
             opt_patch "${CONFIG[spt-path]}" || err "Failed to patch game files"
         else
-            msg "Installed Live version is compatible with \"SPT ${METADATA[mod-version]}\""
-            msg "Copying game files to \"${CONFIG[spt-path]}\""
+            msg -d "Installed Live version is compatible with \"SPT ${METADATA[mod-version]}\""
+            msg; msg "${GRAY}Copying game files to \"${CONFIG[spt-path]}\"${RESET}"
             m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
         fi
     fi
 
     install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
 
+    msg; msg "${BOLD}Finializing SPT install...${RESET}"
+
     # Set Windows version to 8.1
-    msg "Setting Windows version to \"8.1\"..."
+    msg "${GRAY}Setting Windows version to \"8.1\"...${GRAY}"
     m_umu winetricks -q "win81" 1>> "${FILE[log]}"
 
     # Steam library directory workaround
-    local steam_dir="${WINEPREFIX}/drive_c/Program Files (x86)/Steam/steamapps"
+    local steam_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Steam/steamapps"
     if [[ ! -f "${steam_dir}/libraryfolders.vdf" ]]; then
-        msg "Adding Steam library file workaround..."
+        msg "${GRAY}Adding Steam library file workaround...${RESET}"
         m_mkdir "${steam_dir}"
         touch "${steam_dir}/libraryfolders.vdf"
     fi
@@ -987,7 +1004,7 @@ install_spt() {
         latest) create_launcher_config ;;
     esac
 
-    # Download & install the server script
+    # Download & install launch scripts
     case "${install_mode}" in
         latest) m_download -s "${METADATA[server-sh-url]}" "${CONFIG[spt-path]}" ;;
         legacy) m_download -s "${METADATA[server-sh-legacy-url]}" "${CONFIG[spt-path]}" ;;
@@ -995,7 +1012,6 @@ install_spt() {
 
     m_chmod +x "${CONFIG[spt-path]}/server.sh"
 
-    # Download & install the launcher script
     case "${install_mode}" in
         latest) m_download -s "${METADATA[launcher-sh-url]}" "${CONFIG[spt-path]}" ;;
         legacy) m_download -s "${METADATA[launcher-sh-legacy-url]}" "${CONFIG[spt-path]}" ;;
@@ -1013,7 +1029,8 @@ install_spt() {
             opt_shortcut spt
         ;;
     esac
-    msg "SPT has been installed!"
+
+    msg; msg "${BOLD}SPT has been installed!${RESET}"
 }
 
 
@@ -1023,7 +1040,7 @@ install_fika() {
 
     if ! check_eft_installed; then
         warn "${BOLD}The game client is not installed${RESET}"
-        msg "   ► make sure to install the game inside the BSG Launcher & try again!"
+        msg "   ► make sure to install the game inside the live game launcher & try again!"
         err "Game not found."
     elif ! check_spt_installed; then
         warn "${BOLD}SPT is not installed${RESET}"
@@ -1072,7 +1089,7 @@ install_fika() {
 
     done
 
-    msg "Fika has been installed!"
+    msg; msg "Fika has been installed!"
 }
 
 
@@ -1092,15 +1109,15 @@ uninstall_eft() {
     if [[ "${no_prompt}" != 1 ]]; then
         msg "${BOLD}This action will uninstall the game from your system!${RESET}"
         msg "   ► Client files: ${CONFIG[eft-path]}"
-        msg "   ► Launcher: ${BSG_DIR}"
+        msg "   ► Launcher: ${CONFIG[bsg-path]}"
         yesno "Do you want to continue?" || return 1
     fi
 
-    msg "Uninstalling the game..."
-    m_rm -r "${BSG_DIR}"; m_rm -r "${CONFIG[eft-path]}"
-    m_rm -r "${WINEPREFIX}/drive_c/Battlestate Games"
+    msg "Uninstalling live launcher & game files..."
+    m_rm -r "${CONFIG[bsg-path]}"; m_rm -r "${CONFIG[eft-path]}"
+    m_rm -r "${CONFIG[WINEPREFIX]}/drive_c/Battlestate Games"
 
-    msg "Removing \"BSG Launcher\" shortcut..."
+    msg "Removing \"live game launcher\" shortcut..."
     [[ -f "${SHORTCUT[bsg-launcher]}" ]] && m_rm "${SHORTCUT[bsg-launcher]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
@@ -1134,9 +1151,9 @@ uninstall_prefix() {
         msg "   ► Please uninstall the game inside Steam instead."
         return 1
     fi
-    [[ ! -d "${WINEPREFIX}" ]] && msg "Prefix directory does not exist" && return 0
-    msg "Removing Prefix directory: \"${WINEPREFIX}\""
-    m_rm -r "${WINEPREFIX}"
+    [[ ! -d "${CONFIG[WINEPREFIX]}" ]] && msg "Prefix directory does not exist" && return 0
+    msg "Removing Prefix directory: \"${CONFIG[WINEPREFIX]}\""
+    m_rm -r "${CONFIG[WINEPREFIX]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
 }
 
@@ -1221,7 +1238,7 @@ opt_uninstall() {
             # Ask for confirmation
             if [[ "${NO_PROMPT}" != 1 ]]; then
                 msg "The following directories will be deleted ${BOLD}permanently${RESET}:"
-                msg "   ► ${WINEPREFIX}"
+                msg "   ► ${CONFIG[WINEPREFIX]}"
                 msg "   ► ${CONFIG[eft-path]}"
                 msg "   ► ${CONFIG[spt-path]}"
                 yesno "Do you want to continue?" || return 1
@@ -1308,8 +1325,8 @@ opt_update() {
         fika) load_metadata mod-eft; NO_PROMPT=1 install_fika ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
-            [[ -z "${PROTONPATH}" ]] && err "PROTONPATH is not set"
-            [[ "${PROTONPATH}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
+            [[ -z "${CONFIG[PROTONPATH]}" ]] && err "PROTONPATH is not set"
+            [[ "${CONFIG[PROTONPATH]}" != *"GE-Proton"* ]] && err "GE-Proton is not set in PROTONPATH"
             update_proton "$@"
             check_spt_installed && opt_shortcut spt
             check_eft_installed && opt_shortcut eft
@@ -1321,14 +1338,14 @@ opt_update() {
 
 
 opt_patch() {
-    msg "${BOLD}Launching patcher...${RESET}"
+    msg; msg "${BOLD}Launching patcher...${RESET}"
     local files_total; local progress=1
     local target_path="${1:-"${CONFIG[spt-path]}"}";  local source_path="${2:-"${target_path}"}"
     target_path=$(resolve_path "${target_path%/}"); source_path=$(resolve_path "${source_path%/}" )
     [[ -z "${target_path}" ]] && err "Target path is not set"
     [[ ! -d "${target_path}" ]] && err "Target directory \"${target_path}\" does not exist"
 
-    msg "Patching game files in \"${target_path}\"..."
+    msg; msg "${BOLD}Patching game files in \"${target_path}\"${RESET}"
 
     # Search in optional SOURCE directory
     if [ "$(find "${source_path}" -maxdepth 1 -type d -name "SPT_Patches" 2>/dev/null)" ]; then
@@ -1358,7 +1375,7 @@ opt_patch() {
 
         case "$extension" in
             "delta")
-                msg -o "${progress_string} (*) Patching: ${trimmed##*/}"
+                msg -o "${GRAY}${progress_string} (*) Patching: ${trimmed##*/}${RESET}"
                 hpatchz "${output}" "${source}" "${target}" >/dev/null 2>> "${FILE[log]}" || return 1
                 # Remove old file and replace with .decoded file
                 [[ ! -f "${target}" ]] && return 1
@@ -1366,7 +1383,7 @@ opt_patch() {
                 m_mv "${target}" "${output}" || return 1
             ;;
             "del")
-                msg -o "${progress_string} (-) Deleting: ${trimmed##*/}"
+                msg -o "${GRAY}${progress_string} (-) Deleting: ${trimmed##*/}${RESET}"
                 rm "${output}" || return 1
                 if [[ -z "$(m_ls -A "${dir_path}")" ]]; then
                     msg -o "${progress_string} (-) Deleting directory: ${dir_path##*/}"
@@ -1374,7 +1391,7 @@ opt_patch() {
                 fi
             ;;
             "new")
-                msg -o "${progress_string} (+) Adding: ${trimmed##*/}"
+                msg -o "${GRAY}${progress_string} (+) Adding: ${trimmed##*/}${RESET}"
                 if [[ ! -d "${dir_path}" ]]; then
                     msg -o "${progress_string} (+) Adding directory: ${dir_path##*/}"
                     m_mkdir "${dir_path}"
@@ -1389,19 +1406,19 @@ opt_patch() {
     local status=$?
     if [[ "$status" -ne "0" ]]; then
         # Failed patching
-        msg "Removing corrupted game files..."
+        msg "${GRAY}Removing corrupted game files...${RESET}"
         m_rm -r "${target_path}" || err "Failed to remove corrupted game files" $status
         return 1
     fi
     
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
-        msg "Cleaning up patch files..."
+        msg "${GRAY}Cleaning up patch files...${RESET}"
         [[ -d "${source_path}/SPT_Patches" ]] && rm -r "${source_path}/SPT_Patches"
         [[ -f "${source_path}/patcher.exe" ]] && rm -r "${source_path}/patcher.exe"
     fi
 
-    msg "Done patching game files!"
+    msg; msg "${BOLD}Done patching game files!${RESET}"
 }
 
 
@@ -1417,7 +1434,7 @@ opt_guided_install() {
         msg "${BOLD}${YELLOW}This CLI installer will perform the following steps:${RESET}"
         msg "   ► Install latest GE-Proton (if not installed already)"
         msg "   ► Setup the wine prefix, install dependencies & apply game specific workarounds"
-        msg "   ► Install the BSG Launcher"
+        msg "   ► Install the live game launcher"
         msg "   ► Install SPT"
         msg "   ► Add application menu shortcuts"
     } | more
@@ -1435,7 +1452,7 @@ opt_guided_install() {
                 msg; msg "${BOLD}Found Steam version of the game client in:${RESET}"
                 msg "   ► ${steam_eft_dir}"
                 set_value config "steam-library-path=${path}/steamapps"
-                msg; set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
+                set_prefix_path "${CONFIG[steam-library-path]}/compatdata/3932890/pfx"
                 init_prefix 
                 steam_install=1
                 break
@@ -1455,11 +1472,11 @@ opt_guided_install() {
         check_eft_running
 
         if [[ "${steam_install}" ]]; then
-            # Launch the BSG Launcher
+            # Launch the live game launcher
             if ! check_eft_installed; then err "Looks like the game client is not installed"; fi
 
             if command -v steam &>/dev/null; then
-                msg; msg "${BOLD}${BLUE}[A] Launching BSG Launcher once to create important metadata...${RESET}"
+                msg; msg "${BOLD}${BLUE}[A] Launching live game launcher once to create important metadata...${RESET}"
                 msg "   ► Please ensure the launcher works & the \"${GREEN}Play${RESET}\" button is visible."
                 msg "   ► Then close it again to continue..."
                 opt_run bsg-launcher || err "Failed to launch the game with Steam"
@@ -1472,7 +1489,7 @@ opt_guided_install() {
             # Ask to skip live installation if it's already installed
             local inst_eft=1
             if check_eft_installed; then
-                msg; yesno "Live is already installed. Do you want to skip this step?" \
+                yesno "Live is already installed. Do you want to skip this step?" \
                 && unset inst_eft
             fi
 
@@ -1501,7 +1518,7 @@ opt_guided_install() {
         msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPT (Leave blank for \"${spt_install_path}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
         input=$(read_input) || return 1
-        set_spt_path "${input:-${spt_install_path}}"
+        msg; set_spt_path "${input:-${spt_install_path}}"
 
         # Install SPT
         set_value config "install-mode=${DEFAULT[install-mode]}"
@@ -1519,7 +1536,8 @@ opt_guided_install() {
             fi
         fi
 
-        # Ask to install the script & remove all cached files if not
+        # If the script does not get installed, we assume the user would probably not
+        # want to keep the large cache files for the install
         if ! opt_selfinstall; then
             if msg && yesno "Do you want to clean cached files in \"${DIR[cache]}\"?"; then
                 export NO_PROMPT=1
@@ -1547,21 +1565,27 @@ opt_run() {
     
     case "${option}" in
         eft|bsg|bsg-launcher)
-            msg "${BOLD}Launching BSG Launcher...${RESET}"
-            case "${WINEPREFIX}" in
+            if ! check_bsg_launcher_installed; then
+                err "live game launcher is not installed (Missing config path or files)"
+            fi
+
+            msg "${BOLD}Launching live game launcher...${RESET}"
+
+            case "${CONFIG[WINEPREFIX]}" in
                 *"steamapps/compatdata/3932890"*)
+                    # Launch the game & wait for the process to show up
                     steam steam://rungameid/3932890 &>>/dev/null &
                     local pid; local c; while [[ -z "${pid}" ]]; do
                         pid="$(pidof "BsgLauncher.exe")"
                         # Timeout
-                        ((c++)) && ((c==60)) && err "Timed out while waiting for BSG Launcher process"
+                        ((c++)) && ((c==60)) && err "Timed out while waiting for live game launcher process"
                         sleep 2
                     done
                     waitpid "${pid}"
                 ;;
                 *)
                     local args="--disable-software-rasterizer"
-                    cd "${BSG_DIR}" && m_umu "BsgLauncher.exe" "$args" "$@"
+                    cd "${CONFIG[bsg-path]}" && m_umu "BsgLauncher.exe" "$args" "$@"
                 ;;
             esac
         ;;
@@ -1569,7 +1593,7 @@ opt_run() {
             check_eft_running
             msg "${BOLD}Launching SPT Launcher...${RESET}"
             cd "${CONFIG[spt-path]}" || exit 1
-            env WINEPREFIX="${WINEPREFIX}" PROTONPATH="${PROTONPATH}" "./launcher.sh" "$@" &>> "${FILE[log]}";
+            env WINEPREFIX="${CONFIG[WINEPREFIX]}" PROTONPATH="${CONFIG[PROTONPATH]}" "./launcher.sh" "$@" &>> "${FILE[log]}";
         ;;
         server)
             check_eft_running
@@ -1599,7 +1623,7 @@ opt_dlloverride() {
         builtin,native|b,n) override_type="builtin,native" ;;
         *) err "Invalid override type \"${override_type}\"" ;;
     esac
-    msg "Setting \"${dll_name}\" DLL override (${override_type})..."
+    msg "${GRAY}Setting \"${dll_name}\" DLL override (${override_type})...${RESET}"
     m_umu reg add "HKCU\\Software\\Wine\\DllOverrides" /v "${dll_name}" /t "REG_SZ" /d "${override_type}" /f 1>> "${FILE[log]}"
 }
 
@@ -1607,7 +1631,7 @@ opt_dlloverride() {
 add_app_shortcut() {
     # Check if our cache array is prepared
     [[ "${CACHE[_id]}" != "app-shortcut" ]] && err "Failed to load shortcut data from cache array"
-    if [[ -f "${CACHE[path]}" ]]; then msg "Updating \"${CACHE[name]}\" application shortcut..."
+    if [[ -f "${CACHE[path]}" ]]; then msg "${GRAY}Updating \"${CACHE[name]}\" application shortcut...${RESET}"
     else msg "Creating \"${CACHE[name]}\" application shortcut..."; fi
 
     # Warn if the executable does not exist
@@ -1652,9 +1676,9 @@ opt_shortcut() {
         eft|bsg|bsg-launcher)
             CACHE[name]="BSG - Launcher"
             CACHE[exe_path]="BsgLauncher.exe"
-            CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+            CACHE[env]="env WINEPREFIX=\"${CONFIG[WINEPREFIX]}\" PROTONPATH=\"${CONFIG[PROTONPATH]}\""
             CACHE[args]="--disable-software-rasterizer"
-            CACHE[working_dir]="${BSG_DIR}"
+            CACHE[working_dir]="${CONFIG[bsg-path]}"
             CACHE[icon]="bsg_launcher"
         ;;
         launcher)
@@ -1664,7 +1688,7 @@ opt_shortcut() {
             # 4.0 uses the windows launcher, so we need proton env vars
             if check_legacy_installed; then
                 CACHE[name]="SPT 4.0 - Launcher"
-                CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+                CACHE[env]="env WINEPREFIX=\"${CONFIG[WINEPREFIX]}\" PROTONPATH=\"${CONFIG[PROTONPATH]}\""
             else
                 CACHE[name]="SPT - Launcher"
             fi
@@ -1696,7 +1720,7 @@ opt_shortcut() {
             CACHE[name]="${name}"
             CACHE[exe_path]="${option##*/}"
             CACHE[args]="$*"
-            CACHE[env]="env WINEPREFIX=\"${WINEPREFIX}\" PROTONPATH=\"${PROTONPATH}\""
+            CACHE[env]="env WINEPREFIX=\"${CONFIG[WINEPREFIX]}\" PROTONPATH=\"${CONFIG[PROTONPATH]}\""
             CACHE[working_dir]="${working_dir}"
             CACHE[path]="${DIR[shortcuts]}/${CACHE[name]}.desktop"
             CACHE[icon]=$(echo "${CACHE[name]}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
@@ -1731,7 +1755,7 @@ opt_clean() {
     if [[ -n "${paths}" ]]; then
         if [[ "${NO_PROMPT}" != 1 ]]; then
             {   msg "${BOLD}This action will remove the following files / directories ${YELLOW}permanently${RESET}:"
-                for path in "${paths[@]}"; do msg "    ► ${UNDERLINE}${path}${RESET}"; done
+                for path in "${paths[@]}"; do msg "   ► ${UNDERLINE}${path}${RESET}"; done
             } | more
             yesno "Do you want to continue?" || return 1
         fi
@@ -1767,7 +1791,7 @@ opt_selfinstall() {
     # Check if the script is already installed
     for path in "${bin_paths[@]}"; do
         if [[ -f "${path}/${TITLE}" ]]; then
-            msg "${BOLD}${GREEN}${TITLE}${RESET} is already installed in:"
+            msg; msg "${BOLD}{TITLE} is already installed in:${RESET}"
             msg "   ► ${path}"
             return 0
         fi
@@ -1830,7 +1854,7 @@ opt_help() {
     case "${option}" in
         install)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "eft|bsg                        - Install the BSG Launcher"
+                msg "eft|bsg                        - Install the live game launcher"
                 msg "spt                            - Install SPT"
                 msg "fika                           - Install Fika (core + server mod)"
                 msg 
@@ -1843,7 +1867,7 @@ opt_help() {
         ;;
         uninstall)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "eft|bsg                        - Uninstall the BSG Launcher"
+                msg "eft|bsg                        - Uninstall the live game launcher"
                 msg "spt                            - Uninstall SPT"
                 msg "all                            - Uninstall everything (prefix, Live & SPT)"
                 msg
@@ -1887,7 +1911,7 @@ opt_help() {
                 msg "${YELLOW}$TITLE run ./custom.exe --example-arg${RESET}"
                 msg
                 msg "${BOLD}Available options:${RESET}"
-                msg "eft|bsg|bsg-launcher           - Run the BSG Launcher"
+                msg "eft|bsg|bsg-launcher           - Run the live game launcher"
                 msg "launcher                       - Run the SPT Launcher"
                 msg "server                         - Run the SPT Server"
                 msg "custom_command                 - Run a custom command inside the prefix"
@@ -1909,7 +1933,7 @@ opt_help() {
         ;;
         shortcut)
             {   msg "${BOLD}Available options:${RESET}"
-                msg "eft|bsg|bsg-launcher           - Create/update BSG Launcher shortcut"
+                msg "eft|bsg|bsg-launcher           - Create/update live game launcher shortcut"
                 msg "launcher                       - Create/update SPT Launcher shortcut"
                 msg "server                         - Create/update SPT Server shortcut"
                 msg "spt                            - Create/update all SPT shortcuts"
@@ -2037,11 +2061,8 @@ handle_opts() {
 
     # Initialize wine prefix
     case "${option}" in
-        shortcut|uninstall) set_prefix_path "${WINEPREFIX}" 1>/dev/null ;;
-        install|update|dlloverride|run)
-            set_prefix_path "${WINEPREFIX}" 1>/dev/null
-            init_prefix
-        ;;
+        shortcut|uninstall) set_prefix_path "${CONFIG[WINEPREFIX]}" 1>/dev/null ;;
+        install|update|dlloverride|run) init_prefix ;;
     esac
 
     # Handle options
