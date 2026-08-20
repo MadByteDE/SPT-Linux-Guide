@@ -2112,7 +2112,7 @@ main() {
 
     # Set default config variables
     [[ -f "${FILE[config]}" ]] && load_array config
-    set_spt_path "${CONFIG[spt-path]:-${DEFAULT[spt-dir]}}" 1>/dev/null
+    set_value config "spt-path=${CONFIG[spt-path]:-${DEFAULT[spt-dir]}}" 1>/dev/null
     set_value config "install-mode=${CONFIG[install-mode]:-"${DEFAULT[install-mode]}"}"
     set_value config "steam-library-path=${CONFIG[steam-library-path]:-"${DEFAULT[steam-library]}"}"
     [[ -z "${CONFIG[WINEPREFIX]}" ]] && set_value config "WINEPREFIX=${WINEPREFIX:-"${DEFAULT[wineprefix]}"}"
