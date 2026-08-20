@@ -328,9 +328,9 @@ load_metadata() {
             METADATA[mod-url1]=$(jq -r '.Releases[0].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
             METADATA[mod-url2]=$(jq -r '.Releases[0].Mirrors[1].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT mirror url" "$?"
             METADATA[mod-hash]=$(jq -r '.Releases[0].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
-            METADATA[patcher-url1]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
-            METADATA[patcher-url2]=$(jq -r '.Patches[0].Mirrors[1].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher mirror url" "$?"
-            METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
+            METADATA[patcher-url1]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}") || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-url2]=$(jq -r '.Patches[0].Mirrors[1].Link' "${FILE[patcher-json]}") || err "Failed to get patcher mirror url" "$?"
+            METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}") || err "Failed to get patcher hash" "$?"
             METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url1]}") || err "Failed to get required Live version for patcher" "$?"
         ;;
         legacy)
@@ -342,9 +342,9 @@ load_metadata() {
             METADATA[mod-url1]=$(jq -r '.Releases[1].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
             METADATA[mod-url2]=$(jq -r '.Releases[1].Mirrors[1].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT mirror url" "$?"
             METADATA[mod-hash]=$(jq -r '.Releases[1].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
-            METADATA[patcher-url1]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
-            METADATA[patcher-url2]=$(jq -r '.Patches[1].Mirrors[1].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher mirror url" "$?"
-            METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
+            METADATA[patcher-url1]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}") || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-url2]=$(jq -r '.Patches[1].Mirrors[1].Link' "${FILE[patcher-json]}") || err "Failed to get patcher mirror url" "$?"
+            METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}") || err "Failed to get patcher hash" "$?"
             METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url1]}") || err "Failed to get required Live version for patcher" "$?"
         ;;
         eft)
