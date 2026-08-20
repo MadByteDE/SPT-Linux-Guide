@@ -20,10 +20,15 @@ shopt -s extglob
 # Make sure to throw an error and exit on SIGINT
 trap int INT; int() { warn "Interrupt received" && m_exit; }
 
+
+# # # # # # #
+# Variables #
+# # # # # # #
+
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.4"
-DATE="2026-08-18"
+VERSION="1.2.5"
+DATE="2026-08-19"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -102,7 +107,7 @@ m_chmod() { chmod "$@" &>> "${FILE[log]}" || err "Command \"chmod $*\" failed" "
 m_mkdir() { mkdir -p "$@" &>> "${FILE[log]}" || err "Command \"mkdir -p $*\" failed" "$?"; }
 m_ls() { ls "$@" 2>/dev/null; }
 m_mv() { mv "$@" &>> "${FILE[log]}" || err "Command \"mv $*\" failed" "$?"; }
-m_curl() { curl --connect-timeout 30 -f "$@" || err "Command \"curl --connect-timeout 30 -f $*\" failed" "$?"; }
+m_curl() { curl "$@" || err "Command \"curl $*\" failed" "$?"; }
 m_umu() { "${FILE[umu]}" "$@" 2>> "${FILE[log]}" || err "Command \"umu-run $*\" failed" "$?"; }
 m_7z() { 7zzs "$@" 2>> "${FILE[log]}" || err "Command \"7zzs $*\" failed" "$?"; }
 m_tar() { tar "$@" 2>> "${FILE[log]}" || err "Command \"tar $*\" failed" "$?"; }
@@ -164,16 +169,19 @@ m_extract() {
 
 
 m_download() {
-    local opt; local force=0; local silent=0
-    for opt in "${@}"; do
+    local force=0; local silent=0; local cmd='m_curl'
+    local opt; for opt in "${@}"; do
         case ${opt} in
             -f) force=1; shift 1 ;;
             -s) silent=1; shift 1 ;;
+            # No immediate error if curl fails
+            -n) cmd='curl'; shift 1 ;;
         esac
     done
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
+    local args='-# -fL --create-dirs --connect-timeout 30'
     check_target_path "${target_path}"
 
     if [[ -d "${target_path}" ]]; then target_path="${target_path}/${filename}"
@@ -181,8 +189,8 @@ m_download() {
 
     if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "${GRAY}Downloading: ${filename}...${RESET}"
-        if [[ $silent -eq 1 ]]; then m_curl -S -s --create-dirs -L "${url}" -o "${target_path}"
-        else m_curl --create-dirs -L "${url}" -o "${target_path}"; fi
+        if [[ $silent -eq 1 ]]; then $cmd -Ss $args "${url}" -o "${target_path}"
+        else $cmd $args "${url}" -o "${target_path}"; fi
     fi
 }
 
@@ -271,6 +279,260 @@ read_input() {
 }
 
 
+load_array() {
+    local path; local array_name="${1}" || err "Missing argument: load_array [array_name]"
+    case "${array_name}" in
+        config) path="${FILE[config]}" ;;
+        metadata) path="${FILE[metadata]}" ;;
+        *) err "Invalid argument \"${array_name}\"";;
+    esac
+
+    # Warn if the file does not exist
+    if [[ ! -f "${path}" ]]; then
+        warn "Failed to load \"${path}\": File does not exist" && return
+    fi
+
+    # Read lines & load values
+    while read -r line; do
+        case "${line}" in
+            *=*) set_value "${array_name}" "${line}" ;;
+            *) err "Cannot load setting \"${line}\": Invalid format" ;;
+        esac
+    done < "${path}"
+}
+
+
+save_array() {
+    local array_name="${1}"
+    [[ ! -d "${DIR[config]}" ]] && return 1
+    case "${array_name}" in
+        config)
+            [[ -f "${FILE[config]}" ]] && m_rm "${FILE[config]}"
+            local key; for key in "${!CONFIG[@]}"; do
+                echo "${key}=\"${CONFIG[$key]}\"" >> "${FILE[config]}"
+            done
+        ;;
+        *) ;;
+    esac
+}
+
+
+load_metadata() {
+    local name="${1}"
+    case "${name}" in
+        latest)
+            load_metadata spt
+            METADATA[mod-path]="${FILE[spt]}"
+            METADATA[patcher-path]="${FILE[patcher]}"
+            METADATA[mod-eft]=$(jq -r '.Releases[0].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
+            METADATA[mod-version]=$(jq -r '.Releases[0].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
+            METADATA[mod-url1]=$(jq -r '.Releases[0].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
+            METADATA[mod-url2]=$(jq -r '.Releases[0].Mirrors[1].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT mirror url" "$?"
+            METADATA[mod-hash]=$(jq -r '.Releases[0].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
+            METADATA[patcher-url1]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-url2]=$(jq -r '.Patches[0].Mirrors[1].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher mirror url" "$?"
+            METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
+            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url1]}") || err "Failed to get required Live version for patcher" "$?"
+        ;;
+        legacy)
+            load_metadata spt
+            METADATA[mod-path]="${FILE[legacy-spt]}"
+            METADATA[patcher-path]="${FILE[legacy-patcher]}"
+            METADATA[mod-eft]=$(jq -r '.Releases[1].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
+            METADATA[mod-version]=$(jq -r '.Releases[1].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
+            METADATA[mod-url1]=$(jq -r '.Releases[1].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
+            METADATA[mod-url2]=$(jq -r '.Releases[1].Mirrors[1].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT mirror url" "$?"
+            METADATA[mod-hash]=$(jq -r '.Releases[1].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
+            METADATA[patcher-url1]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
+            METADATA[patcher-url2]=$(jq -r '.Patches[1].Mirrors[1].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher mirror url" "$?"
+            METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
+            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url1]}") || err "Failed to get required Live version for patcher" "$?"
+        ;;
+        eft)
+            METADATA[inst-eft]=$(get_eft_version) || err "Failed to get Live version" "$?"
+        ;;
+        mod-eft)
+            METADATA[inst-spt]=$(get_spt_version) || err "Failed to get installed SPT version" "$?"
+            METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod Live version" "$?"
+        ;;
+        spt)
+            # Fetch metadata
+            if ! check_ttl "${FILE[mod-json]}" || ! check_ttl "${FILE[patcher-json]}"; then
+                m_download -f -s "${METADATA[mod-json-url]}" "${FILE[mod-json]}"
+                m_download -f -s "${METADATA[patcher-json-url]}" "${FILE[patcher-json]}"
+            fi
+        ;;
+        "")
+            # Get metadata file (1 hour time-to-live)
+            if ! check_ttl "${FILE[metadata]}"; then
+                m_download -f -s "${URL[metadata]}" "${FILE[metadata]}"
+            fi
+            load_array metadata
+        ;;
+        *) err "Invalid argument: \"${name}\"" ;;
+    esac
+}
+
+
+init_prefix() {
+    # Download default proton runner if needed
+    msg; msg "${BOLD}Checking for Proton...${RESET}"
+    case "${CONFIG[PROTONPATH]}" in
+        *"GE-Proton"*|latest) ;;
+        *)
+            # Reset proton version if needed
+            if ! check_proton_installed; then
+                msg "Invalid Proton path: ${CONFIG[PROTONPATH]}"
+                msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
+                set_value config "PROTONPATH=${DEFAULT[protonpath]}"
+            fi
+        ;;
+    esac
+    
+    if ! check_proton_installed; then
+        update_proton -y "${CONFIG[PROTONPATH]}"
+    fi
+
+    if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
+        # Live paths cannot be set in fresh prefixes
+        unset_value config "eft-path"
+        unset_value config "bsg-path"
+
+        msg; msg "${BOLD}Creating wine prefix ...${RESET}" && m_umu wineboot -u
+        m_umu winecfg /v win81 1>> "${FILE[log]}"
+
+        # Add prefix update pop-up workaround
+        msg "${GRAY}Adding \"RUNDLL32\" pop-up workaround...${RESET}"
+        m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
+
+        # Add mouse focus workaround
+        msg "${GRAY}Adding mouse focus workaround...${RESET}"
+        m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
+    fi
+}
+
+
+add_battleye_workaround() {
+    local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
+    local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
+    local dst_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Common Files/BattlEye"
+
+    msg "${GRAY}Adding BattlEye service workaround (This might take a bit) ...${RESET}"
+    if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
+    if [[ ! -f "${dst_dir}/BEService_x64.exe" ]]; then m_cp "${binary_path}" "${dst_dir}/BEService_x64.exe"; fi
+
+    m_umu reg add "${key}" /v DisplayName /t REG_SZ /d "BattlEye Service" /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v ImagePath   /t REG_SZ /d 'C:\Program Files (x86)\Common Files\BattlEye\BEService_x64.exe' /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v ObjectName  /t REG_SZ /d "LocalSystem" /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v ErrorControl       /t REG_DWORD /d 1      /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v PreshutdownTimeout /t REG_DWORD /d 180000 /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v Start              /t REG_DWORD /d 2      /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v Type               /t REG_DWORD /d 16     /f 1>> "${FILE[log]}"
+    m_umu reg add "${key}" /v WOW64              /t REG_DWORD /d 1      /f 1>> "${FILE[log]}"
+}
+
+
+update_eft_path() {
+    local entry; local path
+
+    # Get live install path
+    msg "${GRAY}Checking for existing live install directory...${RESET}"
+    # get windows path
+    [[ ! -f "${CONFIG[WINEPREFIX]}/system.reg" ]] && return 1
+    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[WINEPREFIX]}/system.reg")
+    path=$(echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
+    # Convert to unix path
+    path=$(m_umu winepath -u "${path}" 2>/dev/null)
+    
+    if [[ -z "${path}" ]]; then
+        return 1
+    fi
+
+    if [[ -n "${path%/*}" ]]; then
+        msg; msg "${BOLD}Found live install at:${RESET}"
+        msg "   ► ${path%/*}"; msg
+        set_value config "eft-path=${path%/*}"
+    fi
+}
+
+
+update_proton() {
+    case "$1" in
+        -y) local no_prompt=1; shift ;;
+    esac
+    local version="${1:-"latest"}"
+    local url; url=$(m_curl -Lfs -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/${version}" 2>> "${FILE[log]}")
+    [[ $? != 0 || -z "${url}" ]] && err "Invalid Proton version: ${version}"
+    local version="${url##*/}"
+
+    # Skip if the specified version is already installed
+    if [[ -d "${DIR[proton]}/${version}" && -n $(m_ls -A "${DIR[proton]}/${version}") ]]; then
+        msg "${GRAY}${version} is already installed${RESET}"
+    else
+        # Found the given Proton version - ask user to continue
+        msg "${BOLD}${YELLOW}${version} is available!${RESET}"
+        if [[ -z "${no_prompt}" ]]; then yesno "Do you want to install it?" || return 0; fi
+        m_download "${METADATA[ge-proton-url]}/download/${version}/${version}-x86_64.tar.gz" "${DIR[tmp]}"
+        m_extract "${DIR[tmp]}/${version}-x86_64.tar.gz" "${DIR[proton]}"
+        if [[ -d "${DIR[proton]}/${version}-x86_64" ]]; then
+            msg "${GRAY}Renaming Proton directory: \"${version}-x86_64\" to \"${version}\"${RESET}"
+            m_mv "${DIR[proton]}/${version}-x86_64" "${DIR[proton]}/${version}"
+        fi
+    fi
+
+    # Skip if the given version is already set
+    if [[ "${CONFIG[PROTONPATH]}" == "${version}" ]]; then return 0; fi
+    msg "${GRAY}Setting PROTONPATH to \"${version}\"${RESET}"
+    set_value config "PROTONPATH=${version}"
+    return 0
+}
+
+
+create_launcher_config() {
+    local config_dir="${CONFIG[spt-path]}/SPT_Runtime/user/Launcher"
+    local filepath="${config_dir}/LauncherSettings.json"
+    # Create missing directories
+    m_mkdir "${config_dir}"
+    # Create config
+    msg "${GRAY}Creating SPT Launcher configuration...${RESET}"
+    jq . > "${filepath}" <<JSON
+    {
+        "FirstRun": false,
+        "GamePath": "${CONFIG[spt-path]}",
+        "LinuxSettings": {
+            "PrefixPath": "${CONFIG[WINEPREFIX]}",
+            "UmuPath": "${FILE[umu]}",
+            "LaunchSettings": "${DEFAULT[env]}",
+            "ProtonVersion": "${CONFIG[PROTONPATH]}"
+        }
+    }
+JSON
+}
+
+
+spt_download() {
+    local name="${1}" || err "Missing argument: spt_download \"[mod/patcher]\""
+    # Metadata has to be loaded: "load_metadata [latest/legacy]"
+    local path="${METADATA[${name}-path]}"
+    local hash="${METADATA[${name}-hash]}"
+    if ! check_cached "${path}" "${hash}"; then
+        # Json files should always contain two mirrors
+        local i; for i in {1..2}; do
+            local url="${METADATA[${name}-url${i}]}"
+            if m_download -n "${url}" "${path}"; then break
+            else warn "Download failed, retrying from mirror url..."; continue; fi
+            # Both failed? >.<'
+            err "Failed to download ${name}"
+        done
+        check_hash "${path}" "${hash}" || err "File \"${path##*/}\" is corrupted"
+    fi
+}
+
+
+# # # # # # # # # # # # # # # #
+#  Setter / getter functions  #
+# # # # # # # # # # # # # # # #
+
 set_value() {
     local array_name="${1}"
     local keyval="${2}" || err "Missing argument: set_value [array_name] [keyval]"
@@ -318,44 +580,6 @@ unset_value() {
 }
 
 
-load_array() {
-    local path; local array_name="${1}" || err "Missing argument: load_array [array_name]"
-    case "${array_name}" in
-        config) path="${FILE[config]}" ;;
-        metadata) path="${FILE[metadata]}" ;;
-        *) err "Invalid argument \"${array_name}\"";;
-    esac
-
-    # Warn if the file does not exist
-    if [[ ! -f "${path}" ]]; then
-        warn "Failed to load \"${path}\": File does not exist" && return
-    fi
-
-    # Read lines & load values
-    while read -r line; do
-        case "${line}" in
-            *=*) set_value "${array_name}" "${line}" ;;
-            *) err "Cannot load setting \"${line}\": Invalid format" ;;
-        esac
-    done < "${path}"
-}
-
-
-save_array() {
-    local key; local array_name="${1}"
-    [[ ! -d "${DIR[config]}" ]] && return 1
-    case "${array_name}" in
-        config)
-            [[ -f "${FILE[config]}" ]] && m_rm "${FILE[config]}"
-            for key in "${!CONFIG[@]}"; do
-                echo "${key}=\"${CONFIG[$key]}\"" >> "${FILE[config]}"
-            done
-        ;;
-        *) ;;
-    esac
-}
-
-
 set_spt_path() {
     local path; path="$(resolve_path "${1%/}")"
     check_path "${path}"
@@ -399,70 +623,6 @@ set_prefix_path() {
 
     msg "${BOLD}Prefix path has been set to:${RESET}"
     msg "   ► ${CONFIG[WINEPREFIX]}"
-}
-
-
-init_prefix() {
-    # Download default proton runner if needed
-    msg; msg "${BOLD}Checking for Proton...${RESET}"
-    case "${CONFIG[PROTONPATH]}" in
-        *"GE-Proton"*|latest) ;;
-        *)
-            # Reset proton version if needed
-            if ! check_proton_installed; then
-                msg "Invalid Proton path: ${CONFIG[PROTONPATH]}"
-                msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
-                set_value config "PROTONPATH=${DEFAULT[protonpath]}"
-            fi
-        ;;
-    esac
-    
-    if ! check_proton_installed; then
-        update_proton -y "${CONFIG[PROTONPATH]}"
-    fi
-
-    if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
-        # Live paths cannot be set in fresh prefixes
-        unset_value config "eft-path"
-        unset_value config "bsg-path"
-
-        msg; msg "${BOLD}Creating wine prefix ...${RESET}" && m_umu wineboot -u
-        m_umu winecfg /v win81 1>> "${FILE[log]}"
-
-        # Add prefix update pop-up workaround
-        msg "${GRAY}Adding \"RUNDLL32\" pop-up workaround...${RESET}"
-        m_umu reg add "HKLM\\Software\\Microsoft\\.NETFramework" /v "OnlyUseLatestCLR" /t "REG_DWORD" /d 0001 /f 1>> "${FILE[log]}"
-
-        # Add mouse focus workaround
-        msg "${GRAY}Adding mouse focus workaround...${RESET}"
-        m_umu reg add "HKCU\\Software\\Wine\\X11 Driver" /v "UseTakeFocus" /t "REG_SZ" /d "N" /f 1>> "${FILE[log]}"
-    fi
-}
-
-
-update_eft_path() {
-    local entry; local path
-
-    # Get live install path
-    msg "${GRAY}Checking for existing live install directory...${RESET}"
-
-    # get windows path
-    [[ ! -f "${CONFIG[WINEPREFIX]}/system.reg" ]] && return 1
-    entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[WINEPREFIX]}/system.reg")
-    path=$(echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
-
-    # Convert to unix path
-    path=$(m_umu winepath -u "${path}" 2>/dev/null)
-    
-    if [[ -z "${path}" ]]; then
-        return 1
-    fi
-
-    if [[ -n "${path%/*}" ]]; then
-        msg; msg "${BOLD}Found live install at:${RESET}"
-        msg "   ► ${path%/*}"; msg
-        set_value config "eft-path=${path%/*}"
-    fi
 }
 
 
@@ -543,11 +703,11 @@ check_disk_space() {
 
 
 check_prefix_dir() {
-    local path; local target_path="${1%/}"
+    local target_path="${1%/}"
     local check_paths=("${target_path}/system.reg" "${target_path}/dosdevices" "${target_path}/drive_c")
     # Check directory content
     if [[ -d "${target_path}" && -n "$(m_ls -A "${target_path}")" ]]; then
-        for path in "${check_paths[@]}"; do
+        local path; for path in "${check_paths[@]}"; do
             [[ ! -f "${path}" ]] && [[ ! -d "${path}" ]] && return 1
         done
     fi
@@ -636,10 +796,10 @@ check_native_aspnet() {
 
 
 check_native_deps() {
-    local status; local cmd
+    local status
     local cmds=("python3" "curl" "7zzs" "xxd" "hpatchz" "jq" "umu-run")
     msg "Checking for native dependencies..."
-    for cmd in "${cmds[@]}"; do
+    local cmd; for cmd in "${cmds[@]}"; do
         if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
             # Required tools / libraries
@@ -652,8 +812,8 @@ check_native_deps() {
 
 
 check_eft_running() {
-    local app; local apps=("BsgLauncher.exe" "EscapeFromTarko")
-    for app in "${apps[@]}"; do
+    local apps=("BsgLauncher.exe" "EscapeFromTarko")
+    local app; for app in "${apps[@]}"; do
         if [[ -z $(pidof "${app}") ]]; then continue; fi
         warn "It looks like \"${app}\" is currently running on your system!"
         msg "   ► ${YELLOW} Please close the application & retry.${RESET}"
@@ -716,26 +876,6 @@ check_ttl() {
 }
 
 
-add_battleye_workaround() {
-    local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
-    local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
-    local dst_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Common Files/BattlEye"
-
-    msg "${GRAY}Adding BattlEye service workaround (This might take a bit) ...${RESET}"
-    if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
-    if [[ ! -f "${dst_dir}/BEService_x64.exe" ]]; then m_cp "${binary_path}" "${dst_dir}/BEService_x64.exe"; fi
-
-    m_umu reg add "${key}" /v DisplayName /t REG_SZ /d "BattlEye Service" /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v ImagePath   /t REG_SZ /d 'C:\Program Files (x86)\Common Files\BattlEye\BEService_x64.exe' /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v ObjectName  /t REG_SZ /d "LocalSystem" /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v ErrorControl       /t REG_DWORD /d 1      /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v PreshutdownTimeout /t REG_DWORD /d 180000 /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v Start              /t REG_DWORD /d 2      /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v Type               /t REG_DWORD /d 16     /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v WOW64              /t REG_DWORD /d 1      /f 1>> "${FILE[log]}"
-}
-
-
 # # # # # # # # # # # # #
 #  Installer functions  #
 # # # # # # # # # # # # #
@@ -754,7 +894,7 @@ install_dep() {
     local cmd_name="$1"; local url="$2";  local filename="${url##*/}"
     local source_path="${3:-"${DIR[tmp]}"}"; local target_path="${4:-"${DIR[runtime]}"}"
     
-    m_download -s "${url}" "${source_path}"
+    m_download "${url}" "${source_path}"
     case "${filename}" in
         # Single file workarounds
         *jq-linux-amd64*) mv "${source_path}/jq-linux-amd64" "${source_path}/jq" || err "Failed to rename \"${filename}\"" ;;
@@ -773,19 +913,6 @@ install_dep() {
 }
 
 
-install_mod_archive() {
-    local url="${1}"; [[ -z "${url}" ]] && err "Missing argument: url"
-    local source_path="${2}"; [[ -z "${source_path}" ]] && err "Missing argument: source_path"
-    local hash="${3}"; [[ -z "${hash}" ]] && err "Missing argument: hash"
-    msg; msg "${BOLD}Installing SPT mod files...${RESET}"
-    if ! check_cached "${source_path}" "${hash}"; then
-        m_download "${url}" "${source_path}"
-        check_hash "${source_path}" "${hash}" || err "File \"${source_path##*/}\" is corrupted"
-    fi
-    m_extract "${source_path}" "${CONFIG[spt-path]}"
-}
-
-
 install_additions() {
     local target_path="${1%/}"
     [[ ! -d "${target_path}" ]] && m_mkdir "${target_path}"
@@ -793,60 +920,6 @@ install_additions() {
     check_hash "${DIR[tmp]}/${TITLE}" "${METADATA[additions-hash]}" || err "Downloaded script is corrupted"
     msg "Installing ${TITLE}..."
     m_mv "${DIR[tmp]}/${TITLE}" "${target_path}/${TITLE}" && m_chmod +x "${target_path}/${TITLE}"
-}
-
-
-update_proton() {
-    case "$1" in
-        -y) local no_prompt=1; shift ;;
-    esac
-    local version="${1:-"latest"}"
-    local url; url=$(m_curl -Ls -o /dev/null -w %{url_effective} "${METADATA[ge-proton-url]}/${version}" 2>> "${FILE[log]}")
-    [[ $? != 0 || -z "${url}" ]] && err "Invalid Proton version: ${version}"
-    local version="${url##*/}"
-
-    # Skip if the specified version is already installed
-    if [[ -d "${DIR[proton]}/${version}" && -n $(m_ls -A "${DIR[proton]}/${version}") ]]; then
-        msg "${GRAY}${version} is already installed${RESET}"
-    else
-        # Found the given Proton version - ask user to continue
-        msg "${BOLD}${YELLOW}${version} is available!${RESET}"
-        if [[ -z "${no_prompt}" ]]; then yesno "Do you want to install it?" || return 0; fi
-        m_download "${METADATA[ge-proton-url]}/download/${version}/${version}-x86_64.tar.gz" "${DIR[tmp]}"
-        m_extract "${DIR[tmp]}/${version}-x86_64.tar.gz" "${DIR[proton]}"
-        if [[ -d "${DIR[proton]}/${version}-x86_64" ]]; then
-            msg "${GRAY}Renaming Proton directory: \"${version}-x86_64\" to \"${version}\"${RESET}"
-            m_mv "${DIR[proton]}/${version}-x86_64" "${DIR[proton]}/${version}"
-        fi
-    fi
-
-    # Skip if the given version is already set
-    if [[ "${CONFIG[PROTONPATH]}" == "${version}" ]]; then return 0; fi
-    msg "${GRAY}Setting PROTONPATH to \"${version}\"${RESET}"
-    set_value config "PROTONPATH=${version}"
-    return 0
-}
-
-
-create_launcher_config() {
-    local config_dir="${CONFIG[spt-path]}/SPT_Runtime/user/Launcher"
-    local filepath="${config_dir}/LauncherSettings.json"
-    # Create missing directories
-    m_mkdir "${config_dir}"
-    # Create config
-    msg "${GRAY}Creating SPT Launcher configuration...${RESET}"
-    jq . > "${filepath}" <<JSON
-    {
-        "FirstRun": false,
-        "GamePath": "${CONFIG[spt-path]}",
-        "LinuxSettings": {
-            "PrefixPath": "${CONFIG[WINEPREFIX]}",
-            "UmuPath": "${FILE[umu]}",
-            "LaunchSettings": "${DEFAULT[env]}",
-            "ProtonVersion": "${CONFIG[PROTONPATH]}"
-        }
-    }
-JSON
 }
 
 
@@ -955,10 +1028,7 @@ install_spt() {
 
             # Download latest patcher if needed
             [[ -z "${METADATA[patcher-hash]}" ]] && err "Missing patcher hash argument"
-            if ! check_cached "${METADATA[patcher-path]}" "${METADATA[patcher-hash]}"; then
-                m_download "${METADATA[patcher-url]}" "${METADATA[patcher-path]}"
-                check_hash "${METADATA[patcher-path]}" "${METADATA[patcher-hash]}" || err "File \"${METADATA[patcher-path]##*/}\" is corrupted"
-            fi
+            spt_download patcher
 
             # Extract latest patcher to tmp directory
             m_extract "${METADATA[patcher-path]}" "${DIR[tmp]}"
@@ -981,7 +1051,9 @@ install_spt() {
         fi
     fi
 
-    install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
+    msg; msg "${BOLD}Installing SPT mod files...${RESET}"
+    spt_download mod
+    m_extract "${METADATA[mod-path]}" "${CONFIG[spt-path]}"
 
     msg; msg "${BOLD}Finializing SPT install...${RESET}"
 
@@ -1033,7 +1105,7 @@ install_spt() {
 
 
 install_fika() {
-    local release; releases=("fika-core" "fika-server")
+    local releases=("fika-core" "fika-server")
     msg "${BOLD}Launching \"Fika\" installer...${RESET}"
 
     if ! check_eft_installed; then
@@ -1050,7 +1122,7 @@ install_fika() {
         yesno "Do you want to update/re-install Fika?" || return 0
     fi
 
-    for release in "${releases[@]}"; do
+    local release; for release in "${releases[@]}"; do
         local json_path="${DIR[metadata]}/${release}.json"
         local archive_path="${DIR[files]}/${release}.zip"
         
@@ -1082,7 +1154,7 @@ install_fika() {
         fi
 
         # Install archive
-        m_download -s -f "${archive_url}" "${archive_path}"
+        m_download "${archive_url}" "${archive_path}"
         m_extract "${archive_path}" "${CONFIG[spt-path]}"
 
     done
@@ -1153,59 +1225,6 @@ uninstall_prefix() {
     msg "Removing Prefix directory: \"${CONFIG[WINEPREFIX]}\""
     m_rm -r "${CONFIG[WINEPREFIX]}"
     [[ "${no_prompt}" != 1 ]] && msg "${GREEN}Done!${RESET}"
-}
-
-
-load_metadata() {
-    local name="${1}"
-    case "${name}" in
-        latest)
-            load_metadata spt
-            METADATA[mod-path]="${FILE[spt]}"
-            METADATA[patcher-path]="${FILE[patcher]}"
-            METADATA[mod-eft]=$(jq -r '.Releases[0].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
-            METADATA[mod-version]=$(jq -r '.Releases[0].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
-            METADATA[mod-url]=$(jq -r '.Releases[0].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
-            METADATA[mod-hash]=$(jq -r '.Releases[0].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
-            METADATA[patcher-url]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
-            METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
-            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required Live version for patcher" "$?"
-        ;;
-        legacy)
-            load_metadata spt
-            METADATA[mod-path]="${FILE[legacy-spt]}"
-            METADATA[patcher-path]="${FILE[legacy-patcher]}"
-            METADATA[mod-eft]=$(jq -r '.Releases[1].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
-            METADATA[mod-version]=$(jq -r '.Releases[1].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
-            METADATA[mod-url]=$(jq -r '.Releases[1].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
-            METADATA[mod-hash]=$(jq -r '.Releases[1].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
-            METADATA[patcher-url]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher download url" "$?"
-            METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}" | head -1) || err "Failed to get patcher hash" "$?"
-            METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url]}") || err "Failed to get required Live version for patcher" "$?"
-        ;;
-        eft)
-            METADATA[inst-eft]=$(get_eft_version) || err "Failed to get Live version" "$?"
-        ;;
-        mod-eft)
-            METADATA[inst-spt]=$(get_spt_version) || err "Failed to get installed SPT version" "$?"
-            METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod Live version" "$?"
-        ;;
-        spt)
-            # Fetch metadata
-            if ! check_ttl "${FILE[mod-json]}" || ! check_ttl "${FILE[patcher-json]}"; then
-                m_download -f -s "${METADATA[mod-json-url]}" "${FILE[mod-json]}"
-                m_download -f -s "${METADATA[patcher-json-url]}" "${FILE[patcher-json]}"
-            fi
-        ;;
-        "")
-            # Get metadata file (1 hour time-to-live)
-            if ! check_ttl "${FILE[metadata]}"; then
-                m_download -f -s "${URL[metadata]}" "${FILE[metadata]}"
-            fi
-            load_array metadata
-        ;;
-        *) err "Invalid argument: \"${name}\"" ;;
-    esac
 }
 
 
@@ -1299,7 +1318,7 @@ opt_update() {
                     msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
                     msg
                     msg "   ${BOLD}How to update:${RESET}"
-                    msg "   1. Download the latest release archive: ${METADATA[mod-url]}"
+                    msg "   1. Download the latest release archive: ${METADATA[mod-url1]}"
                     msg "   2. Extract its content into \"${CONFIG[spt-path]}\" & override when asked"
                     msg
                     msg "   ${BOLD}How to re-install:${RESET}"
@@ -1314,7 +1333,11 @@ opt_update() {
                     msg
                     yesno "Do you want to install the update?" || return 0
                 }
-                install_mod_archive "${METADATA[mod-url]}" "${METADATA[mod-path]}" "${METADATA[mod-hash]}"
+
+                msg; msg "${BOLD}Installing SPT mod files...${RESET}"
+                spt_download mod
+                m_extract "${METADATA[mod-path]}" "${CONFIG[spt-path]}"
+
                 msg "${GREEN}${BOLD}Update successful!${RESET}"
             else
                 err "Unhandled exception"
@@ -1384,14 +1407,14 @@ opt_patch() {
                 msg -o "${GRAY}${progress_string} (-) Deleting: ${trimmed##*/}${RESET}"
                 rm "${output}" || return 1
                 if [[ -z "$(m_ls -A "${dir_path}")" ]]; then
-                    msg -o "${progress_string} (-) Deleting directory: ${dir_path##*/}"
+                    msg -o "${GRAY}${progress_string} (-) Deleting directory: ${dir_path##*/}${RESET}"
                     rm -r "${dir_path}" || return 1
                 fi
             ;;
             "new")
                 msg -o "${GRAY}${progress_string} (+) Adding: ${trimmed##*/}${RESET}"
                 if [[ ! -d "${dir_path}" ]]; then
-                    msg -o "${progress_string} (+) Adding directory: ${dir_path##*/}"
+                    msg -o "${GRAY}${progress_string} (+) Adding directory: ${dir_path##*/}${RESET}"
                     m_mkdir "${dir_path}"
                 fi
                 cp "${source}" "${output}" || return 1
@@ -1734,9 +1757,9 @@ opt_shortcut() {
 opt_clean() {
     # SYNTAX: spt-additions --no-prompt clean runtime metadata
     if [[ "${#@}" == 0 ]]; then err "Option \"clean\" requires an argument"; fi
-    local arg; local path; local paths=()
+    local paths=()
 
-    for arg in "${@}"; do
+    local arg; for arg in "${@}"; do
         case "${arg}" in
             metadata) paths+=("${DIR[metadata]}") ;;
             cache) paths+=("${DIR[cache]}") ;;
@@ -1757,7 +1780,7 @@ opt_clean() {
             } | more
             yesno "Do you want to continue?" || return 1
         fi
-        for path in "${paths[@]}"; do
+        local path; for path in "${paths[@]}"; do
             msg "Removing: ${path}..."
             if [[ -f "${path}" ]]; then m_rm "${path}"
             elif [[ -d "${path}" ]]; then m_rm -r "${path}"; fi
@@ -1789,7 +1812,7 @@ opt_selfinstall() {
     # Check if the script is already installed
     for path in "${bin_paths[@]}"; do
         if [[ -f "${path}/${TITLE}" ]]; then
-            msg; msg "${BOLD}{TITLE} is already installed in:${RESET}"
+            msg; msg "${BOLD}${TITLE} is already installed in:${RESET}"
             msg "   ► ${path}"
             return 0
         fi
