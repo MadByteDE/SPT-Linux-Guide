@@ -6,4 +6,5 @@ if [[ "$( id -u )" -eq 0 ]]; then
     exit 1
 fi
 
-cd "SPT_Runtime" && ./SPT.Launcher.Linux
+cwd="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "${cwd}/SPT_Runtime" && ./SPT.Launcher.Linux
