@@ -62,7 +62,7 @@ DEFAULT[install-mode]="latest"
 DEFAULT[protonpath]="latest"
 DEFAULT[wineprefix]="${HOME}/Games/SPT-Prefix"
 DEFAULT[env]="PROTON_USE_XALIA=0 PROTON_MEDIA_USE_GST=1"
-DEFAULT[spt-dir]="${HOME}/Games/SPT"
+DEFAULT[spt-path]="${HOME}/Games/SPT"
 DEFAULT[steam-library]="${DIR[steam]}/steamapps"
 
 # File path variables
@@ -1463,7 +1463,7 @@ opt_guided_install() {
         # Check if Steam version of Live is installed
         local path; steam_paths=($(get_steam_game_libraries))
         local steam_install
-        local spt_install_path="${DEFAULT[spt-dir]}"
+        local spt_install_path="${DEFAULT[spt-path]}"
 
         for path in "${steam_paths[@]}"; do
             local steam_eft_dir="${path}/steamapps/common/Escape from Tarkov/build"
@@ -1910,9 +1910,9 @@ opt_help() {
                 msg "${YELLOW}$TITLE patch [target_path] [source_path]${RESET}"
                 msg
                 msg "${BOLD}Example:${RESET}"
-                msg "${YELLOW}$TITLE patch \"${DEFAULT[spt-dir]}\" \"~/Downloads/patcher\"${RESET}"
+                msg "${YELLOW}$TITLE patch \"${DEFAULT[spt-path]}\" \"~/Downloads/patcher\"${RESET}"
                 msg
-                msg "target_path            - Destination install directory (defaults to \"${DEFAULT[spt-dir]}\")"
+                msg "target_path            - Destination install directory (defaults to \"${DEFAULT[spt-path]}\")"
                 msg "source_path            - Directory containing SPT_Patches (defaults to \"target_path\")"
                 msg
                 opt_help switches
@@ -2112,7 +2112,7 @@ main() {
 
     # Set default config variables
     [[ -f "${FILE[config]}" ]] && load_array config
-    set_value config "spt-path=${CONFIG[spt-path]:-${DEFAULT[spt-dir]}}" 1>/dev/null
+    set_value config "spt-path=${CONFIG[spt-path]:-${DEFAULT[spt-path]}}" 1>/dev/null
     set_value config "install-mode=${CONFIG[install-mode]:-"${DEFAULT[install-mode]}"}"
     set_value config "steam-library-path=${CONFIG[steam-library-path]:-"${DEFAULT[steam-library]}"}"
     [[ -z "${CONFIG[WINEPREFIX]}" ]] && set_value config "WINEPREFIX=${WINEPREFIX:-"${DEFAULT[wineprefix]}"}"
