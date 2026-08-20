@@ -60,7 +60,7 @@ DIR[config]="${DIR[config-home]}/${TITLE}"
 # Default setting variables
 DEFAULT[install-mode]="latest"
 DEFAULT[protonpath]="latest"
-DEFAULT[wineprefix]="${HOME}/Games/escape-from-tarkov"
+DEFAULT[wineprefix]="${HOME}/Games/SPT-Prefix"
 DEFAULT[env]="PROTON_USE_XALIA=0 PROTON_MEDIA_USE_GST=1"
 DEFAULT[spt-dir]="${HOME}/Games/SPT"
 DEFAULT[steam-library]="${DIR[steam]}/steamapps"
