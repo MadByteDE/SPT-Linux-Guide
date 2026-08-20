@@ -181,7 +181,7 @@ m_download() {
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
-    local args='-# -fL --create-dirs --connect-timeout 30'
+    local args='-fL --create-dirs --connect-timeout 30'
     check_target_path "${target_path}"
 
     if [[ -d "${target_path}" ]]; then target_path="${target_path}/${filename}"
