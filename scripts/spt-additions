@@ -440,18 +440,24 @@ update_eft_path() {
     [[ ! -f "${CONFIG[WINEPREFIX]}/system.reg" ]] && return 1
     entry=$(sed -n '/Uninstall\\\\EscapeFromTarkov/,/^$/p' "${CONFIG[WINEPREFIX]}/system.reg")
     path=$(echo "${entry}" | grep -o "\"UninstallString\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
-    # Convert to unix path
-    path=$(m_umu winepath -u "${path}" 2>/dev/null)
-    
-    if [[ -z "${path}" ]]; then
+
+    if [[ -n "${path}" ]]; then
+        # Convert to unix path & remove the filename
+        path=$(m_umu winepath -u "${path}" 2>/dev/null)
+        path="${path%/*}"
+    else
+        # Current BSG Launcher only writes "InstallLocation" (already the game dir)
+        path=$(echo "${entry}" | grep -o "\"InstallLocation\"=\"[^}]*" | cut -d "\"" -f4 2>/dev/null)
+        [[ -n "${path}" ]] && path=$(m_umu winepath -u "${path}" 2>/dev/null)
+    fi
+
+    if [[ -z "${path}" || ! -d "${path}" ]]; then
         return 1
     fi
 
-    if [[ -n "${path%/*}" ]]; then
-        msg; msg "${BOLD}Found live install at:${RESET}"
-        msg "   ► ${path%/*}"; msg
-        set_value config "eft-path=${path%/*}"
-    fi
+    msg; msg "${BOLD}Found live install at:${RESET}"
+    msg "   ► ${path}"; msg
+    set_value config "eft-path=${path}"
 }
 
 
