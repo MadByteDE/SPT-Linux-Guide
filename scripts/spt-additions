@@ -652,6 +652,7 @@ get_file_version() {
 get_eft_version() { get_file_version "${CONFIG[eft-path]}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_mod_eft_version() { get_file_version "${CONFIG[spt-path]}/EscapeFromTarkov.exe" | cut -d "." -f4; }
 get_spt_version() { get_file_version "${CONFIG[spt-path]}/BepInEx/plugins/spt/spt-core.dll" | cut -d "." -f1-3; }
+get_latest_spt_version() { echo "${METADATA[mod-url1]##*/}" | cut -d "-" -f2 2>/dev/null; }
 get_hash() { md5sum "$@" | cut -d ' ' -f 1 | xxd -r -p | base64 2>/dev/null; }
 
 
@@ -1284,25 +1285,26 @@ opt_update() {
             
             load_metadata mod-eft
             [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
-            [[ -z "${METADATA[mod-version]}" ]] && err "Update SPT version is not set"
+            local latest_version; latest_version="$(get_latest_spt_version)" || err "Failed to get latest SPT version"
+            [[ -z "${latest_version}" ]] && err "latest SPT version is not set"
             msg "Installed SPT version is \"${METADATA[inst-spt]}\""
-            msg "Latest SPT version is \"${METADATA[mod-version]}\""
+            msg "Latest SPT version is \"${latest_version}\""
             
             local inst_major; inst_major=$(echo "${METADATA[inst-spt]}" | cut -d "." -f1)
             local inst_minor; inst_minor=$(echo "${METADATA[inst-spt]}" | cut -d "." -f2)
             local inst_patch; inst_patch=$(echo "${METADATA[inst-spt]}" | cut -d "." -f3)
-            local upd_major; upd_major=$(echo "${METADATA[mod-version]}" | cut -d "." -f1)
-            local upd_minor; upd_minor=$(echo "${METADATA[mod-version]}" | cut -d "." -f2)
-            local upd_patch; upd_patch=$(echo "${METADATA[mod-version]}" | cut -d "." -f3)
+            local upd_major; upd_major=$(echo "${latest_version}" | cut -d "." -f1)
+            local upd_minor; upd_minor=$(echo "${latest_version}" | cut -d "." -f2)
+            local upd_patch; upd_patch=$(echo "${latest_version}" | cut -d "." -f3)
 
-            if [[ "${METADATA[mod-version]}" == "${METADATA[inst-spt]}" ]]; then
+            if [[ "${latest_version}" == "${METADATA[inst-spt]}" ]]; then
                 msg "${BOLD}SPT is up-to-date.${RESET}" && return 0
             elif [[ "${upd_major}" -gt "${inst_major}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new major update is available!${RESET}"
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
                     msg
                     msg "   ${BOLD}Please check out the release notes & re-install SPT manually:${RESET}"
-                    msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${METADATA[spt-release-url]}/tag/${latest_version}"
                     msg
                     msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
@@ -1314,7 +1316,7 @@ opt_update() {
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods might not be compatible."
                     msg
                     msg "   ${BOLD}Please check out the release notes & update / re-install SPT manually:${RESET}"
-                    msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${METADATA[spt-release-url]}/tag/${latest_version}"
                     msg
                     msg "   ${BOLD}How to update:${RESET}"
                     msg "   1. Download the latest release archive: ${METADATA[mod-url1]}"
@@ -1328,7 +1330,7 @@ opt_update() {
             elif [[ "${upd_patch}" -gt "${inst_patch}" ]]; then
                 {   msg "${BOLD}${YELLOW}A new patch update is available!${RESET}"
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
-                    msg "   ► ${METADATA[spt-release-url]}/tag/${METADATA[mod-version]}"
+                    msg "   ► ${METADATA[spt-release-url]}/tag/${latest_version}"
                     msg
                     yesno "Do you want to install the update?" || return 0
                 }
