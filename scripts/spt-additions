@@ -624,7 +624,7 @@ check_steam_install() {
 check_native_aspnet() {
     local version
     case "${CONFIG[install-mode]}" in
-        latest|lutris) version="10.0" ;;
+        latest) version="10.0" ;;
         legacy) version="9.0" ;;
     esac
     if ! dotnet --list-runtimes 2>/dev/null | grep "AspNet" | grep "${version}" &>/dev/null; then
@@ -899,8 +899,6 @@ install_spt() {
     case "${install_mode}" in
         # Continue normally
         latest|legacy) msg -d "Selected install mode is \"${install_mode}\"..." ;;
-        # WORKAROUND: Shows missing script version & fixes SPT install path
-        lutris) opt_version; set_spt_path "${CONFIG[WINEPREFIX]}/drive_c/SPT" ;;
         *) err "Invalid install mode: ${install_mode}" ;; 
     esac
 
@@ -2019,7 +2017,7 @@ handle_opts() {
             s) set_spt_path "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
-                    latest|legacy|lutris)
+                    latest|legacy)
                         msg "Setting install mode to \"${OPTARG}\"..."
                         set_value config "install-mode=${OPTARG}"
                     ;;
