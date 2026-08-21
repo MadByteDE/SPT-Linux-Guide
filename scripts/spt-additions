@@ -376,13 +376,13 @@ load_metadata() {
 
 init_prefix() {
     # Download default proton runner if needed
-    msg; msg "${BOLD}Checking for Proton...${RESET}"
+    msg -d "Checking for Proton..."
     case "${CONFIG[PROTONPATH]}" in
         *"GE-Proton"*|latest) ;;
         *)
             # Reset proton version if needed
             if ! check_proton_installed; then
-                msg "Invalid Proton path: ${CONFIG[PROTONPATH]}"
+                warn "Invalid Proton path: ${CONFIG[PROTONPATH]}"
                 msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
                 set_value config "PROTONPATH=${DEFAULT[protonpath]}"
             fi
@@ -746,7 +746,7 @@ check_path() {
 
 
 check_proton_installed() {
-    [[ -d "${DIR[proton]}/${CONFIG[PROTONPATH]}" || -d "${CONFIG[PROTONPATH]}" ]]
+    [[ -d "${DIR[proton]}/${CONFIG[PROTONPATH]}" ]] || [[ -d "${CONFIG[PROTONPATH]}" ]]
 }
 
 
@@ -761,7 +761,8 @@ check_bsg_launcher_installed() {
 
 
 check_spt_installed() {
-    [[ -n "${CONFIG[spt-path]}" && -d "${CONFIG[spt-path]}" ]]
+    [[ -n "${CONFIG[spt-path]}" ]] && \
+    [[ -d "${CONFIG[spt-path]}" ]] && \
     [[ -n $(m_ls -A "${CONFIG[spt-path]}") ]]
 }
 
@@ -799,7 +800,7 @@ check_native_aspnet() {
 check_native_deps() {
     local status
     local cmds=("python3" "curl" "7zzs" "xxd" "hpatchz" "jq" "umu-run")
-    msg "${GRAY}Checking for native dependencies...${RESET}"
+    msg -d "Checking for native dependencies..."
     local cmd; for cmd in "${cmds[@]}"; do
         if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
@@ -1277,8 +1278,6 @@ opt_update() {
     local option="$1" && shift
     case "${option}" in
         spt)
-            if ! check_eft_installed; then msg "The game client is not installed"; return 0; fi
-
             # Get metadata
             if check_latest_installed; then load_metadata latest
             elif check_legacy_installed; then load_metadata legacy
