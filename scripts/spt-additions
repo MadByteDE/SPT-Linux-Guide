@@ -27,8 +27,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.5"
-DATE="2026-08-20"
+VERSION="1.2.5-1"
+DATE="2026-08-21"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
