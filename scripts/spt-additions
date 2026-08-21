@@ -173,6 +173,7 @@ m_download() {
     local opt; for opt in "${@}"; do
         case ${opt} in
             -s) silent=1; shift 1 ;;
+            -f) force=1; shift 1 ;;
             # No immediate error if curl fails
             -n) cmd='curl'; shift 1 ;;
         esac
@@ -180,16 +181,16 @@ m_download() {
     local url="${1}"; [[ -z "${url}" ]] && err "Missing url argument" 
     local target_path="${2}"; [[ -z "${target_path}" ]] && err "Missing target_path argument"
     local filename="${url##*/}"
-    local args='-fL --create-dirs --connect-timeout 30'
+    local args='--create-dirs --connect-timeout 30'
     check_target_path "${target_path}"
 
     if [[ -d "${target_path}" ]]; then target_path="${target_path}/${filename}"
     else filename="${target_path##*/}"; fi
 
-    if [[ ! -f "${target_path}" ]]; then
+    if [[ ! -f "${target_path}" || $force -eq 1 ]]; then
         msg "${GRAY}Downloading: ${filename}...${RESET}"
-        if [[ $silent -eq 1 ]]; then $cmd -Ss $args "${url}" -o "${target_path}"
-        else $cmd $args "${url}" -o "${target_path}"; fi
+        if [[ $silent -eq 1 ]]; then $cmd -sSL $args "${url}" -o "${target_path}"
+        else $cmd -L $args "${url}" -o "${target_path}"; fi
     fi
 }
 
@@ -357,14 +358,14 @@ load_metadata() {
         spt)
             # Fetch metadata
             if ! check_ttl "${FILE[mod-json]}" || ! check_ttl "${FILE[patcher-json]}"; then
-                m_download -s "${METADATA[mod-json-url]}" "${FILE[mod-json]}"
-                m_download -s "${METADATA[patcher-json-url]}" "${FILE[patcher-json]}"
+                m_download -f -s "${METADATA[mod-json-url]}" "${FILE[mod-json]}"
+                m_download -f -s "${METADATA[patcher-json-url]}" "${FILE[patcher-json]}"
             fi
         ;;
         "")
             # Get metadata file (1 hour time-to-live)
             if ! check_ttl "${FILE[metadata]}"; then
-                m_download -s "${URL[metadata]}" "${FILE[metadata]}"
+                m_download -f -s "${URL[metadata]}" "${FILE[metadata]}"
             fi
             load_array metadata
         ;;
@@ -1128,9 +1129,9 @@ install_fika() {
         
         # Get metadata json
         if check_latest_installed; then
-            check_ttl "${json_path}" || m_download -s "${METADATA[${release}-url]}" "${json_path}"
+            check_ttl "${json_path}" || m_download -f -s "${METADATA[${release}-url]}" "${json_path}"
         elif check_legacy_installed; then
-            check_ttl "${json_path}" || m_download -s "${METADATA[${release}-legacy-url]}" "${json_path}"
+            check_ttl "${json_path}" || m_download -f -s "${METADATA[${release}-legacy-url]}" "${json_path}"
         else
             err "Failed to determine installed SPT version."
         fi
@@ -1154,7 +1155,7 @@ install_fika() {
         fi
 
         # Install archive
-        m_download "${archive_url}" "${archive_path}"
+        m_download -f "${archive_url}" "${archive_path}"
         m_extract "${archive_path}" "${CONFIG[spt-path]}"
 
     done
