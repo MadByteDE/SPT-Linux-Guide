@@ -375,24 +375,6 @@ load_metadata() {
 
 
 init_prefix() {
-    # Download default proton runner if needed
-    msg -d "Checking for Proton..."
-    case "${CONFIG[PROTONPATH]}" in
-        *"GE-Proton"*|latest) ;;
-        *)
-            # Reset proton version if needed
-            if ! check_proton_installed; then
-                warn "Invalid Proton path: ${CONFIG[PROTONPATH]}"
-                msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
-                set_value config "PROTONPATH=${DEFAULT[protonpath]}"
-            fi
-        ;;
-    esac
-    
-    if ! check_proton_installed; then
-        update_proton -y "${CONFIG[PROTONPATH]}"
-    fi
-
     if [[ ! -d "${CONFIG[WINEPREFIX]}" ]]; then
         # Live paths cannot be set in fresh prefixes
         unset_value config "eft-path"
@@ -584,7 +566,7 @@ set_spt_path() {
     local path; path="$(resolve_path "${1%/}")"
     check_path "${path}"
     set_value config "spt-path=${path}"
-    msg "${BOLD}SPT path has been set to:${RESET}"
+    msg; msg "${BOLD}SPT path has been set to:${RESET}"
     msg "   ► ${path}"; msg
 }
 
@@ -600,6 +582,8 @@ set_prefix_path() {
     set_value config "WINEPREFIX=${path}"
     unset_value config "eft-path"
     unset_value config "bsg-path"
+
+    check_proton
 
     # Update prefix paths
     case "${CONFIG[WINEPREFIX]}" in
@@ -745,8 +729,27 @@ check_path() {
 }
 
 
-check_proton_installed() {
-    [[ -d "${DIR[proton]}/${CONFIG[PROTONPATH]}" ]] || [[ -d "${CONFIG[PROTONPATH]}" ]]
+check_proton() {
+    msg -d "Checking for Proton..."
+
+    check_proton_installed() {
+        [[ -d "${DIR[proton]}/${CONFIG[PROTONPATH]}" || -d "${CONFIG[PROTONPATH]}" ]]
+    }
+
+    case "${CONFIG[PROTONPATH]}" in
+        *"GE-Proton"*|latest) ;;
+        *)
+            # Reset proton version if needed
+            if ! check_proton_installed; then
+                warn "Invalid Proton path: ${CONFIG[PROTONPATH]}"
+                msg "   ► Defaulting to \"${DEFAULT[protonpath]}\"..."
+                set_value config "PROTONPATH=${DEFAULT[protonpath]}"
+            fi
+        ;;
+    esac
+    if ! check_proton_installed; then
+        update_proton -y "${CONFIG[PROTONPATH]}"
+    fi
 }
 
 
@@ -1541,7 +1544,7 @@ opt_guided_install() {
         msg; msg "${BOLD}${BLUE}[Q] Where do you want to install SPT (Leave blank for \"${spt_install_path}\")${RESET}"
         msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
         input=$(read_input) || return 1
-        msg; set_spt_path "${input:-${spt_install_path}}"
+        set_spt_path "${input:-${spt_install_path}}"
 
         # Install SPT
         set_value config "install-mode=${DEFAULT[install-mode]}"
