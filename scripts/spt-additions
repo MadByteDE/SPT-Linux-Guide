@@ -799,7 +799,7 @@ check_native_aspnet() {
 check_native_deps() {
     local status
     local cmds=("python3" "curl" "7zzs" "xxd" "hpatchz" "jq" "umu-run")
-    msg "Checking for native dependencies..."
+    msg "${GRAY}Checking for native dependencies...${RESET}"
     local cmd; for cmd in "${cmds[@]}"; do
         if command -v "${cmd}" &>/dev/null; then continue; fi
         case ${cmd} in
@@ -852,12 +852,12 @@ check_cached() {
     if [[ -f "${cached_path}" ]]; then
         msg "${GRAY}Found \"${filename}\" in cache directory${RESET}"
         if [[ -n "${expected_hash}" ]] && ! check_hash "${cached_path}" "${expected_hash}"; then
-            msg "Removing cached file \"${filename}\""
+            msg "${GRAY}Removing cached file \"${filename}\"${RESET}"
             m_rm "${cached_path}"
             return 1
         fi
     else
-        msg "\"${cached_path}\" is not cached"
+        msg -d "\"${cached_path}\" is not cached"
         return 1
     fi
 }
@@ -1288,8 +1288,9 @@ opt_update() {
             [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
             local latest_version; latest_version="$(get_latest_spt_version)" || err "Failed to get latest SPT version"
             [[ -z "${latest_version}" ]] && err "latest SPT version is not set"
-            msg "Installed SPT version is \"${METADATA[inst-spt]}\""
-            msg "Latest SPT version is \"${latest_version}\""
+
+            msg "${GRAY}Installed SPT version: ${METADATA[inst-spt]}${RESET}"
+            msg "${GRAY}Latest SPT version: ${latest_version}${RESET}"
             
             local inst_major; inst_major=$(echo "${METADATA[inst-spt]}" | cut -d "." -f1)
             local inst_minor; inst_minor=$(echo "${METADATA[inst-spt]}" | cut -d "." -f2)
@@ -1299,9 +1300,9 @@ opt_update() {
             local upd_patch; upd_patch=$(echo "${latest_version}" | cut -d "." -f3)
 
             if [[ "${latest_version}" == "${METADATA[inst-spt]}" ]]; then
-                msg "${BOLD}SPT is up-to-date.${RESET}" && return 0
+                msg; msg "${BOLD}SPT is up-to-date.${RESET}" && return 0
             elif [[ "${upd_major}" -gt "${inst_major}" ]]; then
-                {   msg "${BOLD}${YELLOW}A new major update is available!${RESET}"
+                {   msg; msg "${BOLD}${YELLOW}A new major update is available!${RESET}"
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods usually are not compatible for major updates."
                     msg
                     msg "   ${BOLD}Please check out the release notes & re-install SPT manually:${RESET}"
@@ -1309,11 +1310,11 @@ opt_update() {
                     msg
                     msg "   1. Update the additions script with: ${GREEN}${TITLE} self-update${RESET}"
                     msg "   2. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
-                    msg "   3. Update the game inside the game launcher"
+                    msg "   3. Update live inside the game launcher"
                     msg "   4. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 } | more
             elif [[ "${upd_minor}" -gt "${inst_minor}" ]]; then
-                {   msg "${BOLD}${YELLOW}A new minor update is available!${RESET}"
+                {   msg; msg "${BOLD}${YELLOW}A new minor update is available!${RESET}"
                     msg "   ${BOLD}${YELLOW}NOTE${RESET}: User profiles & mods might not be compatible."
                     msg
                     msg "   ${BOLD}Please check out the release notes & update / re-install SPT manually:${RESET}"
@@ -1325,11 +1326,11 @@ opt_update() {
                     msg
                     msg "   ${BOLD}How to re-install:${RESET}"
                     msg "   1. Backup or delete your old SPT directory in \"${CONFIG[spt-path]}\""
-                    msg "   2. Update the game inside the game launcher"
+                    msg "   2. Update live inside the game launcher"
                     msg "   3. Re-install SPT using: ${GREEN}${TITLE} install spt${RESET}"
                 }
             elif [[ "${upd_patch}" -gt "${inst_patch}" ]]; then
-                {   msg "${BOLD}${YELLOW}A new patch update is available!${RESET}"
+                {   msg; msg "${BOLD}${YELLOW}A new patch update is available!${RESET}"
                     msg "   ${BOLD}Please check out the release notes:${RESET}"
                     msg "   ► ${METADATA[spt-release-url]}/tag/${latest_version}"
                     msg
@@ -1340,7 +1341,7 @@ opt_update() {
                 spt_download mod
                 m_extract "${METADATA[mod-path]}" "${CONFIG[spt-path]}"
 
-                msg "${GREEN}${BOLD}Update successful!${RESET}"
+                msg; msg "${BOLD}Update successful!${RESET}"
             else
                 err "Unhandled exception"
             fi
