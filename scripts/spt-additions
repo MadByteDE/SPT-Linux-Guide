@@ -1625,7 +1625,7 @@ opt_run() {
             check_eft_running
             msg "${BOLD}Launching SPT Server...${RESET}"
             cd "${CONFIG[spt-path]}" || exit 1
-            "./server.sh" "$@" &>> "${FILE[log]}"
+            "./server.sh" "$@"
         ;;
         "") err "Option \"run\" requires an argument" ;;
         *)
