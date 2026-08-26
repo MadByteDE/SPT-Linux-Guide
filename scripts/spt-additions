@@ -27,8 +27,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.5-1"
-DATE="2026-08-21"
+VERSION="1.2.5-2"
+DATE="2026-08-26"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -246,7 +246,7 @@ err() {
 }
 
 yesno() {
-    msg "${BOLD}${BLUE}[Q] $*${RESET} [y/n] "
+    msg; msg "${BOLD}${BLUE}[Q] $*${RESET} [y/n] "
     if [[ $NO_PROMPT == 1 ]]; then msg "NO_PROMPT variable set - returning 0" && return 0; fi
     while true; do
         read -r -p "│    ► " yn
@@ -449,10 +449,10 @@ update_proton() {
 
     # Skip if the specified version is already installed
     if [[ -d "${DIR[proton]}/${version}" && -n $(m_ls -A "${DIR[proton]}/${version}") ]]; then
-        msg "${GRAY}${version} is already installed${RESET}"
+        msg; msg "${GRAY}${version} is already installed${RESET}"
     else
         # Found the given Proton version - ask user to continue
-        msg "${BOLD}${YELLOW}${version} is available!${RESET}"
+        msg; msg "${BOLD}${YELLOW}${version} is available!${RESET}"
         if [[ -z "${no_prompt}" ]]; then yesno "Do you want to install it?" || return 0; fi
         m_download "${METADATA[ge-proton-url]}/download/${version}/${version}-x86_64.tar.gz" "${DIR[tmp]}"
         m_extract "${DIR[tmp]}/${version}-x86_64.tar.gz" "${DIR[proton]}"
@@ -463,9 +463,9 @@ update_proton() {
     fi
 
     # Skip if the given version is already set
-    if [[ "${CONFIG[PROTONPATH]}" == "${version}" ]]; then return 0; fi
-    msg "${GRAY}Setting PROTONPATH to \"${version}\"${RESET}"
-    set_value config "PROTONPATH=${version}"
+    if [[ "${CONFIG[PROTONPATH]}" == "${DIR[proton]}/${version}" ]]; then return 0; fi
+    msg "${GRAY}Setting PROTONPATH to \"${DIR[proton]}/${version}\"${RESET}"
+    set_value config "PROTONPATH=${DIR[proton]}/${version}"
     return 0
 }
 
@@ -605,7 +605,7 @@ set_prefix_path() {
         ;;
     esac
 
-    msg "${BOLD}Prefix path has been set to:${RESET}"
+    msg; msg "${BOLD}Prefix path has been set to:${RESET}"
     msg "   ► ${CONFIG[WINEPREFIX]}"
 }
 
@@ -1491,7 +1491,7 @@ opt_guided_install() {
             msg "(Enter ${BOLD}q${RESET} or press ${BOLD}ctrl-c${RESET} to cancel)"
 
             local input; input=$(read_input) || return 1
-            msg; set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
+            set_prefix_path "${input:-${DEFAULT[wineprefix]}}"
             init_prefix 
         fi
 
@@ -1595,14 +1595,14 @@ opt_run() {
                 err "live game launcher is not installed (Missing config path or files)"
             fi
 
-            msg "${BOLD}Launching live game launcher...${RESET}"
+            msg; msg "${BOLD}Launching live game launcher...${RESET}"
 
             case "${CONFIG[WINEPREFIX]}" in
                 *"steamapps/compatdata/3932890"*)
                     # Launch the game & wait for the process to show up
                     steam steam://rungameid/3932890 &>>/dev/null &
                     local pid; local c; while [[ -z "${pid}" ]]; do
-                        pid="$(pidof "BsgLauncher.exe")"
+                        pid="$(pidof -s "BsgLauncher.exe")"
                         # Timeout
                         ((c++)) && ((c==60)) && err "Timed out while waiting for live game launcher process"
                         sleep 2
@@ -1625,7 +1625,7 @@ opt_run() {
             check_eft_running
             msg "${BOLD}Launching SPT Server...${RESET}"
             cd "${CONFIG[spt-path]}" || exit 1
-            "./server.sh" "$@" &>> "${FILE[log]}"
+            "./server.sh" "$@"
         ;;
         "") err "Option \"run\" requires an argument" ;;
         *)
