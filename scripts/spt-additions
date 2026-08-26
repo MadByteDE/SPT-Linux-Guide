@@ -27,8 +27,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.5-1"
-DATE="2026-08-21"
+VERSION="1.2.5-2"
+DATE="2026-08-26"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -464,7 +464,7 @@ update_proton() {
 
     # Skip if the given version is already set
     if [[ "${CONFIG[PROTONPATH]}" == "${DIR[proton]}/${version}" ]]; then return 0; fi
-    msg; msg "${GRAY}Setting PROTONPATH to \"${DIR[proton]}/${version}\"${RESET}"
+    msg "${GRAY}Setting PROTONPATH to \"${DIR[proton]}/${version}\"${RESET}"
     set_value config "PROTONPATH=${DIR[proton]}/${version}"
     return 0
 }
