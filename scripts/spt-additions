@@ -1602,7 +1602,7 @@ opt_run() {
                     # Launch the game & wait for the process to show up
                     steam steam://rungameid/3932890 &>>/dev/null &
                     local pid; local c; while [[ -z "${pid}" ]]; do
-                        pid="$(pidof "BsgLauncher.exe")"
+                        pid="$(pidof -s "BsgLauncher.exe")"
                         # Timeout
                         ((c++)) && ((c==60)) && err "Timed out while waiting for live game launcher process"
                         sleep 2
