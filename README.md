@@ -40,7 +40,7 @@ bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-ad
 > You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
 
 #### Lutris
-- [Video guide](https://www.youtube.com/watch?v=9X9dHTDoykw) (SPT 4.1) - *made by Skippy*
+- [Video guide](https://www.youtube.com/watch?v=Fqn_N55WT38) (SPT 4.1) - *made by Skippy*
 - [Written guide](docs/lutris/manual_guide.md) (SPT 4.1)
 
 #### Bottles
