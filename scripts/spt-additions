@@ -551,6 +551,22 @@ set_spt_path() {
 }
 
 
+set_live_path() {
+    local path; path="$(resolve_path "${1%/}")"
+    check_path "${path}"
+    if ! check_eft_installed "${path}"; then
+        {   msg; msg "${BOLD}${YELLOW}Given live directory path is not valid!${RESET}"
+            msg "   Path: ${path}"
+            msg "   Please make sure the path is correct & the directory contains the live game files.${RESET}"
+            err "Live directory path is not valid"
+        }
+    fi
+    set_value config "eft-path=${path}"
+    msg; msg "${BOLD}Live path has been set to:${RESET}"
+    msg "   ► ${path}"; msg
+}
+
+
 set_prefix_path() {
     local path; path="$(resolve_path "${1%/}")"
 
@@ -734,7 +750,9 @@ check_proton() {
 
 
 check_eft_installed() {
-    [[ -n "${CONFIG[eft-path]}" && -d "${CONFIG[eft-path]}" && -n $(m_ls -A "${CONFIG[eft-path]}") ]] || return 1
+    local path="${*:-CONFIG[eft-path]}"
+    [[ -n "${path}" && -d "${path}" && -n $(m_ls -A "${path}") ]] || return 1
+    [[ -f "${path}/EscapeFromTarkov.exe" ]] || return 1
 }
 
 
@@ -2020,6 +2038,7 @@ handle_opts() {
         case ${subopt} in
             p) set_prefix_path "${OPTARG}" ;;
             s) set_spt_path "${OPTARG}" ;;
+            e) set_live_path "${OPTARG}" ;;
             m)
                 case "${OPTARG}" in
                     latest|legacy)
