@@ -998,6 +998,7 @@ install_spt() {
 
     # Add DLL overrides
     opt_dlloverride winhttp n,b
+    opt_dlloverride version n,b
 
     # Install SPT
     case "${install_mode}" in
