@@ -394,26 +394,6 @@ init_prefix() {
 }
 
 
-add_battleye_workaround() {
-    local key='HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\BEService'
-    local binary_path="${CONFIG[eft-path]}/BattlEye/BEService_x64.exe"
-    local dst_dir="${CONFIG[WINEPREFIX]}/drive_c/Program Files (x86)/Common Files/BattlEye"
-
-    msg "${GRAY}Adding BattlEye service workaround (This might take a bit) ...${RESET}"
-    if [[ ! -d "${dst_dir}" ]]; then m_mkdir "${dst_dir}"; fi
-    if [[ ! -f "${dst_dir}/BEService_x64.exe" ]]; then m_cp "${binary_path}" "${dst_dir}/BEService_x64.exe"; fi
-
-    m_umu reg add "${key}" /v DisplayName /t REG_SZ /d "BattlEye Service" /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v ImagePath   /t REG_SZ /d 'C:\Program Files (x86)\Common Files\BattlEye\BEService_x64.exe' /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v ObjectName  /t REG_SZ /d "LocalSystem" /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v ErrorControl       /t REG_DWORD /d 1      /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v PreshutdownTimeout /t REG_DWORD /d 180000 /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v Start              /t REG_DWORD /d 2      /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v Type               /t REG_DWORD /d 16     /f 1>> "${FILE[log]}"
-    m_umu reg add "${key}" /v WOW64              /t REG_DWORD /d 1      /f 1>> "${FILE[log]}"
-}
-
-
 update_eft_path() {
     local entry; local path
 
@@ -962,9 +942,6 @@ install_eft() {
     opt_shortcut bsg-launcher
 
     if update_eft_path; then
-        # Add BattlEye workaround if the game client has been found
-        add_battleye_workaround
-
         msg; msg "${BOLD}Live has been installed!${RESET}"
     fi
 }
