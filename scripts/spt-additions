@@ -995,7 +995,6 @@ install_spt() {
 
     # Install dependencies
     install_verb "dotnetdesktop9" ".NET Desktop Runtime 9.0"
-    install_verb "dotnetdesktop10" ".NET Desktop Runtime 10.0"
 
     # Add DLL overrides
     opt_dlloverride winhttp n,b
