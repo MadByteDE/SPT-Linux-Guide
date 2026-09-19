@@ -748,7 +748,7 @@ check_proton() {
         ;;
     esac
     if ! check_proton_installed; then
-        update_proton -y "${CONFIG[PROTONPATH]}"
+        update_proton -y "${DEFAULT[protonpath]}"
     fi
 }
 
