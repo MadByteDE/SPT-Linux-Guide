@@ -27,8 +27,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.5-2"
-DATE="2026-08-26"
+VERSION="1.2.6"
+DATE="2026-09-19"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -744,7 +744,7 @@ check_proton() {
         ;;
     esac
     if ! check_proton_installed; then
-        update_proton -y "${CONFIG[PROTONPATH]}"
+        update_proton -y "${DEFAULT[protonpath]}"
     fi
 }
 
