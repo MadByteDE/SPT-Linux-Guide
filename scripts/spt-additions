@@ -27,8 +27,8 @@ trap int INT; int() { warn "Interrupt received" && m_exit; }
 
 # Script info
 TITLE="spt-additions"
-VERSION="1.2.6"
-DATE="2026-09-19"
+VERSION="1.2.7"
+DATE="2026-10-11"
 
 # ANSI codes
 BOLD="\e[1m" UNDERLINE="\e[2m" RESET="\e[0m"
@@ -320,29 +320,35 @@ save_array() {
 load_metadata() {
     local name="${1}"
     case "${name}" in
-        latest)
+        mod-latest)
             load_metadata spt
             METADATA[mod-path]="${FILE[spt]}"
-            METADATA[patcher-path]="${FILE[patcher]}"
             METADATA[mod-eft]=$(jq -r '.Releases[0].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
             METADATA[mod-version]=$(jq -r '.Releases[0].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
             METADATA[mod-url1]=$(jq -r '.Releases[0].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
             METADATA[mod-url2]=$(jq -r '.Releases[0].Mirrors[1].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT mirror url" "$?"
             METADATA[mod-hash]=$(jq -r '.Releases[0].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
+        ;;
+        patcher-latest)
+            load_metadata spt
+            METADATA[patcher-path]="${FILE[patcher]}"
             METADATA[patcher-url1]=$(jq -r '.Patches[0].Mirrors[0].Link' "${FILE[patcher-json]}") || err "Failed to get patcher download url" "$?"
             METADATA[patcher-url2]=$(jq -r '.Patches[0].Mirrors[1].Link' "${FILE[patcher-json]}") || err "Failed to get patcher mirror url" "$?"
             METADATA[patcher-hash]=$(jq -r '.Patches[0].Mirrors[0].Hash' "${FILE[patcher-json]}") || err "Failed to get patcher hash" "$?"
             METADATA[patcher-eft]=$(get_patcher_eft_version "${METADATA[patcher-url1]}") || err "Failed to get required Live version for patcher" "$?"
         ;;
-        legacy)
+        mod-legacy)
             load_metadata spt
             METADATA[mod-path]="${FILE[legacy-spt]}"
-            METADATA[patcher-path]="${FILE[legacy-patcher]}"
             METADATA[mod-eft]=$(jq -r '.Releases[1].ClientVersion' "${FILE[mod-json]}") || err "Failed to get required Live version for SPT" "$?"
             METADATA[mod-version]=$(jq -r '.Releases[1].SPTVersion' "${FILE[mod-json]}") || err "Failed to get remote SPT version" "$?"
             METADATA[mod-url1]=$(jq -r '.Releases[1].Mirrors[0].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT download url" "$?"
             METADATA[mod-url2]=$(jq -r '.Releases[1].Mirrors[1].DownloadUrl' "${FILE[mod-json]}") || err "Failed to get SPT mirror url" "$?"
             METADATA[mod-hash]=$(jq -r '.Releases[1].Mirrors[0].Hash' "${FILE[mod-json]}") || err "Failed to get SPT archive hash" "$?"
+        ;;
+        patcher-legacy)
+            load_metadata spt
+            METADATA[patcher-path]="${FILE[legacy-patcher]}"
             METADATA[patcher-url1]=$(jq -r '.Patches[1].Mirrors[0].Link' "${FILE[patcher-json]}") || err "Failed to get patcher download url" "$?"
             METADATA[patcher-url2]=$(jq -r '.Patches[1].Mirrors[1].Link' "${FILE[patcher-json]}") || err "Failed to get patcher mirror url" "$?"
             METADATA[patcher-hash]=$(jq -r '.Patches[1].Mirrors[0].Hash' "${FILE[patcher-json]}") || err "Failed to get patcher hash" "$?"
@@ -351,7 +357,7 @@ load_metadata() {
         eft)
             METADATA[inst-eft]=$(get_eft_version) || err "Failed to get Live version" "$?"
         ;;
-        mod-eft)
+        installed-spt)
             METADATA[inst-spt]=$(get_spt_version) || err "Failed to get installed SPT version" "$?"
             METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod Live version" "$?"
         ;;
@@ -970,13 +976,48 @@ install_eft() {
 }
 
 
+downpatch() {
+    local install_mode="${1}"
+    case "${install_mode}" in
+        latest|legacy);;
+        *) err "Invalid install mode: ${install_mode}" ;; 
+    esac
+
+    local tmp_dir="${DIR[tmp]}/${install_mode}_patcher"
+
+    # Download latest patcher if needed
+    [[ -z "${METADATA[patcher-hash]}" ]] && err "Missing patcher hash argument"
+    spt_download patcher
+
+    # Extract latest patcher to tmp directory
+    m_extract "${METADATA[patcher-path]}" "${tmp_dir}"
+
+    # Copy Live files
+    if [[ ! -d "${CONFIG[spt-path]}" ]]; then
+        msg; msg "${BOLD}Copying game files to \"${CONFIG[spt-path]}\"${RESET}"
+        m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
+    fi
+
+    # Move patcher files to install directory
+    msg; msg "${BOLD}Copying patch files to \"${CONFIG[spt-path]}\"${RESET}"
+    local patch_dir; patch_dir="$(find "${tmp_dir}" -type d -name '*SPT_Patches*')"
+    m_cp "${patch_dir}" "${CONFIG[spt-path]}/SPT_Patches" || err "Failed to copy patch files" 
+
+    # Patch game files
+    opt_patch "${CONFIG[spt-path]}" || err "Failed to patch game files"
+}
+
+
 install_spt() {
     local install_mode="${CONFIG[install-mode]}"
     msg "${BOLD}Launching \"SPT\" installer...${RESET}"
 
     case "${install_mode}" in
-        # Continue normally
-        latest|legacy) msg -d "Selected install mode is \"${install_mode}\"..." ;;
+        # Load mod metadata
+        latest|legacy)
+            msg -d "Selected install mode is \"${install_mode}\"..."
+            load_metadata "mod-${install_mode}"
+        ;;
         *) err "Invalid install mode: ${install_mode}" ;; 
     esac
 
@@ -999,13 +1040,10 @@ install_spt() {
     # Add DLL overrides
     opt_dlloverride winhttp n,b
 
-    # Install SPT
-    case "${install_mode}" in
-        latest) load_metadata latest ;;
-        legacy) load_metadata legacy ;;
-    esac
-
     msg; msg "${BOLD}Installing SPT version: \"${METADATA[mod-version]}\"${RESET}"
+
+    # Downpatch to latest (required for legacy as well)
+    load_metadata "patcher-latest"
 
     # Check if we need to patch the game files
     msg -d "Comparing installed Live <--> required Live versions"
@@ -1018,42 +1056,34 @@ install_spt() {
             msg "   ► This usually happens when Live has been updated recently."
             msg "   ► Please wait for the SPT team to generate a new patcher."
             msg "   ► Usually, this will take less then 24 hours."
-            err "No patcher available (Installed version: ${METADATA[inst-eft]})"
+            err "No patcher available for version ${METADATA[inst-eft]} (Compatible version: ${METADATA[patcher-eft]})"
 
         elif [[ "${METADATA[patcher-eft]}" -gt "${METADATA[inst-eft]}" ]]; then
             # Live is outdated!
             warn "Looks like your installed Live version is out-of-date"
             msg "   ► Please update your Live installation & try again"
             err "Live is out-of-date (Patch: ${METADATA[patcher-eft]} <-> Installed: ${METADATA[inst-eft]})"
-
         elif [[ "${METADATA[patcher-eft]}" -eq "${METADATA[inst-eft]}" ]]; then
             # Downpatcher is compatible!
             msg -d "Available patcher is compatible"
-
-            # Download latest patcher if needed
-            [[ -z "${METADATA[patcher-hash]}" ]] && err "Missing patcher hash argument"
-            spt_download patcher
-
-            # Extract latest patcher to tmp directory
-            m_extract "${METADATA[patcher-path]}" "${DIR[tmp]}"
-
-            # Copy Live files
-            msg; msg "${BOLD}Copying game files to \"${CONFIG[spt-path]}\"${RESET}"
-            m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
-
-            # Move patcher files to install directory
-            msg; msg "${BOLD}Copying patch files to \"${CONFIG[spt-path]}\"${RESET}"
-            local patch_dir; patch_dir="$(find "${DIR[tmp]}" -type d -name '*SPT_Patches*')"
-            m_cp "${patch_dir}" "${CONFIG[spt-path]}/SPT_Patches" || err "Failed to copy patch files" 
-
-            # Patch game files
-            opt_patch "${CONFIG[spt-path]}" || err "Failed to patch game files"
+            downpatch latest
         else
             msg -d "Installed Live version is compatible with \"SPT ${METADATA[mod-version]}\""
             msg; msg "${GRAY}Copying game files to \"${CONFIG[spt-path]}\"${RESET}"
             m_cp "${CONFIG[eft-path]}/" "${CONFIG[spt-path]}"
         fi
     fi
+
+    if [[ "${install_mode}" == "legacy" ]]; then
+        load_metadata installed-spt
+        load_metadata patcher-legacy
+        case "${METADATA[inst-mod-eft]}" in
+            "${METADATA[patcher-eft]}") downpatch legacy ;;
+            *) err "Incompatible Live version ${METADATA[inst-mod-eft]} (Required: ${METADATA[patcher-eft]})" ;;
+        esac
+    fi
+
+    msg; msg "${BOLD}Done patching game files!${RESET}"
 
     msg; msg "${BOLD}Installing SPT mod files...${RESET}"
     spt_download mod
@@ -1111,6 +1141,7 @@ install_spt() {
 install_fika() {
     local releases=("fika-core" "fika-server")
     msg "${BOLD}Launching \"Fika\" installer...${RESET}"
+    load_metadata installed-spt
 
     if ! check_eft_installed; then
         warn "${BOLD}The game client is not installed${RESET}"
@@ -1242,7 +1273,7 @@ opt_install() {
     case "${option}" in
         eft|bsg) install_eft ;;
         spt) load_metadata eft; install_spt "${CONFIG[install-mode]}" ;;
-        fika) load_metadata mod-eft; install_fika "${CONFIG[install-mode]}" ;;
+        fika) install_fika "${CONFIG[install-mode]}" ;;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -1281,11 +1312,11 @@ opt_update() {
     case "${option}" in
         spt)
             # Get metadata
-            if check_latest_installed; then load_metadata latest
-            elif check_legacy_installed; then load_metadata legacy
+            if check_latest_installed; then load_metadata mod-latest
+            elif check_legacy_installed; then load_metadata mod-legacy
             else msg "SPT is not installed"; return 0; fi
             
-            load_metadata mod-eft
+            load_metadata installed-spt
             [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
             local latest_version; latest_version="$(get_latest_spt_version)" || err "Failed to get latest SPT version"
             [[ -z "${latest_version}" ]] && err "latest SPT version is not set"
@@ -1347,7 +1378,7 @@ opt_update() {
                 err "Unhandled exception"
             fi
         ;;
-        fika) load_metadata mod-eft; NO_PROMPT=1 install_fika ;;
+        fika) NO_PROMPT=1 install_fika ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
             [[ -z "${CONFIG[PROTONPATH]}" ]] && err "PROTONPATH is not set"
@@ -1363,7 +1394,6 @@ opt_update() {
 
 
 opt_patch() {
-    msg; msg "${BOLD}Launching patcher...${RESET}"
     local files_total; local progress=1
     local target_path="${1:-"${CONFIG[spt-path]}"}";  local source_path="${2:-"${target_path}"}"
     target_path=$(resolve_path "${target_path%/}"); source_path=$(resolve_path "${source_path%/}" )
@@ -1439,11 +1469,11 @@ opt_patch() {
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         msg "${GRAY}Cleaning up patch files...${RESET}"
-        [[ -d "${source_path}/SPT_Patches" ]] && rm -r "${source_path}/SPT_Patches"
-        [[ -f "${source_path}/patcher.exe" ]] && rm -r "${source_path}/patcher.exe"
+        [[ -d "${source_path}/SPT_Patches" ]] && m_rm -r "${source_path}/SPT_Patches"
+        [[ -f "${source_path}/patcher.exe" ]] && m_rm -f "${source_path}/patcher.exe"
     fi
 
-    msg; msg "${BOLD}Done patching game files!${RESET}"
+    return 0
 }
 
 
