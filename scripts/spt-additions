@@ -357,7 +357,7 @@ load_metadata() {
         eft)
             METADATA[inst-eft]=$(get_eft_version) || err "Failed to get Live version" "$?"
         ;;
-        mod-eft)
+        installed-spt)
             METADATA[inst-spt]=$(get_spt_version) || err "Failed to get installed SPT version" "$?"
             METADATA[inst-mod-eft]=$(get_mod_eft_version) || err "Failed to get mod Live version" "$?"
         ;;
@@ -1013,7 +1013,7 @@ install_spt() {
     msg "${BOLD}Launching \"SPT\" installer...${RESET}"
 
     case "${install_mode}" in
-        # Continue normally
+        # Load mod metadata
         latest|legacy)
             msg -d "Selected install mode is \"${install_mode}\"..."
             load_metadata "mod-${install_mode}"
@@ -1044,6 +1044,7 @@ install_spt() {
 
     # Downpatch to latest (required for legacy as well)
     load_metadata "patcher-latest"
+
     # Check if we need to patch the game files
     msg -d "Comparing installed Live <--> required Live versions"
     if [[ "${METADATA[inst-eft]}" -ne "${METADATA[mod-eft]}" ]]; then
@@ -1074,8 +1075,12 @@ install_spt() {
     fi
 
     if [[ "${install_mode}" == "legacy" ]]; then
-        load_metadata "patcher-legacy"
-        downpatch legacy
+        load_metadata installed-spt
+        load_metadata patcher-legacy
+        case "${METADATA[inst-mod-eft]}" in
+            "${METADATA[patcher-eft]}") downpatch legacy ;;
+            *) err "Incompatible Live version ${METADATA[inst-mod-eft]} (Required: ${METADATA[patcher-eft]})" ;;
+        esac
     fi
 
     msg; msg "${BOLD}Done patching game files!${RESET}"
@@ -1136,6 +1141,7 @@ install_spt() {
 install_fika() {
     local releases=("fika-core" "fika-server")
     msg "${BOLD}Launching \"Fika\" installer...${RESET}"
+    load_metadata installed-spt
 
     if ! check_eft_installed; then
         warn "${BOLD}The game client is not installed${RESET}"
@@ -1267,7 +1273,7 @@ opt_install() {
     case "${option}" in
         eft|bsg) install_eft ;;
         spt) load_metadata eft; install_spt "${CONFIG[install-mode]}" ;;
-        fika) load_metadata mod-eft; install_fika "${CONFIG[install-mode]}" ;;
+        fika) install_fika "${CONFIG[install-mode]}" ;;
         "") err "Option \"install\" requires an argument" ;;
         *) err "Invalid option \"${option}\"" ;;
     esac
@@ -1310,7 +1316,7 @@ opt_update() {
             elif check_legacy_installed; then load_metadata mod-legacy
             else msg "SPT is not installed"; return 0; fi
             
-            load_metadata mod-eft
+            load_metadata installed-spt
             [[ -z "${METADATA[inst-spt]}" ]] && err "Installed SPT version is not set"
             local latest_version; latest_version="$(get_latest_spt_version)" || err "Failed to get latest SPT version"
             [[ -z "${latest_version}" ]] && err "latest SPT version is not set"
@@ -1372,7 +1378,7 @@ opt_update() {
                 err "Unhandled exception"
             fi
         ;;
-        fika) load_metadata mod-eft; NO_PROMPT=1 install_fika ;;
+        fika) NO_PROMPT=1 install_fika ;;
         additions|script) opt_selfupdate ;;
         ge-proton|proton-ge|proton)
             [[ -z "${CONFIG[PROTONPATH]}" ]] && err "PROTONPATH is not set"
@@ -1463,9 +1469,11 @@ opt_patch() {
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         msg "${GRAY}Cleaning up patch files...${RESET}"
-        [[ -d "${source_path}/SPT_Patches" ]] && rm -r "${source_path}/SPT_Patches"
-        [[ -f "${source_path}/patcher.exe" ]] && rm -r "${source_path}/patcher.exe"
+        [[ -d "${source_path}/SPT_Patches" ]] && m_rm -r "${source_path}/SPT_Patches"
+        [[ -f "${source_path}/patcher.exe" ]] && m_rm -f "${source_path}/patcher.exe"
     fi
+
+    return 0
 }
 
 
