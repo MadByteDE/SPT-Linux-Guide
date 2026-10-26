@@ -1469,8 +1469,8 @@ opt_patch() {
     # Clean up patcher files
     if [[ "${target_path}" == *"${source_path}"* ]]; then
         msg "${GRAY}Cleaning up patch files...${RESET}"
-        [[ -d "${source_path}/SPT_Patches" ]] && m_rm -r "${source_path}/SPT_Patches"
-        [[ -f "${source_path}/patcher.exe" ]] && m_rm -f "${source_path}/patcher.exe"
+        [[ -d "${source_path}/SPT_Patches" ]] && rm -r "${source_path}/SPT_Patches"
+        [[ -f "${source_path}/patcher.exe" ]] && rm -f "${source_path}/patcher.exe"
     fi
 
     return 0
