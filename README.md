@@ -7,47 +7,44 @@
 
 Here you can find everything you need to install & play SPT on Linux.
 
-## Bug reports
-
-> [!IMPORTANT]
-> This guide has been written by the SPT community and is **NOT** officially supported by the SPT developers.
-
-If you encounter an issue while playing SPT on Linux, do **NOT** report it to the dev's unless you're 100% sure it affects Windows installations as well. If possible, verify the issue on a Windows installation of the mod before reporting it.
-
-## Automated installers
-
-### Additions CLI installer
-
-  > [!WARNING]
-  > NixOS is currently not supported ([#14](https://github.com/MadByteDE/SPT-Linux-Guide/pull/14))
-
-  - Guided installer for SPT using UMU-Launcher / GE-Proton directly (without Lutris/Bottles)
-  - ⚠️ Uses a custom **native Linux** bash script ([view source](scripts/spt-additions))
-
-  1. Install the `aspnetcore-runtime-10.0` system package ([how to install](docs/aspnet.md))
-  2. Install the `webkit2gtk-4.1` system package
-  3. Run the following command in a terminal:
-
-```bash
-bash -c "$(curl -fsSL https://madbytede.github.io/SPT-Linux-Guide/scripts/spt-additions)"
-```
+> [!WARNING]
+> ## MAINTENANCE MODE
+> This guide is currently in maintenance mode. This means we will only be fixing bugs and making minor improvements.
 
 
-## Manual guides
+# How to install 💿
 
-> [!NOTE]
-> We **do not** provide support for manual guides on Github. 
-> You can ask for help on the [SPT Discord server](https://discord.com/invite/Xn9msqQZan) in the `Community-Support/SPT on Linux - User discussion thread` instead.
+## Dependencies
 
-#### Lutris
-- [Video guide](https://www.youtube.com/watch?v=Fqn_N55WT38) (SPT 4.1) - *made by Skippy*
-- [Written guide](docs/lutris/manual_guide.md) (SPT 4.1)
+- [ASP.NET Desktop Runtime 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+    - Install the `aspnetcore-runtime-10.0` system package ([how to install](docs/aspnet.md))
 
-#### Bottles
-- [Written guide](docs/bottles/manual_guide.md) (**Outdated** - SPT 4.0)
+- [UMU-Launcher](https://github.com/Open-Wine-Components/umu-launcher)
+    - Some distros provide a `umu-launcher` system package
+    - Alternatively, [download the latest Release](https://github.com/Open-Wine-Components/umu-launcher/releases) from Github
+
+- [SPTInstaller](https://github.com/SP-Tushonka/installer)
+    - [Download the latest Linux installer](https://github.com/SP-Tushonka/installer/releases) from Github
+
+## Install
+
+1. Install dependencies listed above 🔝
+2. Install the Live game client (Steam or the official launcher) 🎮
+3. Run the SPTInstaller & follow the instructions inside the app ☝️
+
+Steam installs are detected automatically. If you own the official launcher version, you have to manually select the path to the game files inside the installer.
+
+Application menu shortcuts will be created automatically.
+
+### Get your favorite mods from **THE FORGE** 📢
+- https://sp-mod.com/
+
+### If you encounter any issues, feel free to visit us on [Discord](https://discord.com/invite/Xn9msqQZan)! 🗨️
+
+    Community-Support/SPT on Linux - User Discussion Thread
 
 
-## Contributions
+# Contributions 🚧
 If you want to contribute to the guide, feel free to:
 - Send us a [pull request](https://github.com/MadByteDE/SPT-Linux-Guide/compare/SPTv4-Dev...main)
 - Open a [new issue](https://github.com/MadByteDE/SPT-Linux-Guide/issues/new/choose)
@@ -56,15 +53,11 @@ If you want to contribute to the guide, feel free to:
 If you want to send us a PR, please make sure the formatting of your addition matches the existing content in our guide.
 
 
-## Find us on Discord
-Check out the offical [SPT Discord server](https://discord.com/invite/Xn9msqQZan)!
+# Credits ♥️
 
+Thanks to everyone helping out and contributing to the guide!
 
-## Credits
-
-Thanks to everyone helping out and contributing to the guide <3 !
-
-### Guide contributors:
+## Guide contributors
 - **APoorDev**
 - **dj3hac**
 - **Laserpulse**
